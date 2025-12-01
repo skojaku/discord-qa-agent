@@ -1,0 +1,459 @@
+"""Quiz command cog for quiz interactions."""
+
+import logging
+import random
+import re
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+from ..prompts.templates import PromptTemplates
+
+if TYPE_CHECKING:
+    from ..bot import ChibiBot
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class PendingQuiz:
+    """Represents a pending quiz awaiting student response."""
+
+    user_id: int
+    db_user_id: int
+    channel_id: int
+    message_id: int
+    module_id: str
+    concept_id: str
+    concept_name: str
+    concept_description: str
+    quiz_format: str
+    question: str
+    correct_answer: Optional[str]
+    created_at: datetime
+
+
+class QuizCog(commands.Cog):
+    """Cog for the /quiz command."""
+
+    def __init__(self, bot: "ChibiBot"):
+        self.bot = bot
+        self._pending_quizzes: Dict[int, PendingQuiz] = {}  # user_id -> PendingQuiz
+        self._quiz_timeout = timedelta(minutes=30)
+
+    async def module_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
+        """Autocomplete for module selection."""
+        if not self.bot.course:
+            return []
+
+        choices = []
+        for module in self.bot.course.modules:
+            display_name = f"{module.id}: {module.name}"
+            if current.lower() in display_name.lower():
+                choices.append(
+                    app_commands.Choice(name=display_name[:100], value=module.id)
+                )
+
+        return choices[:25]
+
+    async def format_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
+        """Autocomplete for quiz format selection."""
+        if not self.bot.course:
+            return []
+
+        choices = []
+        for fmt in self.bot.course.quiz_formats:
+            if current.lower() in fmt.name.lower() or current.lower() in fmt.id.lower():
+                choices.append(
+                    app_commands.Choice(name=fmt.name, value=fmt.id)
+                )
+
+        return choices[:25]
+
+    async def concept_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
+        """Autocomplete for concept selection."""
+        if not self.bot.course:
+            return []
+
+        choices = []
+        # Get all concepts across modules
+        for module in self.bot.course.modules:
+            for concept in module.concepts:
+                display_name = f"{concept.name} ({module.id})"
+                if current.lower() in display_name.lower():
+                    choices.append(
+                        app_commands.Choice(name=display_name[:100], value=concept.id)
+                    )
+
+        return choices[:25]
+
+    @app_commands.command(name="quiz", description="Test your knowledge with a quiz question")
+    @app_commands.describe(
+        module="Module to quiz on (optional - random if not specified)",
+        format="Quiz format (optional - random if not specified)",
+        concept="Specific concept to focus on (optional)",
+    )
+    @app_commands.autocomplete(
+        module=module_autocomplete,
+        format=format_autocomplete,
+        concept=concept_autocomplete,
+    )
+    async def quiz(
+        self,
+        interaction: discord.Interaction,
+        module: str = None,
+        format: str = None,
+        concept: str = None,
+    ):
+        """Generate a quiz question."""
+        await interaction.response.defer(thinking=True)
+
+        try:
+            # Get or create user
+            user = await self.bot.repository.get_or_create_user(
+                discord_id=str(interaction.user.id),
+                username=interaction.user.display_name,
+            )
+
+            # Select module
+            if module:
+                module_obj = self.bot.course.get_module(module)
+            else:
+                module_obj = random.choice(self.bot.course.modules)
+
+            if not module_obj:
+                await interaction.followup.send(
+                    "Could not find the specified module. Please try again! 📚"
+                )
+                return
+
+            # Select concept
+            if concept:
+                concept_obj = module_obj.get_concept(concept)
+                if not concept_obj:
+                    # Try to find in any module
+                    all_concepts = self.bot.course.get_all_concepts()
+                    concept_obj = all_concepts.get(concept)
+            else:
+                if module_obj.concepts:
+                    concept_obj = random.choice(module_obj.concepts)
+                else:
+                    concept_obj = None
+
+            if not concept_obj:
+                await interaction.followup.send(
+                    "No concepts found for this module. Please try a different module! 📖"
+                )
+                return
+
+            # Select format
+            if format:
+                quiz_format = format
+            else:
+                quiz_format = random.choice(
+                    [f.id for f in self.bot.course.quiz_formats]
+                )
+
+            # Generate quiz question
+            quiz_prompt = PromptTemplates.get_quiz_prompt(
+                concept_name=concept_obj.name,
+                concept_description=concept_obj.description,
+                quiz_focus=concept_obj.quiz_focus,
+                quiz_format=quiz_format,
+                module_content=module_obj.content or "",
+            )
+
+            response = await self.bot.llm_manager.generate(
+                prompt=quiz_prompt,
+                max_tokens=self.bot.config.llm.max_tokens,
+                temperature=0.8,  # Slightly higher for variety
+            )
+
+            if not response:
+                await interaction.followup.send(
+                    self.bot.llm_manager.get_error_message()
+                )
+                return
+
+            # Parse correct answer from response if present
+            question_text = response.content
+            correct_answer = self._extract_correct_answer(question_text, quiz_format)
+
+            # Remove the answer marker from the question shown to student
+            question_text = self._clean_question(question_text)
+
+            # Send question
+            embed = discord.Embed(
+                title=f"📝 Quiz: {concept_obj.name}",
+                description=question_text,
+                color=discord.Color.blue(),
+            )
+            embed.set_footer(
+                text=f"Module: {module_obj.name} | Format: {quiz_format}\n"
+                f"Reply to this message with your answer!"
+            )
+
+            message = await interaction.followup.send(embed=embed)
+
+            # Store pending quiz
+            self._pending_quizzes[interaction.user.id] = PendingQuiz(
+                user_id=interaction.user.id,
+                db_user_id=user.id,
+                channel_id=interaction.channel_id,
+                message_id=message.id,
+                module_id=module_obj.id,
+                concept_id=concept_obj.id,
+                concept_name=concept_obj.name,
+                concept_description=concept_obj.description,
+                quiz_format=quiz_format,
+                question=question_text,
+                correct_answer=correct_answer,
+                created_at=datetime.now(),
+            )
+
+            logger.info(
+                f"Quiz generated for {interaction.user.display_name}: "
+                f"{concept_obj.name} ({quiz_format})"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in /quiz command: {e}", exc_info=True)
+            await interaction.followup.send(
+                "Oops! Something went wrong while generating your quiz. "
+                "Please try again! 🔧"
+            )
+
+    def _extract_correct_answer(self, text: str, quiz_format: str) -> Optional[str]:
+        """Extract the correct answer from the LLM response."""
+        patterns = {
+            "multiple-choice": r"\[CORRECT:\s*([A-D])\]",
+            "short-answer": r"\[EXPECTED:\s*(.+?)\]",
+            "true-false": r"\[CORRECT:\s*(True|False)\]",
+            "fill-blank": r"\[ANSWER:\s*(.+?)\]",
+        }
+
+        pattern = patterns.get(quiz_format)
+        if pattern:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+
+        return None
+
+    def _clean_question(self, text: str) -> str:
+        """Remove answer markers from question text."""
+        # Remove various answer format markers
+        patterns = [
+            r"\[CORRECT:\s*[A-D]\]",
+            r"\[CORRECT:\s*(?:True|False)\]",
+            r"\[EXPECTED:\s*.+?\]",
+            r"\[ANSWER:\s*.+?\]",
+        ]
+        for pattern in patterns:
+            text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+        return text.strip()
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        """Listen for quiz answers."""
+        # Ignore bot messages
+        if message.author.bot:
+            return
+
+        # Check if user has a pending quiz
+        user_id = message.author.id
+        if user_id not in self._pending_quizzes:
+            return
+
+        pending = self._pending_quizzes[user_id]
+
+        # Check if quiz has expired
+        if datetime.now() - pending.created_at > self._quiz_timeout:
+            del self._pending_quizzes[user_id]
+            return
+
+        # Check if message is in the same channel (or DM)
+        is_same_channel = message.channel.id == pending.channel_id
+        is_dm = isinstance(message.channel, discord.DMChannel)
+
+        if not (is_same_channel or is_dm):
+            return
+
+        # Check if it's a reply to the quiz message or just any message in DM
+        is_reply = (
+            message.reference
+            and message.reference.message_id == pending.message_id
+        )
+
+        # In DMs, accept any message. In channels, require reply
+        if not is_dm and not is_reply:
+            return
+
+        # Process the answer
+        await self._evaluate_answer(message, pending)
+
+        # Remove pending quiz
+        del self._pending_quizzes[user_id]
+
+    async def _evaluate_answer(self, message: discord.Message, pending: PendingQuiz):
+        """Evaluate a student's quiz answer."""
+        student_answer = message.content
+
+        # Show typing indicator
+        async with message.channel.typing():
+            # Build evaluation prompt
+            eval_prompt = PromptTemplates.get_evaluation_prompt(
+                question=pending.question,
+                student_answer=student_answer,
+                concept_name=pending.concept_name,
+                concept_description=pending.concept_description,
+                correct_answer=pending.correct_answer or "",
+            )
+
+            response = await self.bot.llm_manager.generate(
+                prompt=eval_prompt,
+                max_tokens=self.bot.config.llm.max_tokens,
+                temperature=0.3,  # Lower for more consistent evaluation
+            )
+
+            if not response:
+                await message.reply(self.bot.llm_manager.get_error_message())
+                return
+
+            # Parse evaluation response
+            eval_text = response.content
+            lines = eval_text.strip().split("\n")
+
+            is_correct = False
+            quality_score = 0
+            feedback = eval_text
+
+            if lines:
+                first_line = lines[0].upper().strip()
+                if "CORRECT" in first_line and "INCORRECT" not in first_line:
+                    is_correct = True
+                elif "PARTIAL" in first_line:
+                    is_correct = True  # Count partial as correct for mastery
+
+                # Try to get quality score from second line
+                if len(lines) > 1:
+                    try:
+                        quality_score = int(lines[1].strip())
+                        quality_score = max(1, min(5, quality_score))  # Clamp 1-5
+                        # Feedback starts from line 3
+                        feedback = "\n".join(lines[2:]).strip()
+                    except ValueError:
+                        # No quality score, feedback starts from line 2
+                        feedback = "\n".join(lines[1:]).strip()
+
+            # Log quiz attempt
+            await self.bot.repository.log_quiz_attempt(
+                user_id=pending.db_user_id,
+                module_id=pending.module_id,
+                concept_id=pending.concept_id,
+                quiz_format=pending.quiz_format,
+                question=pending.question,
+                user_answer=student_answer,
+                correct_answer=pending.correct_answer,
+                is_correct=is_correct,
+                llm_feedback=feedback,
+                llm_quality_score=quality_score if quality_score > 0 else None,
+            )
+
+            # Update mastery
+            await self._update_mastery(
+                pending.db_user_id,
+                pending.concept_id,
+                is_correct,
+                quality_score,
+            )
+
+            # Send feedback
+            color = discord.Color.green() if is_correct else discord.Color.red()
+            embed = discord.Embed(
+                title="Quiz Feedback",
+                description=feedback if feedback else eval_text,
+                color=color,
+            )
+
+            await message.reply(embed=embed)
+
+            logger.info(
+                f"Quiz evaluated for user {message.author.display_name}: "
+                f"{pending.concept_name} - {'correct' if is_correct else 'incorrect'}"
+            )
+
+    async def _update_mastery(
+        self,
+        user_id: int,
+        concept_id: str,
+        is_correct: bool,
+        quality_score: int,
+    ):
+        """Update concept mastery after a quiz attempt."""
+        # Get current mastery
+        mastery = await self.bot.repository.get_or_create_mastery(user_id, concept_id)
+
+        # Update counts
+        new_total = mastery.total_attempts + 1
+        new_correct = mastery.correct_attempts + (1 if is_correct else 0)
+
+        # Update average quality score
+        if quality_score > 0:
+            if mastery.avg_quality_score > 0:
+                new_avg = (
+                    mastery.avg_quality_score * mastery.total_attempts + quality_score
+                ) / new_total
+            else:
+                new_avg = float(quality_score)
+        else:
+            new_avg = mastery.avg_quality_score
+
+        # Calculate new mastery level
+        new_level = self._calculate_mastery_level(new_total, new_correct, new_avg)
+
+        # Update database
+        await self.bot.repository.update_mastery(
+            user_id=user_id,
+            concept_id=concept_id,
+            total_attempts=new_total,
+            correct_attempts=new_correct,
+            avg_quality_score=new_avg,
+            mastery_level=new_level,
+        )
+
+    def _calculate_mastery_level(
+        self, total: int, correct: int, avg_quality: float
+    ) -> str:
+        """Calculate mastery level based on performance."""
+        config = self.bot.config.mastery
+
+        if total < config.min_attempts_for_mastery:
+            return "novice"
+
+        ratio = correct / total if total > 0 else 0
+
+        # Hybrid: both ratio and quality must meet thresholds
+        if ratio >= 0.85 and avg_quality >= 4.0:
+            return "mastered"
+        elif ratio >= 0.6:
+            return "proficient"
+        elif ratio >= 0.3:
+            return "learning"
+        else:
+            return "novice"
+
+
+async def setup(bot: "ChibiBot"):
+    """Set up the Quiz cog."""
+    await bot.add_cog(QuizCog(bot))

@@ -1,0 +1,105 @@
+# Course Configuration for Chibi Bot
+# This file defines your course modules, concepts, and content sources
+
+course:
+  name: "Introduction to Network Science"
+  code: "NETSCI101"
+  description: "Fundamentals of network analysis and graph theory"
+
+# Module definitions
+# Each module has an ID, name, content URL, and concepts to master
+modules:
+  - id: "m01"
+    name: "Euler Path and Circuit"
+    description: "Understanding paths that traverse every edge exactly once"
+    content_url: "https://example.com/modules/euler-path.txt"  # Replace with your actual URL
+    concepts:
+      # Main concepts for this module
+      - id: "euler-path"
+        name: "Euler Path"
+        type: "theory"
+        difficulty: 3
+        description: "A path in a graph that visits every edge exactly once. Understand the formal definition and when such paths exist."
+        quiz_focus: "Existence conditions, relationship to degree, coding implementation"
+        prerequisites:
+          - "walk"
+
+      - id: "euler-circuit"
+        name: "Euler Circuit"
+        type: "theory"
+        difficulty: 3
+        description: "A closed Euler path that starts and ends at the same vertex, visiting every edge exactly once."
+        quiz_focus: "Difference from Euler path, existence conditions, relationship to degree, coding implementation"
+        prerequisites:
+          - "euler-path"
+
+      # Building-block concepts (prerequisites)
+      - id: "walk"
+        name: "Walk"
+        type: "theory"
+        difficulty: 2
+        description: "A sequence of nodes and edges in a graph where two consecutive nodes are connected by an edge."
+        quiz_focus: "Definition, code implementation to check if a node sequence is a walk"
+        prerequisites: []
+
+      - id: "degree"
+        name: "Node Degree"
+        type: "theory"
+        difficulty: 2
+        description: "The number of edges incident to a node. In directed graphs, distinguish between in-degree and out-degree."
+        quiz_focus: "Definition, calculating degree from adjacency matrix/list"
+        prerequisites: []
+
+  - id: "m02"
+    name: "Network Centrality"
+    description: "Measuring node importance in networks"
+    content_url: "https://example.com/modules/centrality.txt"  # Replace with your actual URL
+    concepts:
+      - id: "degree-centrality"
+        name: "Degree Centrality"
+        type: "theory"
+        difficulty: 2
+        description: "Simplest centrality measure based on node degree."
+        quiz_focus: "Definition, normalization, interpretation"
+        prerequisites:
+          - "degree"
+
+      - id: "betweenness-centrality"
+        name: "Betweenness Centrality"
+        type: "theory"
+        difficulty: 4
+        description: "Measures how often a node lies on shortest paths between other nodes."
+        quiz_focus: "Definition, calculation, interpretation, applications"
+        prerequisites:
+          - "degree-centrality"
+
+      - id: "closeness-centrality"
+        name: "Closeness Centrality"
+        type: "theory"
+        difficulty: 3
+        description: "Measures how close a node is to all other nodes in the network."
+        quiz_focus: "Definition, calculation, handling disconnected graphs"
+        prerequisites:
+          - "degree-centrality"
+
+# Available quiz formats
+quiz_formats:
+  - id: "multiple-choice"
+    name: "Multiple Choice"
+    description: "Choose the correct answer from 4 options (A, B, C, D)"
+
+  - id: "free-form"
+    name: "Free Form"
+    description: "Explain concepts in your own words"
+
+  - id: "short-answer"
+    name: "Short Answer"
+    description: "Brief text response (1-3 sentences)"
+
+  - id: "true-false"
+    name: "True/False"
+    description: "Determine if a statement is true or false"
+
+  - id: "fill-blank"
+    name: "Fill in the Blank"
+    description: "Complete the sentence with the missing term"
