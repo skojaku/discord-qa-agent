@@ -77,6 +77,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.ask")
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
+        await self.load_extension("chibi.cogs.chat")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
