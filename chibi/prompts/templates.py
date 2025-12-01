@@ -75,9 +75,12 @@ Generate the quiz question now:"""
 - Include the correct answer letter at the end in this exact format: [CORRECT: X]
   where X is A, B, C, or D""",
         "free-form": """FREE-FORM FORMAT:
-- Ask an open-ended question requiring explanatory answers
-- The question should test understanding, not just memorization
-- Good free-form questions start with "Explain...", "Describe...", "Compare...", "Why..." """,
+- Ask ONE focused question about a SINGLE aspect of the concept
+- DO NOT ask multi-part questions (e.g., "explain X, why Y, and describe Z")
+- The question should test conceptual understanding, not memorization
+- DO NOT expect mathematical formulas in answers (this is a chat interface)
+- Good question starters: "Explain...", "Why does...", "What happens when...", "How would you..."
+- Keep the expected answer scope to 2-4 sentences""",
         "short-answer": """SHORT-ANSWER FORMAT:
 - Ask a question expecting a brief, specific response (1-3 sentences)
 - Include the expected answer at the end in this exact format: [EXPECTED: your answer here]""",
@@ -103,34 +106,34 @@ STUDENT'S ANSWER: {student_answer}
 CONCEPT BEING TESTED: {concept_name}
 CONCEPT DESCRIPTION: {concept_description}
 
-EVALUATION INSTRUCTIONS:
-- DO NOT GREET. GO STRAIGHT TO THE EVALUATION.
-- Start with "Correct! ✅" or "Not quite right ❌"
-- Provide a brief explanation of why the answer is correct or incorrect
-- For free-form/short-answer: Rate the quality on a scale of 1-5
-  - 1: Completely incorrect or irrelevant
-  - 2: Shows some understanding but major gaps
-  - 3: Partially correct, captures main idea
-  - 4: Good understanding with minor issues
-  - 5: Excellent, demonstrates mastery
-- End with: "Would you like another question or have any follow-up questions? 🤔"
+CRITICAL EVALUATION RULES:
+1. ONLY evaluate based on what the QUESTION EXPLICITLY ASKED
+2. DO NOT penalize for missing mathematical formulas (this is a chat interface)
+3. DO NOT expect details that weren't asked for
+4. Focus on whether the student understands the CORE CONCEPT
 
-RESPONSE FORMAT:
-First line must be exactly one of:
-- CORRECT
-- INCORRECT
-- PARTIAL (for partial credit in free-form)
+QUALITY SCORE CRITERIA (1-5):
+- 5 (PASS): Correctly answers what was asked, shows clear understanding
+- 4 (PASS): Good understanding with minor omissions
+- 3 (PARTIAL): Captures the main idea but incomplete or slightly inaccurate
+- 2 (FAIL): Shows some awareness but major gaps or misconceptions
+- 1 (FAIL): Incorrect or irrelevant
 
-Second line: Quality score (1-5) if applicable, otherwise 0
+STRICT OUTPUT FORMAT (you MUST follow this exactly):
+Line 1: PASS, PARTIAL, or FAIL (nothing else on this line)
+Line 2: Score (1-5) as a single number
+Line 3 onwards: Your feedback starting with an emoji (✅ for pass, 🔶 for partial, ❌ for fail)
 
-Rest: Your feedback to the student
+End feedback with: "Would you like another question or have any follow-up questions? 🤔"
 
-Example response:
-CORRECT
-5
-Correct! ✅ You've demonstrated excellent understanding of...
+EXAMPLE OUTPUT:
+PASS
+4
+✅ Good answer! You correctly explained that... [feedback continues]
 
-Evaluate the answer now:"""
+Would you like another question or have any follow-up questions? 🤔
+
+NOW EVALUATE:"""
 
     @classmethod
     def get_system_prompt(

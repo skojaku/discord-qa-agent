@@ -334,15 +334,21 @@ class QuizCog(commands.Cog):
             lines = eval_text.strip().split("\n")
 
             is_correct = False
+            is_partial = False
             quality_score = 0
             feedback = eval_text
+            result_status = "FAIL"
 
             if lines:
                 first_line = lines[0].upper().strip()
-                if "CORRECT" in first_line and "INCORRECT" not in first_line:
+                if first_line == "PASS":
                     is_correct = True
-                elif "PARTIAL" in first_line:
-                    is_correct = True  # Count partial as correct for mastery
+                    result_status = "PASS"
+                elif first_line == "PARTIAL":
+                    is_partial = True
+                    result_status = "PARTIAL"
+                else:
+                    result_status = "FAIL"
 
                 # Try to get quality score from second line
                 if len(lines) > 1:
@@ -355,6 +361,9 @@ class QuizCog(commands.Cog):
                         # No quality score, feedback starts from line 2
                         feedback = "\n".join(lines[1:]).strip()
 
+            # For mastery: count PASS and PARTIAL as correct
+            counts_as_correct = is_correct or is_partial
+
             # Log quiz attempt
             await self.bot.repository.log_quiz_attempt(
                 user_id=pending.db_user_id,
@@ -364,7 +373,7 @@ class QuizCog(commands.Cog):
                 question=pending.question,
                 user_answer=student_answer,
                 correct_answer=pending.correct_answer,
-                is_correct=is_correct,
+                is_correct=counts_as_correct,
                 llm_feedback=feedback,
                 llm_quality_score=quality_score if quality_score > 0 else None,
             )
@@ -373,17 +382,27 @@ class QuizCog(commands.Cog):
             await self._update_mastery(
                 pending.db_user_id,
                 pending.concept_id,
-                is_correct,
+                counts_as_correct,
                 quality_score,
             )
 
-            # Send feedback
-            color = discord.Color.green() if is_correct else discord.Color.red()
+            # Send feedback with clear pass/fail status
+            if result_status == "PASS":
+                color = discord.Color.green()
+                title = f"✅ PASS (Score: {quality_score}/5)"
+            elif result_status == "PARTIAL":
+                color = discord.Color.gold()
+                title = f"🔶 PARTIAL (Score: {quality_score}/5)"
+            else:
+                color = discord.Color.red()
+                title = f"❌ FAIL (Score: {quality_score}/5)"
+
             embed = discord.Embed(
-                title="Quiz Feedback",
+                title=title,
                 description=feedback if feedback else eval_text,
                 color=color,
             )
+            embed.set_footer(text=f"Concept: {pending.concept_name}")
 
             await message.reply(embed=embed)
 
