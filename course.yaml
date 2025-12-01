@@ -12,7 +12,7 @@ modules:
   - id: "m01"
     name: "Euler Path and Circuit"
     description: "Understanding paths that traverse every edge exactly once"
-    content_url: "https://example.com/modules/euler-path.txt"  # Replace with your actual URL
+    content_url: "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m01-concept.md"  # Replace with your actual URL
     concepts:
       # Main concepts for this module
       - id: "euler-path"
@@ -53,7 +53,7 @@ modules:
   - id: "m02"
     name: "Network Centrality"
     description: "Measuring node importance in networks"
-    content_url: "https://example.com/modules/centrality.txt"  # Replace with your actual URL
+    content_url: "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m06-concept.md"  # Replace with your actual URL
     concepts:
       - id: "degree-centrality"
         name: "Degree Centrality"

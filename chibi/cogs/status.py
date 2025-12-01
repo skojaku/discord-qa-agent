@@ -29,7 +29,15 @@ class StatusCog(commands.Cog):
         view: Literal["summary", "detailed", "recent", "concepts"] = "summary",
     ):
         """Show learning status and progress."""
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
+        except discord.NotFound:
+            # Interaction expired - this can happen due to network latency
+            logger.warning("Interaction expired before defer (network latency)")
+            return
+        except Exception as e:
+            logger.error(f"Failed to defer interaction: {e}")
+            return
 
         try:
             # Get or create user

@@ -62,61 +62,75 @@ class QuizCog(commands.Cog):
 
         return choices[:25]
 
-    async def format_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
-        """Autocomplete for quiz format selection."""
-        if not self.bot.course:
-            return []
+    async def _select_concept_by_mastery(self, user_id: int, module) -> tuple:
+        """Select a concept based on mastery level.
 
-        choices = []
-        for fmt in self.bot.course.quiz_formats:
-            if current.lower() in fmt.name.lower() or current.lower() in fmt.id.lower():
-                choices.append(
-                    app_commands.Choice(name=fmt.name, value=fmt.id)
-                )
+        Priority:
+        1. Concepts not yet attempted (novice with 0 attempts)
+        2. Concepts with low mastery (learning, novice)
+        3. Concepts needing reinforcement (proficient)
+        4. Random from mastered (for review)
 
-        return choices[:25]
+        Returns:
+            Tuple of (concept, selection_reason)
+        """
+        if not module.concepts:
+            return None, ""
 
-    async def concept_autocomplete(
-        self, interaction: discord.Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
-        """Autocomplete for concept selection."""
-        if not self.bot.course:
-            return []
+        # Get mastery for all concepts in this module
+        concept_scores = []
+        for concept in module.concepts:
+            mastery = await self.bot.repository.get_or_create_mastery(user_id, concept.id)
 
-        choices = []
-        # Get all concepts across modules
-        for module in self.bot.course.modules:
-            for concept in module.concepts:
-                display_name = f"{concept.name} ({module.id})"
-                if current.lower() in display_name.lower():
-                    choices.append(
-                        app_commands.Choice(name=display_name[:100], value=concept.id)
-                    )
+            # Calculate priority score (lower = higher priority for quizzing)
+            if mastery.total_attempts == 0:
+                score = 0  # Highest priority: never attempted
+                reason = "New concept"
+            elif mastery.mastery_level == "novice":
+                score = 1
+                reason = "Needs practice"
+            elif mastery.mastery_level == "learning":
+                score = 2
+                reason = "Building understanding"
+            elif mastery.mastery_level == "proficient":
+                score = 3
+                reason = "Reinforcement"
+            else:  # mastered
+                score = 4
+                reason = "Review"
 
-        return choices[:25]
+            concept_scores.append((concept, score, mastery.total_attempts, reason))
+
+        # Sort by score (ascending), then by attempts (ascending)
+        concept_scores.sort(key=lambda x: (x[1], x[2]))
+
+        # Get concepts with the lowest score
+        min_score = concept_scores[0][1]
+        candidates = [(c, r) for c, s, _, r in concept_scores if s == min_score]
+
+        # Random selection from candidates
+        selected = random.choice(candidates)
+        return selected[0], selected[1]
 
     @app_commands.command(name="quiz", description="Test your knowledge with a quiz question")
     @app_commands.describe(
-        module="Module to quiz on (optional - random if not specified)",
-        format="Quiz format (optional - random if not specified)",
-        concept="Specific concept to focus on (optional)",
+        module="Module to quiz on (optional - selects based on your progress)",
     )
-    @app_commands.autocomplete(
-        module=module_autocomplete,
-        format=format_autocomplete,
-        concept=concept_autocomplete,
-    )
+    @app_commands.autocomplete(module=module_autocomplete)
     async def quiz(
         self,
         interaction: discord.Interaction,
         module: str = None,
-        format: str = None,
-        concept: str = None,
     ):
         """Generate a quiz question."""
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
+        except discord.NotFound:
+            logger.warning("Interaction expired before defer (network latency)")
+            return
+        except Exception as e:
+            logger.error(f"Failed to defer interaction: {e}")
+            return
 
         try:
             # Get or create user
@@ -137,18 +151,8 @@ class QuizCog(commands.Cog):
                 )
                 return
 
-            # Select concept
-            if concept:
-                concept_obj = module_obj.get_concept(concept)
-                if not concept_obj:
-                    # Try to find in any module
-                    all_concepts = self.bot.course.get_all_concepts()
-                    concept_obj = all_concepts.get(concept)
-            else:
-                if module_obj.concepts:
-                    concept_obj = random.choice(module_obj.concepts)
-                else:
-                    concept_obj = None
+            # Select concept based on mastery level
+            concept_obj, selection_reason = await self._select_concept_by_mastery(user.id, module_obj)
 
             if not concept_obj:
                 await interaction.followup.send(
@@ -156,13 +160,8 @@ class QuizCog(commands.Cog):
                 )
                 return
 
-            # Select format
-            if format:
-                quiz_format = format
-            else:
-                quiz_format = random.choice(
-                    [f.id for f in self.bot.course.quiz_formats]
-                )
+            # Always use free-form format
+            quiz_format = "free-form"
 
             # Generate quiz question
             quiz_prompt = PromptTemplates.get_quiz_prompt(
@@ -199,7 +198,7 @@ class QuizCog(commands.Cog):
                 color=discord.Color.blue(),
             )
             embed.set_footer(
-                text=f"Module: {module_obj.name} | Format: {quiz_format}\n"
+                text=f"Module: {module_obj.name} | {selection_reason}\n"
                 f"Reply to this message with your answer!"
             )
 

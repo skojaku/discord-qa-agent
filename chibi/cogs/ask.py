@@ -53,7 +53,14 @@ class AskCog(commands.Cog):
     ):
         """Ask a question about course content."""
         # Defer response since LLM may take time
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
+        except discord.NotFound:
+            logger.warning("Interaction expired before defer (network latency)")
+            return
+        except Exception as e:
+            logger.error(f"Failed to defer interaction: {e}")
+            return
 
         try:
             # Get or create user

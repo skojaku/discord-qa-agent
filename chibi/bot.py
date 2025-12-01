@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from .config import Config, load_config
@@ -82,6 +83,39 @@ class ChibiBot(commands.Bot):
         if self.config.discord.sync_commands_on_startup:
             await self.tree.sync()
             logger.info("Commands synced")
+
+        # Set up global error handler for app commands
+        self.tree.on_error = self.on_app_command_error
+
+    async def on_app_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ) -> None:
+        """Global error handler for app commands."""
+        if isinstance(error, app_commands.CommandInvokeError):
+            original = error.original
+            if isinstance(original, discord.NotFound):
+                logger.warning(f"Interaction not found (expired): {error}")
+                return
+
+        logger.error(f"App command error: {error}", exc_info=error)
+
+        # Try to respond to the user
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(
+                    "Oops! Something went wrong. Please try again! 🔧",
+                    ephemeral=True,
+                )
+            else:
+                await interaction.response.send_message(
+                    "Oops! Something went wrong. Please try again! 🔧",
+                    ephemeral=True,
+                )
+        except discord.NotFound:
+            # Interaction expired, can't respond
+            pass
+        except Exception as e:
+            logger.error(f"Failed to send error response: {e}")
 
     async def on_ready(self) -> None:
         """Called when the bot is ready."""
