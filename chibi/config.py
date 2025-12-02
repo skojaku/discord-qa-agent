@@ -59,6 +59,7 @@ class DiscordConfig:
     """Discord bot configuration."""
 
     sync_commands_on_startup: bool = True
+    admin_channel_name: str = "admin"
 
 
 @dataclass
@@ -124,6 +125,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     config = Config(
         discord=DiscordConfig(
             sync_commands_on_startup=discord_data.get("sync_commands_on_startup", True),
+            admin_channel_name=discord_data.get("admin_channel_name", "admin"),
         ),
         llm=llm_config,
         persona=PersonaConfig(
