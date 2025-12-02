@@ -73,6 +73,18 @@ class LLMQuizConfig:
 
 
 @dataclass
+class SimilarityConfig:
+    """Similarity detection configuration for anti-cheat."""
+
+    enabled: bool = True
+    similarity_threshold: float = 0.85
+    top_k: int = 5
+    embedding_model: str = "nomic-embed-text"
+    ollama_base_url: str = "http://localhost:11434"
+    chromadb_path: str = "data/chromadb"
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -82,6 +94,7 @@ class Config:
     mastery: MasteryConfig
     database: DatabaseConfig
     llm_quiz: LLMQuizConfig
+    similarity: SimilarityConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -133,6 +146,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     mastery_data = data.get("mastery", {})
     database_data = data.get("database", {})
     llm_quiz_data = data.get("llm_quiz", {})
+    similarity_data = data.get("similarity", {})
 
     # Load admin channel ID from environment variable
     admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
@@ -163,6 +177,14 @@ def load_config(config_path: str = "config.yaml") -> Config:
             quiz_model=llm_quiz_data.get("quiz_model", "openrouter/google/gemma-3-12b-it"),
             evaluator_model=llm_quiz_data.get("evaluator_model", "openrouter/google/gemini-2.5-flash-lite"),
             base_url=llm_quiz_data.get("base_url", "https://openrouter.ai/api/v1"),
+        ),
+        similarity=SimilarityConfig(
+            enabled=similarity_data.get("enabled", True),
+            similarity_threshold=similarity_data.get("similarity_threshold", 0.85),
+            top_k=similarity_data.get("top_k", 5),
+            embedding_model=similarity_data.get("embedding_model", "nomic-embed-text"),
+            ollama_base_url=similarity_data.get("ollama_base_url", "http://localhost:11434"),
+            chromadb_path=similarity_data.get("chromadb_path", "data/chromadb"),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

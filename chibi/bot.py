@@ -11,12 +11,24 @@ from .config import Config, load_config
 from .content.course import Course, load_course
 from .content.loader import ContentLoader
 from .database.connection import Database
-from .database.repositories import LLMQuizRepository, MasteryRepository, QuizRepository, UserRepository
+from .database.repositories import (
+    LLMQuizRepository,
+    MasteryRepository,
+    QuizRepository,
+    SimilarityRepository,
+    UserRepository,
+)
 from .learning.mastery import MasteryCalculator, MasteryConfig
 from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
-from .services import GradeService, LLMQuizChallengeService, QuizService
+from .services import (
+    EmbeddingService,
+    GradeService,
+    LLMQuizChallengeService,
+    QuizService,
+    SimilarityService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +58,14 @@ class ChibiBot(commands.Bot):
         self.quiz_repo: Optional[QuizRepository] = None
         self.mastery_repo: Optional[MasteryRepository] = None
         self.llm_quiz_repo: Optional[LLMQuizRepository] = None
+        self.similarity_repo: Optional[SimilarityRepository] = None
 
         # Services
         self.quiz_service: Optional[QuizService] = None
         self.grade_service: Optional[GradeService] = None
         self.llm_quiz_service: Optional[LLMQuizChallengeService] = None
+        self.embedding_service: Optional[EmbeddingService] = None
+        self.similarity_service: Optional[SimilarityService] = None
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
@@ -64,6 +79,11 @@ class ChibiBot(commands.Bot):
         self.mastery_repo = MasteryRepository(self.database)
         self.llm_quiz_repo = LLMQuizRepository(self.database)
         logger.info("Database connected")
+
+        # Initialize similarity repository (ChromaDB)
+        self.similarity_repo = SimilarityRepository(self.config.similarity)
+        await self.similarity_repo.connect()
+        logger.info("Similarity repository connected")
 
         # Initialize LLM providers
         primary = OllamaProvider(
@@ -111,6 +131,14 @@ class ChibiBot(commands.Bot):
             llm_quiz_repo=self.llm_quiz_repo,
             config=self.config.llm_quiz,
             api_key=self.config.openrouter_api_key,
+        )
+
+        # Initialize embedding and similarity services
+        self.embedding_service = EmbeddingService(self.config.similarity)
+        self.similarity_service = SimilarityService(
+            config=self.config.similarity,
+            embedding_service=self.embedding_service,
+            similarity_repo=self.similarity_repo,
         )
         logger.info("Services initialized")
 
@@ -174,6 +202,10 @@ class ChibiBot(commands.Bot):
     async def close(self) -> None:
         """Clean up on shutdown."""
         logger.info("Shutting down Chibi bot...")
+
+        if self.similarity_repo:
+            await self.similarity_repo.close()
+            logger.info("Similarity repository closed")
 
         if self.database:
             await self.database.close()

@@ -14,6 +14,7 @@ from llm_quiz import AnswerQuizQuestion, EvaluateAnswer
 
 if TYPE_CHECKING:
     from ..config import LLMQuizConfig
+    from ..database.models import LLMQuizAttempt
     from ..database.repositories import LLMQuizRepository
 
 logger = logging.getLogger(__name__)
@@ -176,9 +177,13 @@ class LLMQuizChallengeService:
         question: str,
         student_answer: str,
         result: LLMQuizChallengeResult,
-    ) -> None:
-        """Log an LLM quiz challenge attempt to the database."""
-        await self.llm_quiz_repo.log_attempt(
+    ) -> "LLMQuizAttempt":
+        """Log an LLM quiz challenge attempt to the database.
+
+        Returns:
+            The created LLMQuizAttempt record
+        """
+        return await self.llm_quiz_repo.log_attempt(
             user_id=user_id,
             module_id=module_id,
             question=question,

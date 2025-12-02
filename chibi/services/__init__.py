@@ -1,11 +1,14 @@
 """Business logic services."""
 
+from .embedding_service import EmbeddingService
 from .grade_service import GradeService
 from .llm_quiz_service import LLMQuizChallengeResult, LLMQuizChallengeService
 from .pending_quiz_manager import PendingQuiz, PendingQuizManager
 from .quiz_service import EvaluationResult, QuizService
+from .similarity_service import SimilarityCheckResult, SimilarityService
 
 __all__ = [
+    "EmbeddingService",
     "EvaluationResult",
     "GradeService",
     "LLMQuizChallengeResult",
@@ -13,4 +16,6 @@ __all__ = [
     "PendingQuiz",
     "PendingQuizManager",
     "QuizService",
+    "SimilarityCheckResult",
+    "SimilarityService",
 ]

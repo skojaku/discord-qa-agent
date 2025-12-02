@@ -58,6 +58,35 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                 self.cog.bot.user_repo, interaction
             )
 
+            # Check for similar questions (before running expensive challenge)
+            similarity_result = await self.cog.bot.similarity_service.check_similarity(
+                question=self.question.value,
+                module_id=self.module_id,
+            )
+
+            if similarity_result.is_similar:
+                # Reject the question - too similar to existing one
+                embed = discord.Embed(
+                    title="Question Too Similar",
+                    description=(
+                        "Your question is too similar to one already submitted "
+                        "for this module. Please try a more unique question!"
+                    ),
+                    color=discord.Color.orange(),
+                )
+                embed.add_field(
+                    name="Module",
+                    value=self.module_name,
+                    inline=True,
+                )
+                await interaction.followup.send(embed=embed)
+                logger.info(
+                    f"LLM Quiz rejected for {interaction.user.display_name}: "
+                    f"similarity {similarity_result.highest_similarity:.2f} "
+                    f"(module: {self.module_id})"
+                )
+                return
+
             # Run the challenge
             result = await self.cog.bot.llm_quiz_service.challenge_llm(
                 question=self.question.value,
@@ -66,12 +95,20 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
             )
 
             # Log the attempt
-            await self.cog.bot.llm_quiz_service.log_attempt(
+            attempt = await self.cog.bot.llm_quiz_service.log_attempt(
                 user_id=user.id,
                 module_id=self.module_id,
                 question=self.question.value,
                 student_answer=self.answer.value,
                 result=result,
+            )
+
+            # Add question to similarity database
+            await self.cog.bot.similarity_service.add_question(
+                question_id=attempt.id,
+                question_text=self.question.value,
+                module_id=self.module_id,
+                user_id=user.id,
             )
 
             # Get updated progress
