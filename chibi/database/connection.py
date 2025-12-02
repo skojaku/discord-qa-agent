@@ -46,17 +46,6 @@ class Database:
             last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        -- Interactions log (Q&A history)
-        CREATE TABLE IF NOT EXISTS interactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            module_id TEXT NOT NULL,
-            question TEXT NOT NULL,
-            response TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-
         -- Quiz attempts
         CREATE TABLE IF NOT EXISTS quiz_attempts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,8 +79,6 @@ class Database:
         );
 
         -- Indexes for performance
-        CREATE INDEX IF NOT EXISTS idx_interactions_user ON interactions(user_id);
-        CREATE INDEX IF NOT EXISTS idx_interactions_module ON interactions(module_id);
         CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id);
         CREATE INDEX IF NOT EXISTS idx_quiz_attempts_concept ON quiz_attempts(concept_id);
         CREATE INDEX IF NOT EXISTS idx_concept_mastery_user ON concept_mastery(user_id);

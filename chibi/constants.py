@@ -45,7 +45,6 @@ MASTERY_EMOJI = {
 
 # Error messages
 ERROR_GENERIC = "Oops! Something went wrong. Please try again! 🔧"
-ERROR_ASK = "Oops! Something went wrong while processing your question. Please try again! 🔧"
 ERROR_QUIZ = "Oops! Something went wrong while generating your quiz. Please try again! 🔧"
 ERROR_STATUS = "Oops! Something went wrong while fetching your status. Please try again! 🔧"
 ERROR_MODULE_NOT_FOUND = "Could not find the specified module. Please try again! 📚"
