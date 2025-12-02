@@ -11,8 +11,11 @@ Chibi is an AI-powered Discord bot that helps students learn course material thr
 ### Admin Commands
 Admin commands use prefix commands (`!command`) instead of slash commands to keep them completely hidden from students. They only work in the configured admin channel.
 
+- **`!admin`** - Show admin help with available commands, modules, and students
+- **`!modules`** - List all available modules
+- **`!students`** - List all registered students
 - **`!show_grade [module]`** - Generate CSV report of student grades
-- **`!status <student> [module]`** - View a specific student's learning progress
+- **`!status <student> [module]`** - View a specific student's learning progress (supports @mentions)
 
 ### Quiz Format
 - Free Form (open-ended questions with AI-evaluated responses)

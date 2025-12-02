@@ -83,6 +83,147 @@ class AdminCog(commands.Cog):
     def __init__(self, bot: "ChibiBot"):
         self.bot = bot
 
+    @commands.command(name="admin")
+    @commands.has_permissions(administrator=True)
+    @admin_channel_only()
+    async def admin_help(self, ctx: commands.Context):
+        """Show admin commands, available modules, and registered students.
+
+        Usage: !admin
+        """
+        try:
+            async with ctx.typing():
+                embed = discord.Embed(
+                    title="Admin Commands",
+                    color=discord.Color.blue(),
+                )
+
+                # Commands section
+                commands_text = (
+                    "**!admin** - Show this help message\n"
+                    "**!modules** - List all modules\n"
+                    "**!students** - List all registered students\n"
+                    "**!show_grade [module]** - Export grades as CSV\n"
+                    "**!status <student> [module]** - View student progress"
+                )
+                embed.add_field(name="Commands", value=commands_text, inline=False)
+
+                # Modules section
+                modules = self.bot.course.modules
+                if modules:
+                    module_lines = [f"`{m.id}` - {m.name}" for m in modules]
+                    embed.add_field(
+                        name=f"Modules ({len(modules)})",
+                        value="\n".join(module_lines),
+                        inline=False,
+                    )
+
+                # Students section
+                users = await self.bot.repository.get_all_users()
+                if users:
+                    # Show up to 15 students to avoid embed limits
+                    student_lines = [
+                        f"`{u.discord_id}` - {u.username}" for u in users[:15]
+                    ]
+                    if len(users) > 15:
+                        student_lines.append(f"... and {len(users) - 15} more")
+                    embed.add_field(
+                        name=f"Students ({len(users)})",
+                        value="\n".join(student_lines),
+                        inline=False,
+                    )
+                else:
+                    embed.add_field(
+                        name="Students",
+                        value="No students registered yet.",
+                        inline=False,
+                    )
+
+                await ctx.send(embed=embed)
+
+        except Exception as e:
+            logger.error(f"Error in !admin command: {e}", exc_info=True)
+            await ctx.send("Failed to show admin help.")
+
+    @commands.command(name="modules")
+    @commands.has_permissions(administrator=True)
+    @admin_channel_only()
+    async def list_modules(self, ctx: commands.Context):
+        """List all available modules.
+
+        Usage: !modules
+        """
+        try:
+            modules = self.bot.course.modules
+            if not modules:
+                await ctx.send("No modules configured.")
+                return
+
+            embed = discord.Embed(
+                title=f"Available Modules ({len(modules)})",
+                color=discord.Color.green(),
+            )
+
+            for m in modules:
+                concept_count = len(m.concepts) if m.concepts else 0
+                description = m.description[:100] + "..." if m.description and len(m.description) > 100 else (m.description or "No description")
+                embed.add_field(
+                    name=f"`{m.id}` - {m.name}",
+                    value=f"{description}\n*{concept_count} concepts*",
+                    inline=False,
+                )
+
+            await ctx.send(embed=embed)
+
+        except Exception as e:
+            logger.error(f"Error in !modules command: {e}", exc_info=True)
+            await ctx.send("Failed to list modules.")
+
+    @commands.command(name="students")
+    @commands.has_permissions(administrator=True)
+    @admin_channel_only()
+    async def list_students(self, ctx: commands.Context):
+        """List all registered students.
+
+        Usage: !students
+        """
+        try:
+            async with ctx.typing():
+                users = await self.bot.repository.get_all_users()
+
+                if not users:
+                    await ctx.send("No students registered yet.")
+                    return
+
+                embed = discord.Embed(
+                    title=f"Registered Students ({len(users)})",
+                    color=discord.Color.green(),
+                )
+
+                # Build student list with activity info
+                lines = []
+                for u in users:
+                    last_active = u.last_active.strftime("%Y-%m-%d") if u.last_active else "Never"
+                    lines.append(f"`{u.discord_id}` - **{u.username}** (Last: {last_active})")
+
+                # Split into chunks if too many students (embed field limit is 1024 chars)
+                chunk_size = 15
+                for i in range(0, len(lines), chunk_size):
+                    chunk = lines[i:i + chunk_size]
+                    field_name = "Students" if i == 0 else f"Students (cont.)"
+                    embed.add_field(
+                        name=field_name,
+                        value="\n".join(chunk),
+                        inline=False,
+                    )
+
+                embed.set_footer(text="Use !status <student> to view a student's progress")
+                await ctx.send(embed=embed)
+
+        except Exception as e:
+            logger.error(f"Error in !students command: {e}", exc_info=True)
+            await ctx.send("Failed to list students.")
+
     @commands.command(name="show_grade")
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
@@ -211,11 +352,20 @@ class AdminCog(commands.Cog):
             async with ctx.typing():
                 # Extract user ID from mention if applicable
                 identifier = extract_user_id_from_mention(student) or student
+                logger.debug(f"Looking up student: input='{student}', identifier='{identifier}'")
 
                 # Look up the student
                 user = await self.bot.repository.search_user_by_identifier(identifier)
                 if not user:
-                    await ctx.send(ERROR_STUDENT_NOT_FOUND)
+                    # Check if it's a valid Discord user who just hasn't used the bot yet
+                    mention_id = extract_user_id_from_mention(student)
+                    if mention_id:
+                        await ctx.send(
+                            f"User <@{mention_id}> hasn't taken any quizzes yet. "
+                            "They need to use `/quiz` first to appear in the system."
+                        )
+                    else:
+                        await ctx.send(ERROR_STUDENT_NOT_FOUND)
                     return
 
                 # Validate module if specified
