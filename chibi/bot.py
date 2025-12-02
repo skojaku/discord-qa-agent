@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from .agent.graph import AgentGraph, create_agent_graph
+from .agent.context_manager import ContextManagerAgent, create_context_manager
 from .config import Config, load_config
 from .content.course import Course, load_course
 from .content.loader import ContentLoader
@@ -15,6 +17,7 @@ from .database.repositories import (
     LLMQuizRepository,
     MasteryRepository,
     QuizRepository,
+    RAGRepository,
     SimilarityRepository,
     UserRepository,
 )
@@ -23,12 +26,15 @@ from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
 from .services import (
+    ContentIndexer,
     EmbeddingService,
     GradeService,
     LLMQuizChallengeService,
     QuizService,
+    RAGService,
     SimilarityService,
 )
+from .tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +65,7 @@ class ChibiBot(commands.Bot):
         self.mastery_repo: Optional[MasteryRepository] = None
         self.llm_quiz_repo: Optional[LLMQuizRepository] = None
         self.similarity_repo: Optional[SimilarityRepository] = None
+        self.rag_repo: Optional[RAGRepository] = None
 
         # Services
         self.quiz_service: Optional[QuizService] = None
@@ -66,6 +73,42 @@ class ChibiBot(commands.Bot):
         self.llm_quiz_service: Optional[LLMQuizChallengeService] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.similarity_service: Optional[SimilarityService] = None
+        self.rag_service: Optional[RAGService] = None
+        self.content_indexer: Optional[ContentIndexer] = None
+
+        # Agent components
+        self.tool_registry: Optional[ToolRegistry] = None
+        self.agent_graph: Optional[AgentGraph] = None
+        self.context_manager: Optional[ContextManagerAgent] = None
+
+    def log_to_conversation(
+        self,
+        user_id: str,
+        channel_id: str,
+        role: str,
+        content: str,
+        metadata: Optional[dict] = None,
+    ) -> None:
+        """Log a message to conversation memory.
+
+        This allows tools and modals to add entries to conversation history
+        for better context in follow-up questions.
+
+        Args:
+            user_id: Discord user ID
+            channel_id: Discord channel ID
+            role: "user" or "assistant"
+            content: Message content to log
+            metadata: Optional metadata
+        """
+        if self.agent_graph and self.agent_graph.conversation_memory:
+            self.agent_graph.conversation_memory.add_message(
+                user_id=user_id,
+                channel_id=channel_id,
+                role=role,
+                content=content,
+                metadata=metadata,
+            )
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
@@ -84,6 +127,11 @@ class ChibiBot(commands.Bot):
         self.similarity_repo = SimilarityRepository(self.config.similarity)
         await self.similarity_repo.connect()
         logger.info("Similarity repository connected")
+
+        # Initialize RAG repository (ChromaDB)
+        self.rag_repo = RAGRepository(self.config.similarity)
+        await self.rag_repo.connect()
+        logger.info("RAG repository connected")
 
         # Initialize LLM providers
         primary = OllamaProvider(
@@ -143,13 +191,65 @@ class ChibiBot(commands.Bot):
             embedding_service=self.embedding_service,
             similarity_repo=self.similarity_repo,
         )
+
+        # Initialize RAG service and content indexer
+        self.rag_service = RAGService(
+            embedding_service=self.embedding_service,
+            rag_repo=self.rag_repo,
+            top_k=5,
+            min_similarity=0.3,
+            max_context_length=4000,
+        )
+        self.content_indexer = ContentIndexer(
+            embedding_service=self.embedding_service,
+            rag_repo=self.rag_repo,
+            chunk_size=500,
+            chunk_overlap=100,
+        )
         logger.info("Services initialized")
+
+        # Index course content for RAG
+        logger.info("Indexing course content for RAG...")
+        try:
+            index_stats = await self.content_indexer.index_course(
+                course=self.course,
+                force_reindex=False,  # Only index if not already indexed
+            )
+            logger.info(
+                f"Course indexing complete: {index_stats['modules_indexed']} modules, "
+                f"{index_stats['total_chunks']} chunks"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to index course content: {e}")
+
+        # Initialize context manager
+        self.context_manager = create_context_manager(
+            rag_service=self.rag_service,
+            embedding_service=self.embedding_service,
+            course=self.course,
+        )
+        logger.info("Context manager initialized")
+
+        # Initialize tool registry and load tools
+        self.tool_registry = ToolRegistry(self)
+        await self.tool_registry.load_tools_from_directory()
+        logger.info(f"Tools loaded: {', '.join(self.tool_registry.get_tool_names())}")
+
+        # Initialize agent graph (if agent is enabled)
+        if self.config.agent.enabled:
+            self.agent_graph = create_agent_graph(
+                llm_manager=self.llm_manager,
+                tool_registry=self.tool_registry,
+                max_conversation_history=self.config.agent.max_conversation_history,
+            )
+            logger.info("Agent graph initialized")
 
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
         await self.load_extension("chibi.cogs.admin")
         await self.load_extension("chibi.cogs.llm_quiz")
+        await self.load_extension("chibi.cogs.modules")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
@@ -202,9 +302,92 @@ class ChibiBot(commands.Bot):
         )
         await self.change_presence(activity=activity)
 
+    async def on_message(self, message: discord.Message) -> None:
+        """Handle incoming messages for natural language routing.
+
+        This method processes messages in designated channels, DMs, or
+        when the bot is mentioned, and routes them through the LangGraph
+        agent for intent classification and tool invocation.
+        """
+        # Ignore messages from the bot itself
+        if message.author == self.user:
+            return
+
+        # Ignore messages from other bots
+        if message.author.bot:
+            return
+
+        # Process prefix commands first (e.g., !help)
+        await self.process_commands(message)
+
+        # Check if agent is enabled
+        if not self.config.agent.enabled or self.agent_graph is None:
+            return
+
+        # Don't process if message starts with command prefix
+        if message.content.startswith(self.command_prefix):
+            return
+
+        # Don't process empty messages
+        if not message.content.strip():
+            return
+
+        # Determine if we should process this message
+        should_process = False
+        is_dm = isinstance(message.channel, discord.DMChannel)
+        is_mentioned = self.user in message.mentions
+
+        # Always process DMs
+        if is_dm:
+            should_process = True
+            logger.debug(f"Processing DM from {message.author.display_name}")
+
+        # Always process mentions
+        elif is_mentioned:
+            should_process = True
+            logger.debug(f"Processing mention from {message.author.display_name}")
+
+        # Check if channel is in the configured NL routing channels
+        else:
+            channel_id = message.channel.id
+            nl_channels = self.config.agent.nl_routing_channels
+            if nl_channels and channel_id in nl_channels:
+                should_process = True
+
+        if not should_process:
+            return
+
+        # Clean up message content (remove bot mention if present)
+        content = message.content
+        if is_mentioned and self.user:
+            content = content.replace(f"<@{self.user.id}>", "").strip()
+            content = content.replace(f"<@!{self.user.id}>", "").strip()
+
+        logger.info(
+            f"Processing NL message from {message.author.display_name}: "
+            f"{content[:50]}..."
+        )
+
+        try:
+            # Invoke the agent graph with cleaned content
+            await self.agent_graph.invoke(message, cleaned_content=content)
+        except Exception as e:
+            logger.error(f"Error in agent graph: {e}", exc_info=True)
+            try:
+                await message.reply(
+                    "I encountered an error processing your request. Please try again.",
+                    mention_author=False,
+                )
+            except Exception:
+                pass
+
     async def close(self) -> None:
         """Clean up on shutdown."""
         logger.info("Shutting down Chibi bot...")
+
+        if self.rag_repo:
+            await self.rag_repo.close()
+            logger.info("RAG repository closed")
 
         if self.similarity_repo:
             await self.similarity_repo.close()

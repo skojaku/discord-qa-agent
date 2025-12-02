@@ -1,0 +1,19 @@
+name: status
+description: "Show learning progress and mastery status. Use this when users want to check their progress, scores, or performance."
+trigger_keywords:
+  - status
+  - progress
+  - score
+  - scores
+  - performance
+  - "how am i doing"
+  - "my progress"
+  - mastery
+  - "how well"
+requires_module: false
+requires_user_input: false
+parameters:
+  module:
+    type: string
+    description: "Module ID to show detailed progress for (optional - shows summary if not provided)"
+    required: false

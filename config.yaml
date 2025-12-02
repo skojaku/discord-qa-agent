@@ -10,7 +10,7 @@ llm:
   primary:
     provider: "ollama"
     base_url: "http://localhost:11434"
-    model: "gpt-oss:120b-cloud"
+    model: "glm-4.6:cloud"
     timeout: 60
     max_retries: 2
 
@@ -45,10 +45,10 @@ database:
 llm_quiz:
   target_wins_per_module: 3  # Number of successful stumps required per module
   # Quiz model (the one students try to stump)
-  quiz_model: "meta-llama/llama-3-8b-instruct"
+  quiz_model: "openrouter/meta-llama/llama-3-8b-instruct"
   quiz_base_url: "https://openrouter.ai/api/v1"
   # Evaluator model (judges both answers)
-  evaluator_model: "glm-4.6:cloud"
+  evaluator_model: "ollama/glm-4.6:cloud"
   evaluator_base_url: "http://localhost:11434"
 
 # Similarity detection for LLM Quiz anti-cheat
@@ -61,7 +61,18 @@ similarity:
   ollama_base_url: "http://localhost:11434"
   # Fallback: OpenRouter (cloud) - used when Ollama is unavailable
   fallback_enabled: true
-  fallback_model: "qwen/qwen3-embedding-8b"
+  fallback_model: "openrouter/qwen/qwen3-embedding-8b"
   fallback_base_url: "https://openrouter.ai/api/v1"
   # Storage
   chromadb_path: "data/chromadb"
+
+# Agent settings (LangGraph-based orchestration)
+agent:
+  enabled: true
+  # Channel IDs where natural language routing is enabled
+  # Leave empty to disable NL routing (only slash commands will work)
+  nl_routing_channels: []
+  # Minimum confidence threshold for intent classification (0-1)
+  intent_confidence_threshold: 0.7
+  # Maximum conversation history to retain per user/channel
+  max_conversation_history: 20

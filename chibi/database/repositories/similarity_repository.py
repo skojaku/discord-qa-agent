@@ -162,3 +162,47 @@ class SimilarityRepository:
             logger.debug(f"Deleted question {doc_id} from similarity database")
         except Exception as e:
             logger.warning(f"Failed to delete question {doc_id}: {e}")
+
+    async def clear_module(self, module_id: str) -> int:
+        """Clear all questions for a specific module.
+
+        Args:
+            module_id: The module to clear
+
+        Returns:
+            Number of questions deleted
+        """
+        try:
+            # Get all question IDs for this module
+            results = self.collection.get(
+                where={"module_id": module_id},
+                include=[],
+            )
+            if results["ids"]:
+                count = len(results["ids"])
+                self.collection.delete(ids=results["ids"])
+                logger.info(f"Cleared {count} questions from module {module_id}")
+                return count
+            return 0
+        except Exception as e:
+            logger.error(f"Failed to clear module {module_id}: {e}")
+            raise
+
+    async def clear_all(self) -> int:
+        """Clear all questions from the similarity database.
+
+        Returns:
+            Number of questions deleted
+        """
+        try:
+            count = self.collection.count()
+            if count > 0:
+                # Get all IDs and delete them
+                results = self.collection.get(include=[])
+                if results["ids"]:
+                    self.collection.delete(ids=results["ids"])
+            logger.info(f"Cleared all {count} questions from similarity database")
+            return count
+        except Exception as e:
+            logger.error(f"Failed to clear similarity database: {e}")
+            raise
