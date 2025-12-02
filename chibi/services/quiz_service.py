@@ -186,38 +186,83 @@ class QuizService:
         return self._parse_evaluation_response(response.content)
 
     def _parse_evaluation_response(self, eval_text: str) -> EvaluationResult:
-        """Parse the LLM evaluation response."""
-        lines = eval_text.strip().split("\n")
+        """Parse the LLM evaluation response.
+
+        Expected format:
+        Line 1: PASS, PARTIAL, or FAIL
+        Line 2: Score (1-5)
+        Line 3+: Feedback
+
+        Also handles variations where score/feedback may be on same line.
+        """
+        logger.debug(f"Parsing evaluation response: {eval_text[:200]}...")
+
+        lines = [line.strip() for line in eval_text.strip().split("\n") if line.strip()]
 
         is_correct = False
         is_partial = False
-        quality_score = 1  # Default to 1 instead of 0
+        quality_score = 1  # Default to 1
         feedback = ""
 
-        if lines:
-            first_line = lines[0].upper().strip()
-            if first_line == "PASS":
-                is_correct = True
-            elif first_line == "PARTIAL":
-                is_partial = True
+        if not lines:
+            logger.warning("Empty evaluation response")
+            return EvaluationResult(
+                is_correct=False,
+                is_partial=False,
+                quality_score=1,
+                feedback="❌ Unable to evaluate your answer. Please try again.",
+                counts_as_correct=False,
+            )
 
-            # Try to get quality score from second line
-            if len(lines) > 1:
-                try:
-                    quality_score = int(lines[1].strip())
-                    quality_score = max(1, min(5, quality_score))  # Clamp 1-5
-                    feedback = "\n".join(lines[2:]).strip()
-                except ValueError:
-                    feedback = "\n".join(lines[1:]).strip()
+        # Parse first line for verdict
+        first_line = lines[0].upper()
+        if "PASS" in first_line:
+            is_correct = True
+        elif "PARTIAL" in first_line:
+            is_partial = True
 
-        # Ensure feedback is never empty
+        # Try to extract score using regex (handles "2" or "Score: 2" or "2/5")
+        score_match = re.search(r'\b([1-5])\b', eval_text[:100])  # Look in first 100 chars
+        if score_match:
+            quality_score = int(score_match.group(1))
+
+        # Extract feedback - everything after verdict and score
+        # Look for emoji-prefixed feedback or just take remaining content
+        feedback_patterns = [
+            r'[✅🔶❌]\s*(.+)',  # Emoji-prefixed feedback
+            r'(?:PASS|PARTIAL|FAIL)\s*\n\s*\d\s*\n\s*(.+)',  # Standard format
+        ]
+
+        for pattern in feedback_patterns:
+            match = re.search(pattern, eval_text, re.DOTALL | re.IGNORECASE)
+            if match:
+                feedback = match.group(1).strip()
+                break
+
+        # If no pattern matched, try to get feedback from line 3 onwards
+        if not feedback and len(lines) > 2:
+            feedback = "\n".join(lines[2:]).strip()
+
+        # If still no feedback, use everything except first line
+        if not feedback and len(lines) > 1:
+            # Skip the verdict line and any line that's just a number
+            remaining = []
+            for line in lines[1:]:
+                if not re.match(r'^\d$', line):  # Skip single digit lines (score)
+                    remaining.append(line)
+            feedback = "\n".join(remaining).strip()
+
+        # Final fallback
         if not feedback:
+            logger.warning("Could not extract feedback from evaluation response")
             if is_correct:
                 feedback = "✅ Good job! Your answer demonstrates understanding of the concept."
             elif is_partial:
                 feedback = "🔶 Your answer shows some understanding but could be more complete."
             else:
                 feedback = "❌ Your answer needs improvement. Please review the concept and try again."
+
+        logger.debug(f"Parsed: correct={is_correct}, partial={is_partial}, score={quality_score}")
 
         return EvaluationResult(
             is_correct=is_correct,
