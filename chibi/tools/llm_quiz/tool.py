@@ -155,13 +155,15 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                 result=result,
             )
 
-            # Add question to similarity database
-            await self.tool.bot.similarity_service.add_question(
-                question_id=attempt.id,
-                question_text=self.question.value,
-                module_id=self.module_id,
-                user_id=user.id,
-            )
+            # Only add question to similarity database if student won
+            # This prevents failed questions from blocking similar good questions
+            if result.student_wins:
+                await self.tool.bot.similarity_service.add_question(
+                    question_id=attempt.id,
+                    question_text=self.question.value,
+                    module_id=self.module_id,
+                    user_id=user.id,
+                )
 
             # Get updated progress
             wins, target = await self.tool.bot.llm_quiz_service.get_module_progress(
