@@ -46,6 +46,7 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
 
         # Add question as read-only text display
         question_display = question[:2000] if len(question) > 2000 else question
+        logger.debug(f"Modal question display: {question_display[:100]}...")
         self.add_item(discord.ui.TextDisplay(f"**Question:**\n{question_display}"))
 
         # Add answer input field
@@ -316,6 +317,7 @@ class QuizTool(BaseTool):
                 )
 
             question_text, correct_answer = result
+            logger.info(f"Question text length: {len(question_text)}, preview: {question_text[:100] if question_text else 'EMPTY'}...")
 
             # Create answer button view with RAG context for evaluation
             view = QuizAnswerButton(

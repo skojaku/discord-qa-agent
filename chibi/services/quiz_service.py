@@ -134,8 +134,10 @@ class QuizService:
             return None
 
         question_text = response.content
+        logger.debug(f"Raw LLM question response: {question_text[:200] if question_text else 'EMPTY'}...")
         correct_answer = self._extract_correct_answer(question_text, quiz_format)
         question_text = self._clean_question(question_text)
+        logger.debug(f"Cleaned question text: {question_text[:200] if question_text else 'EMPTY'}...")
 
         return question_text, correct_answer
 
