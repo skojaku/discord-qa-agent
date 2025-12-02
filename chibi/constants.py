@@ -51,6 +51,7 @@ ERROR_MODULE_NOT_FOUND = "Could not find the specified module. Please try again!
 ERROR_NO_CONCEPTS = "No concepts found for this module. Please try a different module! 📖"
 ERROR_ADMIN_ONLY = "This command is only available to administrators."
 ERROR_ADMIN_CHANNEL_ONLY = "This command can only be used in the admin channel."
+ERROR_ADMIN_CHANNEL_NOT_CONFIGURED = "Admin channel is not configured. Please set admin_channel_id in config.yaml."
 ERROR_SHOW_GRADE = "Failed to generate grade report. Please try again."
 ERROR_STUDENT_NOT_FOUND = "Could not find a student with that identifier. Please check the Discord ID or username."
 ERROR_STUDENT_STATUS = "Failed to fetch student status. Please try again."

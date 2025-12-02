@@ -4,9 +4,15 @@ Chibi is an AI-powered Discord bot that helps students learn course material thr
 
 ## Features
 
+### Student Commands
 - **`/quiz [module]`** - Get quiz questions to test your knowledge
 - **`/status [module]`** - Track your learning progress and concept mastery
-- **`/show_grade [module]`** - (Admin only) Generate CSV report of student grades
+
+### Admin Commands
+Admin commands are hidden from students and only visible to server administrators in the configured admin channel.
+
+- **`/_show_grade [module]`** - Generate CSV report of student grades
+- **`/_status <student> [module]`** - View a specific student's learning progress
 
 ### Quiz Format
 - Free Form (open-ended questions with AI-evaluated responses)
@@ -65,7 +71,8 @@ python main.py
 
 ```yaml
 discord:
-  admin_channel_name: "admin"  # Channel for admin commands
+  sync_commands_on_startup: true
+  admin_channel_id: 1234567890123456789  # Channel ID for admin commands
 
 llm:
   primary:
@@ -81,6 +88,12 @@ mastery:
   quality_threshold: 3.5
   correct_ratio_threshold: 0.7
 ```
+
+#### Getting the Admin Channel ID
+
+1. Enable Developer Mode in Discord: **Settings** → **Advanced** → **Developer Mode**
+2. Right-click your admin channel and select **Copy Channel ID**
+3. Paste the ID into `config.yaml` as `admin_channel_id`
 
 ### course.yaml
 
@@ -116,7 +129,7 @@ discord-qa-agent/
 │   ├── cogs/              # Discord commands
 │   │   ├── quiz.py        # /quiz command
 │   │   ├── status.py      # /status command
-│   │   ├── admin.py       # /show_grade command
+│   │   ├── admin.py       # /show_grade, /_status commands
 │   │   └── utils.py       # Common utilities
 │   ├── llm/               # LLM integration
 │   │   ├── base.py        # Provider interface

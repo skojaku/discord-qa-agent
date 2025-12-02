@@ -13,6 +13,7 @@ from discord.ext import commands
 from ..constants import (
     CSV_FILENAME_PREFIX,
     DISCORD_AUTOCOMPLETE_LIMIT,
+    ERROR_ADMIN_CHANNEL_NOT_CONFIGURED,
     ERROR_ADMIN_CHANNEL_ONLY,
     ERROR_ADMIN_ONLY,
     ERROR_MODULE_NOT_FOUND,
@@ -35,17 +36,19 @@ logger = logging.getLogger(__name__)
 
 
 def is_admin_channel(bot: "ChibiBot", channel: discord.abc.GuildChannel) -> bool:
-    """Check if the channel is the admin channel.
+    """Check if the channel is the configured admin channel.
 
     Args:
         bot: The bot instance
         channel: The channel to check
 
     Returns:
-        True if the channel is the admin channel
+        True if the channel matches the configured admin_channel_id
     """
-    admin_channel_name = bot.config.discord.admin_channel_name
-    return channel.name.lower() == admin_channel_name.lower()
+    admin_channel_id = bot.config.discord.admin_channel_id
+    if admin_channel_id is None:
+        return False
+    return channel.id == admin_channel_id
 
 
 class AdminCog(commands.Cog):
@@ -69,17 +72,22 @@ class AdminCog(commands.Cog):
         if not interaction.user.guild_permissions.administrator:
             return ERROR_ADMIN_ONLY
 
+        # Check if admin channel is configured
+        admin_channel_id = self.bot.config.discord.admin_channel_id
+        if admin_channel_id is None:
+            return ERROR_ADMIN_CHANNEL_NOT_CONFIGURED
+
         # Check if command is used in admin channel
         if not is_admin_channel(self.bot, interaction.channel):
-            admin_channel = self.bot.config.discord.admin_channel_name
-            return f"{ERROR_ADMIN_CHANNEL_ONLY} Please use #{admin_channel}."
+            return f"{ERROR_ADMIN_CHANNEL_ONLY} Please use <#{admin_channel_id}>."
 
         return None
 
     @app_commands.command(
-        name="show_grade",
+        name="_show_grade",
         description="Generate a CSV report of student grades (Admin only)"
     )
+    @app_commands.default_permissions(administrator=True)
     @app_commands.describe(
         module="Filter by specific module (optional)"
     )
@@ -208,6 +216,7 @@ class AdminCog(commands.Cog):
         name="_status",
         description="View a student's learning progress (Admin only)"
     )
+    @app_commands.default_permissions(administrator=True)
     @app_commands.describe(
         student="Student Discord ID or username",
         module="Module to show detailed progress for (leave empty for summary)",

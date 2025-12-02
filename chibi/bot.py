@@ -122,10 +122,10 @@ class ChibiBot(commands.Bot):
         logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         logger.info(f"Connected to {len(self.guilds)} guild(s)")
 
-        # Set activity status
+        # Set activity status (only show student-facing commands)
         activity = discord.Activity(
             type=discord.ActivityType.listening,
-            name="/quiz, /status, /show_grade",
+            name="/quiz, /status",
         )
         await self.change_presence(activity=activity)
 
