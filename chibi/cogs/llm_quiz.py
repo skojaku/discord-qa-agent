@@ -129,25 +129,15 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
             inline=False,
         )
 
-        # Truncate answers if too long
-        student_answer_display = self.answer.value
-        if len(student_answer_display) > 200:
-            student_answer_display = student_answer_display[:197] + "..."
-
-        llm_answer_display = result.llm_answer
-        if len(llm_answer_display) > 200:
-            llm_answer_display = llm_answer_display[:197] + "..."
-
-        embed.add_field(
-            name="Your Answer",
-            value=student_answer_display,
-            inline=True,
-        )
+        # Show AI's summarized answer with reasoning
+        llm_summary = result.llm_answer_summary or result.llm_answer
+        if len(llm_summary) > 300:
+            llm_summary = llm_summary[:297] + "..."
 
         embed.add_field(
             name="AI's Answer",
-            value=llm_answer_display,
-            inline=True,
+            value=llm_summary,
+            inline=False,
         )
 
         # Student answer correctness

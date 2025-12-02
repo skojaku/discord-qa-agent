@@ -24,7 +24,8 @@ class LLMQuizChallengeResult:
     """Result of an LLM Quiz Challenge."""
 
     student_wins: bool
-    llm_answer: str
+    llm_answer: str  # Full answer (for logging)
+    llm_answer_summary: str  # Brief summary with reasoning
     student_answer_correctness: str  # "CORRECT", "INCORRECT", "PARTIALLY_CORRECT"
     evaluation_summary: str  # Brief 1-2 sentence summary
     evaluation_explanation: str  # Detailed explanation (for logging)
@@ -88,9 +89,11 @@ class LLMQuizChallengeService:
                     context_content=module_content,
                 )
                 llm_answer = getattr(llm_response, "answer", "Unable to generate answer")
+                llm_answer_summary = getattr(llm_response, "answer_summary", "")
             except Exception as e:
                 logger.error(f"Error generating LLM answer: {e}")
                 llm_answer = f"Error generating answer: {str(e)}"
+                llm_answer_summary = "Error generating answer."
 
         logger.info("LLM Quiz Challenge: LLM answered, now evaluating")
 
@@ -127,6 +130,7 @@ class LLMQuizChallengeService:
         return LLMQuizChallengeResult(
             student_wins=student_wins,
             llm_answer=llm_answer,
+            llm_answer_summary=llm_answer_summary,
             student_answer_correctness=student_answer_correctness,
             evaluation_summary=summary,
             evaluation_explanation=explanation,
