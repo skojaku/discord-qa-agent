@@ -333,17 +333,14 @@ class ChibiBot(commands.Bot):
             content = content.replace(f"<@{self.user.id}>", "").strip()
             content = content.replace(f"<@!{self.user.id}>", "").strip()
 
-        # Store cleaned content for the agent
-        message._cleaned_content = content
-
         logger.info(
             f"Processing NL message from {message.author.display_name}: "
             f"{content[:50]}..."
         )
 
         try:
-            # Invoke the agent graph
-            await self.agent_graph.invoke(message)
+            # Invoke the agent graph with cleaned content
+            await self.agent_graph.invoke(message, cleaned_content=content)
         except Exception as e:
             logger.error(f"Error in agent graph: {e}", exc_info=True)
             try:

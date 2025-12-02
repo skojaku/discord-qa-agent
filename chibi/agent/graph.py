@@ -82,17 +82,19 @@ class AgentGraph:
 
         return graph.compile()
 
-    async def invoke(self, discord_message) -> dict:
+    async def invoke(self, discord_message, cleaned_content: str = None) -> dict:
         """Invoke the agent graph with a Discord message.
 
         Args:
             discord_message: The Discord message that triggered the agent
+            cleaned_content: Optional pre-cleaned message content (mentions removed)
 
         Returns:
             Final state after graph execution
         """
         initial_state = {
             "discord_message": discord_message,
+            "cleaned_content": cleaned_content,
             "messages": [],
             "detected_intent": None,
             "intent_confidence": 0.0,

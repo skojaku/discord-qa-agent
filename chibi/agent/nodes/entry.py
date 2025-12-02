@@ -37,8 +37,8 @@ async def parse_message(state: "MainAgentState") -> dict[str, Any]:
     channel_id = str(discord_message.channel.id)
     guild_id = str(discord_message.guild.id) if discord_message.guild else None
 
-    # Get message content (use cleaned content if available from bot.py)
-    content = getattr(discord_message, "_cleaned_content", None)
+    # Get message content (use cleaned content if available from initial state)
+    content = state.get("cleaned_content")
     if content is None:
         content = discord_message.content.strip()
         # Remove bot mention if present
