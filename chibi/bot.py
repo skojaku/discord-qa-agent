@@ -15,6 +15,9 @@ from .database.repository import Repository
 from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
+from .services.ask_service import AskService
+from .services.quiz_service import QuizService
+from .services.status_service import StatusService
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,11 @@ class ChibiBot(commands.Bot):
         self.database: Optional[Database] = None
         self.repository: Optional[Repository] = None
         self.content_loader: Optional[ContentLoader] = None
+
+        # Services
+        self.ask_service: Optional[AskService] = None
+        self.quiz_service: Optional[QuizService] = None
+        self.status_service: Optional[StatusService] = None
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
@@ -72,6 +80,27 @@ class ChibiBot(commands.Bot):
         self.content_loader = ContentLoader()
         await self.content_loader.load_all_content(self.course)
         logger.info("Module content loaded")
+
+        # Initialize services
+        self.ask_service = AskService(
+            repository=self.repository,
+            llm_manager=self.llm_manager,
+            course=self.course,
+            config=self.config,
+        )
+        self.quiz_service = QuizService(
+            repository=self.repository,
+            llm_manager=self.llm_manager,
+            course=self.course,
+            config=self.config,
+        )
+        self.status_service = StatusService(
+            repository=self.repository,
+            llm_manager=self.llm_manager,
+            course=self.course,
+            config=self.config,
+        )
+        logger.info("Services initialized")
 
         # Load cogs
         await self.load_extension("chibi.cogs.ask")

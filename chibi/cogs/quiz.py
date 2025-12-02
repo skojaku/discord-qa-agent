@@ -11,7 +11,22 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..constants import (
+    ERROR_MODULE_NOT_FOUND,
+    ERROR_NO_CONCEPTS,
+    ERROR_QUIZ,
+    QUIZ_TIMEOUT_MINUTES,
+    TEMPERATURE_EVALUATION,
+    TEMPERATURE_QUIZ_GENERATION,
+)
+from ..learning.mastery import MasteryCalculator, MasteryConfig
 from ..prompts.templates import PromptTemplates
+from .utils import (
+    defer_interaction,
+    get_or_create_user_from_interaction,
+    module_autocomplete_choices,
+    send_error_response,
+)
 
 if TYPE_CHECKING:
     from ..bot import ChibiBot
@@ -43,24 +58,18 @@ class QuizCog(commands.Cog):
     def __init__(self, bot: "ChibiBot"):
         self.bot = bot
         self._pending_quizzes: Dict[int, PendingQuiz] = {}  # user_id -> PendingQuiz
-        self._quiz_timeout = timedelta(minutes=30)
+        self._quiz_timeout = timedelta(minutes=QUIZ_TIMEOUT_MINUTES)
+        # Initialize mastery calculator with config from bot
+        mastery_config = MasteryConfig(
+            min_attempts_for_mastery=bot.config.mastery.min_attempts_for_mastery,
+        )
+        self._mastery_calculator = MasteryCalculator(mastery_config)
 
     async def module_autocomplete(
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         """Autocomplete for module selection."""
-        if not self.bot.course:
-            return []
-
-        choices = []
-        for module in self.bot.course.modules:
-            display_name = f"{module.id}: {module.name}"
-            if current.lower() in display_name.lower():
-                choices.append(
-                    app_commands.Choice(name=display_name[:100], value=module.id)
-                )
-
-        return choices[:25]
+        return await module_autocomplete_choices(self.bot.course, current)
 
     async def _select_concept_by_mastery(self, user_id: int, module) -> tuple:
         """Select a concept based on mastery level.
@@ -117,6 +126,7 @@ class QuizCog(commands.Cog):
         module="Module to quiz on (optional - selects based on your progress)",
     )
     @app_commands.autocomplete(module=module_autocomplete)
+    @defer_interaction(thinking=True)
     async def quiz(
         self,
         interaction: discord.Interaction,
@@ -124,19 +134,9 @@ class QuizCog(commands.Cog):
     ):
         """Generate a quiz question."""
         try:
-            await interaction.response.defer(thinking=True)
-        except discord.NotFound:
-            logger.warning("Interaction expired before defer (network latency)")
-            return
-        except Exception as e:
-            logger.error(f"Failed to defer interaction: {e}")
-            return
-
-        try:
             # Get or create user
-            user = await self.bot.repository.get_or_create_user(
-                discord_id=str(interaction.user.id),
-                username=interaction.user.display_name,
+            user = await get_or_create_user_from_interaction(
+                self.bot.repository, interaction
             )
 
             # Select module
@@ -146,18 +146,14 @@ class QuizCog(commands.Cog):
                 module_obj = random.choice(self.bot.course.modules)
 
             if not module_obj:
-                await interaction.followup.send(
-                    "Could not find the specified module. Please try again! 📚"
-                )
+                await interaction.followup.send(ERROR_MODULE_NOT_FOUND)
                 return
 
             # Select concept based on mastery level
             concept_obj, selection_reason = await self._select_concept_by_mastery(user.id, module_obj)
 
             if not concept_obj:
-                await interaction.followup.send(
-                    "No concepts found for this module. Please try a different module! 📖"
-                )
+                await interaction.followup.send(ERROR_NO_CONCEPTS)
                 return
 
             # Always use free-form format
@@ -175,7 +171,7 @@ class QuizCog(commands.Cog):
             response = await self.bot.llm_manager.generate(
                 prompt=quiz_prompt,
                 max_tokens=self.bot.config.llm.max_tokens,
-                temperature=0.8,  # Slightly higher for variety
+                temperature=TEMPERATURE_QUIZ_GENERATION,
             )
 
             if not response:
@@ -226,10 +222,8 @@ class QuizCog(commands.Cog):
             )
 
         except Exception as e:
-            logger.error(f"Error in /quiz command: {e}", exc_info=True)
-            await interaction.followup.send(
-                "Oops! Something went wrong while generating your quiz. "
-                "Please try again! 🔧"
+            await send_error_response(
+                interaction, ERROR_QUIZ, logger, e, "/quiz command"
             )
 
     def _extract_correct_answer(self, text: str, quiz_format: str) -> Optional[str]:
@@ -322,7 +316,7 @@ class QuizCog(commands.Cog):
             response = await self.bot.llm_manager.generate(
                 prompt=eval_prompt,
                 max_tokens=self.bot.config.llm.max_tokens,
-                temperature=0.3,  # Lower for more consistent evaluation
+                temperature=TEMPERATURE_EVALUATION,
             )
 
             if not response:
@@ -437,8 +431,10 @@ class QuizCog(commands.Cog):
         else:
             new_avg = mastery.avg_quality_score
 
-        # Calculate new mastery level
-        new_level = self._calculate_mastery_level(new_total, new_correct, new_avg)
+        # Calculate new mastery level using the calculator
+        new_level = self._mastery_calculator.calculate_level(
+            new_total, new_correct, new_avg
+        )
 
         # Update database
         await self.bot.repository.update_mastery(
@@ -447,29 +443,8 @@ class QuizCog(commands.Cog):
             total_attempts=new_total,
             correct_attempts=new_correct,
             avg_quality_score=new_avg,
-            mastery_level=new_level,
+            mastery_level=new_level.value,  # Convert enum to string for DB
         )
-
-    def _calculate_mastery_level(
-        self, total: int, correct: int, avg_quality: float
-    ) -> str:
-        """Calculate mastery level based on performance."""
-        config = self.bot.config.mastery
-
-        if total < config.min_attempts_for_mastery:
-            return "novice"
-
-        ratio = correct / total if total > 0 else 0
-
-        # Hybrid: both ratio and quality must meet thresholds
-        if ratio >= 0.85 and avg_quality >= 4.0:
-            return "mastered"
-        elif ratio >= 0.6:
-            return "proficient"
-        elif ratio >= 0.3:
-            return "learning"
-        else:
-            return "novice"
 
 
 async def setup(bot: "ChibiBot"):

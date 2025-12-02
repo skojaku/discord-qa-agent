@@ -4,6 +4,12 @@ from datetime import datetime
 from typing import List, Optional
 
 from .connection import Database
+from .mappers import (
+    row_to_concept_mastery,
+    row_to_interaction,
+    row_to_quiz_attempt,
+    row_to_user,
+)
 from .models import User, Interaction, QuizAttempt, ConceptMastery
 
 
@@ -66,13 +72,7 @@ class Repository:
         if not row:
             return None
 
-        return User(
-            id=row["id"],
-            discord_id=row["discord_id"],
-            username=row["username"],
-            created_at=row["created_at"],
-            last_active=row["last_active"],
-        )
+        return row_to_user(row)
 
     # ==================== Interaction Operations ====================
 
@@ -111,17 +111,7 @@ class Repository:
         )
         rows = await cursor.fetchall()
 
-        return [
-            Interaction(
-                id=row["id"],
-                user_id=row["user_id"],
-                module_id=row["module_id"],
-                question=row["question"],
-                response=row["response"],
-                created_at=row["created_at"],
-            )
-            for row in rows
-        ]
+        return [row_to_interaction(row) for row in rows]
 
     # ==================== Quiz Operations ====================
 
@@ -188,23 +178,7 @@ class Repository:
         )
         rows = await cursor.fetchall()
 
-        return [
-            QuizAttempt(
-                id=row["id"],
-                user_id=row["user_id"],
-                module_id=row["module_id"],
-                concept_id=row["concept_id"],
-                quiz_format=row["quiz_format"],
-                question=row["question"],
-                user_answer=row["user_answer"],
-                correct_answer=row["correct_answer"],
-                is_correct=bool(row["is_correct"]),
-                llm_feedback=row["llm_feedback"],
-                llm_quality_score=row["llm_quality_score"],
-                created_at=row["created_at"],
-            )
-            for row in rows
-        ]
+        return [row_to_quiz_attempt(row) for row in rows]
 
     async def get_recent_quiz_attempts(
         self, user_id: int, limit: int = 10
@@ -220,23 +194,7 @@ class Repository:
         )
         rows = await cursor.fetchall()
 
-        return [
-            QuizAttempt(
-                id=row["id"],
-                user_id=row["user_id"],
-                module_id=row["module_id"],
-                concept_id=row["concept_id"],
-                quiz_format=row["quiz_format"],
-                question=row["question"],
-                user_answer=row["user_answer"],
-                correct_answer=row["correct_answer"],
-                is_correct=bool(row["is_correct"]),
-                llm_feedback=row["llm_feedback"],
-                llm_quality_score=row["llm_quality_score"],
-                created_at=row["created_at"],
-            )
-            for row in rows
-        ]
+        return [row_to_quiz_attempt(row) for row in rows]
 
     # ==================== Mastery Operations ====================
 
@@ -252,17 +210,7 @@ class Repository:
         row = await cursor.fetchone()
 
         if row:
-            return ConceptMastery(
-                id=row["id"],
-                user_id=row["user_id"],
-                concept_id=row["concept_id"],
-                total_attempts=row["total_attempts"],
-                correct_attempts=row["correct_attempts"],
-                avg_quality_score=row["avg_quality_score"],
-                mastery_level=row["mastery_level"],
-                last_attempt_at=row["last_attempt_at"],
-                updated_at=row["updated_at"],
-            )
+            return row_to_concept_mastery(row)
 
         # Create new mastery record
         cursor = await conn.execute(
@@ -317,20 +265,7 @@ class Repository:
         )
         rows = await cursor.fetchall()
 
-        return [
-            ConceptMastery(
-                id=row["id"],
-                user_id=row["user_id"],
-                concept_id=row["concept_id"],
-                total_attempts=row["total_attempts"],
-                correct_attempts=row["correct_attempts"],
-                avg_quality_score=row["avg_quality_score"],
-                mastery_level=row["mastery_level"],
-                last_attempt_at=row["last_attempt_at"],
-                updated_at=row["updated_at"],
-            )
-            for row in rows
-        ]
+        return [row_to_concept_mastery(row) for row in rows]
 
     async def get_mastery_summary(self, user_id: int) -> dict:
         """Get summary of user's mastery progress."""

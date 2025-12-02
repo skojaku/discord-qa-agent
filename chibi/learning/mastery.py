@@ -15,6 +15,21 @@ class MasteryLevel(Enum):
     PROFICIENT = "proficient"
     MASTERED = "mastered"
 
+    @classmethod
+    def from_string(cls, level_str: str) -> "MasteryLevel":
+        """Convert string to MasteryLevel.
+
+        Args:
+            level_str: Level string (e.g., "mastered", "learning")
+
+        Returns:
+            Corresponding MasteryLevel, defaults to NOVICE if invalid
+        """
+        try:
+            return cls(level_str.lower())
+        except ValueError:
+            return cls.NOVICE
+
     @property
     def emoji(self) -> str:
         """Get emoji for this mastery level."""

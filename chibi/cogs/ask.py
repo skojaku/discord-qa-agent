@@ -7,7 +7,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..constants import ERROR_ASK
 from ..prompts.templates import PromptTemplates
+from .utils import (
+    defer_interaction,
+    get_or_create_user_from_interaction,
+    module_autocomplete_choices,
+    send_chunked_response,
+    send_error_response,
+)
 
 if TYPE_CHECKING:
     from ..bot import ChibiBot
@@ -25,19 +33,7 @@ class AskCog(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         """Autocomplete for module selection."""
-        if not self.bot.course:
-            return []
-
-        choices = []
-        for module in self.bot.course.modules:
-            display_name = f"{module.id}: {module.name}"
-            # Filter by current input
-            if current.lower() in display_name.lower():
-                choices.append(
-                    app_commands.Choice(name=display_name[:100], value=module.id)
-                )
-
-        return choices[:25]  # Discord limit
+        return await module_autocomplete_choices(self.bot.course, current)
 
     @app_commands.command(name="ask", description="Ask Chibi about a topic in your course")
     @app_commands.describe(
@@ -45,6 +41,7 @@ class AskCog(commands.Cog):
         module="The module to ask about (optional - type to search)",
     )
     @app_commands.autocomplete(module=module_autocomplete)
+    @defer_interaction(thinking=True)
     async def ask(
         self,
         interaction: discord.Interaction,
@@ -52,21 +49,10 @@ class AskCog(commands.Cog):
         module: str = None,
     ):
         """Ask a question about course content."""
-        # Defer response since LLM may take time
-        try:
-            await interaction.response.defer(thinking=True)
-        except discord.NotFound:
-            logger.warning("Interaction expired before defer (network latency)")
-            return
-        except Exception as e:
-            logger.error(f"Failed to defer interaction: {e}")
-            return
-
         try:
             # Get or create user
-            user = await self.bot.repository.get_or_create_user(
-                discord_id=str(interaction.user.id),
-                username=interaction.user.display_name,
+            user = await get_or_create_user_from_interaction(
+                self.bot.repository, interaction
             )
 
             # Get module context
@@ -138,17 +124,7 @@ class AskCog(commands.Cog):
             )
 
             # Send response (split if too long)
-            content = response.content
-            if len(content) > 2000:
-                # Split into chunks
-                chunks = [content[i : i + 1990] for i in range(0, len(content), 1990)]
-                for i, chunk in enumerate(chunks):
-                    if i == 0:
-                        await interaction.followup.send(chunk)
-                    else:
-                        await interaction.followup.send(chunk)
-            else:
-                await interaction.followup.send(content)
+            await send_chunked_response(interaction, response.content)
 
             logger.info(
                 f"Answered question from {interaction.user.display_name} "
@@ -156,10 +132,8 @@ class AskCog(commands.Cog):
             )
 
         except Exception as e:
-            logger.error(f"Error in /ask command: {e}", exc_info=True)
-            await interaction.followup.send(
-                "Oops! Something went wrong while processing your question. "
-                "Please try again! 🔧"
+            await send_error_response(
+                interaction, ERROR_ASK, logger, e, "/ask command"
             )
 
 

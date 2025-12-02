@@ -7,6 +7,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..constants import (
+    CONCEPTS_PER_LEVEL_LIMIT,
+    CONCEPTS_PER_MODULE_LIMIT,
+    ERROR_STATUS,
+    MASTERY_EMOJI,
+    PROGRESS_BAR_LENGTH,
+)
+from .utils import defer_interaction, get_or_create_user_from_interaction, send_error_response
+
 if TYPE_CHECKING:
     from ..bot import ChibiBot
 
@@ -23,6 +32,7 @@ class StatusCog(commands.Cog):
     @app_commands.describe(
         view="What kind of status to show",
     )
+    @defer_interaction(thinking=True)
     async def status(
         self,
         interaction: discord.Interaction,
@@ -30,20 +40,9 @@ class StatusCog(commands.Cog):
     ):
         """Show learning status and progress."""
         try:
-            await interaction.response.defer(thinking=True)
-        except discord.NotFound:
-            # Interaction expired - this can happen due to network latency
-            logger.warning("Interaction expired before defer (network latency)")
-            return
-        except Exception as e:
-            logger.error(f"Failed to defer interaction: {e}")
-            return
-
-        try:
             # Get or create user
-            user = await self.bot.repository.get_or_create_user(
-                discord_id=str(interaction.user.id),
-                username=interaction.user.display_name,
+            user = await get_or_create_user_from_interaction(
+                self.bot.repository, interaction
             )
 
             if view == "summary":
@@ -60,10 +59,8 @@ class StatusCog(commands.Cog):
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            logger.error(f"Error in /status command: {e}", exc_info=True)
-            await interaction.followup.send(
-                "Oops! Something went wrong while fetching your status. "
-                "Please try again! 🔧"
+            await send_error_response(
+                interaction, ERROR_STATUS, logger, e, "/status command"
             )
 
     async def _build_summary_embed(
@@ -163,7 +160,7 @@ class StatusCog(commands.Cog):
             if module_concepts:
                 embed.add_field(
                     name=f"📚 {module.name}",
-                    value="\n".join(module_concepts[:10]),  # Limit to 10
+                    value="\n".join(module_concepts[:CONCEPTS_PER_MODULE_LIMIT]),
                     inline=False,
                 )
 
@@ -291,7 +288,7 @@ class StatusCog(commands.Cog):
             if concepts:
                 embed.add_field(
                     name=f"{title} ({len(concepts)})",
-                    value="\n".join(concepts[:8]),  # Limit to 8 per level
+                    value="\n".join(concepts[:CONCEPTS_PER_LEVEL_LIMIT]),
                     inline=False,
                 )
 
@@ -301,12 +298,7 @@ class StatusCog(commands.Cog):
 
     def _get_mastery_emoji(self, level: str) -> str:
         """Get emoji for mastery level."""
-        return {
-            "mastered": "🏆",
-            "proficient": "⭐",
-            "learning": "📖",
-            "novice": "🌱",
-        }.get(level, "⬜")
+        return MASTERY_EMOJI.get(level, "⬜")
 
     def _create_progress_bar(
         self, mastered: int, proficient: int, learning: int, novice: int
@@ -316,11 +308,10 @@ class StatusCog(commands.Cog):
         if total == 0:
             return "[ No data yet ]"
 
-        bar_length = 20
-        m_len = int(mastered / total * bar_length)
-        p_len = int(proficient / total * bar_length)
-        l_len = int(learning / total * bar_length)
-        n_len = bar_length - m_len - p_len - l_len
+        m_len = int(mastered / total * PROGRESS_BAR_LENGTH)
+        p_len = int(proficient / total * PROGRESS_BAR_LENGTH)
+        l_len = int(learning / total * PROGRESS_BAR_LENGTH)
+        n_len = PROGRESS_BAR_LENGTH - m_len - p_len - l_len
 
         return (
             "["
