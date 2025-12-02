@@ -10,9 +10,8 @@ from discord.ext import commands
 from ..constants import (
     ERROR_MODULE_NOT_FOUND,
     ERROR_STATUS,
-    MASTERY_EMOJI,
-    PROGRESS_BAR_LENGTH,
 )
+from ..ui import create_progress_bar, get_mastery_emoji
 from .utils import (
     defer_interaction,
     get_or_create_user_from_interaction,
@@ -116,7 +115,7 @@ class StatusCog(commands.Cog):
         )
 
         # Mastery breakdown
-        mastery_bar = self._create_progress_bar(
+        mastery_bar = create_progress_bar(
             mastered, proficient, summary.get("learning", 0), summary.get("novice", 0)
         )
         embed.add_field(
@@ -169,7 +168,7 @@ class StatusCog(commands.Cog):
                 elif mastery.mastery_level == "proficient":
                     proficient_count += 1
 
-                emoji = self._get_mastery_emoji(mastery.mastery_level)
+                emoji = get_mastery_emoji(mastery.mastery_level)
                 accuracy = (
                     mastery.correct_attempts / mastery.total_attempts * 100
                     if mastery.total_attempts > 0
@@ -205,32 +204,6 @@ class StatusCog(commands.Cog):
         embed.set_footer(text="Use /quiz to practice concepts | /status for overall summary")
 
         return embed
-
-    def _get_mastery_emoji(self, level: str) -> str:
-        """Get emoji for mastery level."""
-        return MASTERY_EMOJI.get(level, "⬜")
-
-    def _create_progress_bar(
-        self, mastered: int, proficient: int, learning: int, novice: int
-    ) -> str:
-        """Create a visual progress bar."""
-        total = mastered + proficient + learning + novice
-        if total == 0:
-            return "[ No data yet ]"
-
-        m_len = int(mastered / total * PROGRESS_BAR_LENGTH)
-        p_len = int(proficient / total * PROGRESS_BAR_LENGTH)
-        l_len = int(learning / total * PROGRESS_BAR_LENGTH)
-        n_len = PROGRESS_BAR_LENGTH - m_len - p_len - l_len
-
-        return (
-            "["
-            + "█" * m_len
-            + "▓" * p_len
-            + "▒" * l_len
-            + "░" * n_len
-            + "]"
-        )
 
 
 async def setup(bot: "ChibiBot"):

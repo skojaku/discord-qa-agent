@@ -58,3 +58,5 @@ ERROR_STUDENT_STATUS = "Failed to fetch student status. Please try again."
 
 # Admin command settings
 CSV_FILENAME_PREFIX = "student_grades"
+EMBED_FIELD_CHUNK_SIZE = 15  # Max items per embed field for student lists
+DESCRIPTION_TRUNCATE_LENGTH = 100  # Max length for truncated descriptions

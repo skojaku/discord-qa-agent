@@ -16,6 +16,8 @@ from discord.ext import commands
 
 from ..constants import (
     CSV_FILENAME_PREFIX,
+    DESCRIPTION_TRUNCATE_LENGTH,
+    EMBED_FIELD_CHUNK_SIZE,
     ERROR_ADMIN_CHANNEL_NOT_CONFIGURED,
     ERROR_ADMIN_CHANNEL_ONLY,
     ERROR_MODULE_NOT_FOUND,
@@ -25,8 +27,8 @@ from ..constants import (
     MASTERY_EMOJI,
     MASTERY_MASTERED,
     MASTERY_PROFICIENT,
-    PROGRESS_BAR_LENGTH,
 )
+from ..ui import create_progress_bar, truncate_text
 
 if TYPE_CHECKING:
     from ..bot import ChibiBot
@@ -163,7 +165,9 @@ class AdminCog(commands.Cog):
 
             for m in modules:
                 concept_count = len(m.concepts) if m.concepts else 0
-                description = m.description[:100] + "..." if m.description and len(m.description) > 100 else (m.description or "No description")
+                description = truncate_text(
+                    m.description, DESCRIPTION_TRUNCATE_LENGTH
+                ) if m.description else "No description"
                 embed.add_field(
                     name=f"`{m.id}` - {m.name}",
                     value=f"{description}\n*{concept_count} concepts*",
@@ -204,9 +208,8 @@ class AdminCog(commands.Cog):
                     lines.append(f"`{u.discord_id}` - **{u.username}** (Last: {last_active})")
 
                 # Split into chunks if too many students (embed field limit is 1024 chars)
-                chunk_size = 15
-                for i in range(0, len(lines), chunk_size):
-                    chunk = lines[i:i + chunk_size]
+                for i in range(0, len(lines), EMBED_FIELD_CHUNK_SIZE):
+                    chunk = lines[i:i + EMBED_FIELD_CHUNK_SIZE]
                     field_name = "Students" if i == 0 else f"Students (cont.)"
                     embed.add_field(
                         name=field_name,
@@ -423,7 +426,7 @@ class AdminCog(commands.Cog):
         )
 
         # Mastery breakdown
-        mastery_bar = self._create_progress_bar(
+        mastery_bar = create_progress_bar(
             mastered, proficient, summary.get("learning", 0), summary.get("novice", 0)
         )
         embed.add_field(
@@ -516,27 +519,6 @@ class AdminCog(commands.Cog):
 
         return embed
 
-    def _create_progress_bar(
-        self, mastered: int, proficient: int, learning: int, novice: int
-    ) -> str:
-        """Create a visual progress bar."""
-        total = mastered + proficient + learning + novice
-        if total == 0:
-            return "[ No data yet ]"
-
-        m_len = int(mastered / total * PROGRESS_BAR_LENGTH)
-        p_len = int(proficient / total * PROGRESS_BAR_LENGTH)
-        l_len = int(learning / total * PROGRESS_BAR_LENGTH)
-        n_len = PROGRESS_BAR_LENGTH - m_len - p_len - l_len
-
-        return (
-            "["
-            + "█" * m_len
-            + "▓" * p_len
-            + "▒" * l_len
-            + "░" * n_len
-            + "]"
-        )
 
 async def setup(bot: "ChibiBot"):
     """Set up the Admin cog."""

@@ -2,7 +2,7 @@
 
 import discord
 
-from ..constants import MASTERY_EMOJI, PROGRESS_BAR_LENGTH
+from ..ui import create_progress_bar, get_mastery_emoji
 
 
 class StatusEmbedBuilder:
@@ -88,7 +88,7 @@ class StatusEmbedBuilder:
             learning: Count of learning concepts
             novice: Count of novice concepts
         """
-        bar = StatusEmbedBuilder.create_progress_bar(mastered, proficient, learning, novice)
+        bar = create_progress_bar(mastered, proficient, learning, novice)
 
         embed.add_field(
             name="Mastery Levels",
@@ -99,54 +99,6 @@ class StatusEmbedBuilder:
             f"🌱 Novice: {novice}",
             inline=False,
         )
-
-    @staticmethod
-    def create_progress_bar(
-        mastered: int,
-        proficient: int,
-        learning: int,
-        novice: int,
-    ) -> str:
-        """Create a visual progress bar.
-
-        Args:
-            mastered: Count of mastered concepts
-            proficient: Count of proficient concepts
-            learning: Count of learning concepts
-            novice: Count of novice concepts
-
-        Returns:
-            ASCII progress bar string
-        """
-        total = mastered + proficient + learning + novice
-        if total == 0:
-            return "[ No data yet ]"
-
-        m_len = int(mastered / total * PROGRESS_BAR_LENGTH)
-        p_len = int(proficient / total * PROGRESS_BAR_LENGTH)
-        l_len = int(learning / total * PROGRESS_BAR_LENGTH)
-        n_len = PROGRESS_BAR_LENGTH - m_len - p_len - l_len
-
-        return (
-            "["
-            + "█" * m_len
-            + "▓" * p_len
-            + "▒" * l_len
-            + "░" * n_len
-            + "]"
-        )
-
-    @staticmethod
-    def get_mastery_emoji(level: str) -> str:
-        """Get emoji for mastery level.
-
-        Args:
-            level: Mastery level string
-
-        Returns:
-            Emoji string
-        """
-        return MASTERY_EMOJI.get(level, "⬜")
 
 
 class QuizEmbedBuilder:
