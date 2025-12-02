@@ -1,0 +1,18 @@
+name: quiz
+description: "Generate a quiz question to test knowledge on course concepts. Use this when users want to practice or test their understanding."
+trigger_keywords:
+  - quiz
+  - test
+  - question
+  - "quiz me"
+  - "test me"
+  - "test my knowledge"
+  - practice
+  - assessment
+requires_module: false
+requires_user_input: true
+parameters:
+  module:
+    type: string
+    description: "Module ID to quiz on (optional - if not provided, selects based on mastery)"
+    required: false

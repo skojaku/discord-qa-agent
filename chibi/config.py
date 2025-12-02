@@ -94,6 +94,20 @@ class SimilarityConfig:
 
 
 @dataclass
+class AgentConfig:
+    """Agent configuration for LangGraph orchestration."""
+
+    # Channel IDs where natural language routing is enabled
+    nl_routing_channels: list = field(default_factory=list)
+    # Minimum confidence threshold for intent classification
+    intent_confidence_threshold: float = 0.7
+    # Maximum conversation history to retain per user/channel
+    max_conversation_history: int = 20
+    # Whether the agent is enabled (if False, only slash commands work)
+    enabled: bool = True
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -104,6 +118,7 @@ class Config:
     database: DatabaseConfig
     llm_quiz: LLMQuizConfig
     similarity: SimilarityConfig
+    agent: AgentConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -156,6 +171,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     database_data = data.get("database", {})
     llm_quiz_data = data.get("llm_quiz", {})
     similarity_data = data.get("similarity", {})
+    agent_data = data.get("agent", {})
 
     # Load admin channel ID from environment variable
     admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
@@ -198,6 +214,12 @@ def load_config(config_path: str = "config.yaml") -> Config:
             fallback_model=similarity_data.get("fallback_model", "openai/text-embedding-3-small"),
             fallback_base_url=similarity_data.get("fallback_base_url", "https://openrouter.ai/api/v1"),
             chromadb_path=similarity_data.get("chromadb_path", "data/chromadb"),
+        ),
+        agent=AgentConfig(
+            nl_routing_channels=agent_data.get("nl_routing_channels", []),
+            intent_confidence_threshold=agent_data.get("intent_confidence_threshold", 0.7),
+            max_conversation_history=agent_data.get("max_conversation_history", 20),
+            enabled=agent_data.get("enabled", True),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

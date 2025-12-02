@@ -65,3 +65,14 @@ similarity:
   fallback_base_url: "https://openrouter.ai/api/v1"
   # Storage
   chromadb_path: "data/chromadb"
+
+# Agent settings (LangGraph-based orchestration)
+agent:
+  enabled: true
+  # Channel IDs where natural language routing is enabled
+  # Leave empty to disable NL routing (only slash commands will work)
+  nl_routing_channels: []
+  # Minimum confidence threshold for intent classification (0-1)
+  intent_confidence_threshold: 0.7
+  # Maximum conversation history to retain per user/channel
+  max_conversation_history: 20

@@ -1,0 +1,19 @@
+name: assistant
+description: "Default assistant for answering general questions about course content. Helps students learn and understand lecture material."
+trigger_keywords:
+  - help
+  - explain
+  - what is
+  - how does
+  - tell me about
+  - understand
+  - learn
+  - question
+  - clarify
+requires_module: false
+requires_user_input: true
+parameters:
+  topic:
+    type: string
+    description: "Topic or concept the user is asking about"
+    required: false

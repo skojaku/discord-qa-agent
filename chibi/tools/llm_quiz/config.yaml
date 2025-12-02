@@ -1,0 +1,18 @@
+name: llm_quiz
+description: "Challenge the AI with a tricky question. Students create questions to try to stump the LLM. Use this when users want to challenge or stump the AI."
+trigger_keywords:
+  - challenge
+  - stump
+  - "challenge ai"
+  - "stump the ai"
+  - "llm quiz"
+  - "llm-quiz"
+  - "trick the ai"
+  - "beat the ai"
+requires_module: true
+requires_user_input: true
+parameters:
+  module:
+    type: string
+    description: "Module ID to challenge the AI on (required)"
+    required: true

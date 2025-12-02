@@ -7,6 +7,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from .agent.graph import AgentGraph, create_agent_graph
 from .config import Config, load_config
 from .content.course import Course, load_course
 from .content.loader import ContentLoader
@@ -29,6 +30,7 @@ from .services import (
     QuizService,
     SimilarityService,
 )
+from .tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,10 @@ class ChibiBot(commands.Bot):
         self.llm_quiz_service: Optional[LLMQuizChallengeService] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.similarity_service: Optional[SimilarityService] = None
+
+        # Agent components
+        self.tool_registry: Optional[ToolRegistry] = None
+        self.agent_graph: Optional[AgentGraph] = None
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
@@ -145,6 +151,20 @@ class ChibiBot(commands.Bot):
         )
         logger.info("Services initialized")
 
+        # Initialize tool registry and load tools
+        self.tool_registry = ToolRegistry(self)
+        await self.tool_registry.load_tools_from_directory()
+        logger.info(f"Tools loaded: {', '.join(self.tool_registry.get_tool_names())}")
+
+        # Initialize agent graph (if agent is enabled)
+        if self.config.agent.enabled:
+            self.agent_graph = create_agent_graph(
+                llm_manager=self.llm_manager,
+                tool_registry=self.tool_registry,
+                max_conversation_history=self.config.agent.max_conversation_history,
+            )
+            logger.info("Agent graph initialized")
+
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
@@ -201,6 +221,66 @@ class ChibiBot(commands.Bot):
             name="/quiz, /status, /llm-quiz",
         )
         await self.change_presence(activity=activity)
+
+    async def on_message(self, message: discord.Message) -> None:
+        """Handle incoming messages for natural language routing.
+
+        This method processes messages in designated channels and routes
+        them through the LangGraph agent for intent classification and
+        tool invocation.
+        """
+        # Ignore messages from the bot itself
+        if message.author == self.user:
+            return
+
+        # Ignore messages from other bots
+        if message.author.bot:
+            return
+
+        # Process prefix commands first (e.g., !help)
+        await self.process_commands(message)
+
+        # Check if agent is enabled
+        if not self.config.agent.enabled or self.agent_graph is None:
+            return
+
+        # Check if this channel is enabled for NL routing
+        channel_id = message.channel.id
+        nl_channels = self.config.agent.nl_routing_channels
+
+        # If no channels configured, NL routing is disabled
+        if not nl_channels:
+            return
+
+        # Check if current channel is in the list
+        if channel_id not in nl_channels:
+            return
+
+        # Don't process if message starts with command prefix
+        if message.content.startswith(self.command_prefix):
+            return
+
+        # Don't process empty messages
+        if not message.content.strip():
+            return
+
+        logger.info(
+            f"Processing NL message from {message.author.display_name} "
+            f"in channel {channel_id}: {message.content[:50]}..."
+        )
+
+        try:
+            # Invoke the agent graph
+            await self.agent_graph.invoke(message)
+        except Exception as e:
+            logger.error(f"Error in agent graph: {e}", exc_info=True)
+            try:
+                await message.reply(
+                    "I encountered an error processing your request. Please try again.",
+                    mention_author=False,
+                )
+            except Exception:
+                pass
 
     async def close(self) -> None:
         """Clean up on shutdown."""
