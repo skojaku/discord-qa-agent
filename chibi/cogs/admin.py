@@ -7,6 +7,7 @@ to keep them hidden from students. They only work in the configured admin channe
 import csv
 import io
 import logging
+import re
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
@@ -33,6 +34,24 @@ if TYPE_CHECKING:
     from ..database.models import User
 
 logger = logging.getLogger(__name__)
+
+# Pattern to match Discord user mentions: <@123456789> or <@!123456789>
+MENTION_PATTERN = re.compile(r"<@!?(\d+)>")
+
+
+def extract_user_id_from_mention(text: str) -> Optional[str]:
+    """Extract Discord user ID from a mention string.
+
+    Args:
+        text: Text that might be a mention like <@123456789> or <@!123456789>
+
+    Returns:
+        The user ID as a string if it's a mention, None otherwise
+    """
+    match = MENTION_PATTERN.match(text)
+    if match:
+        return match.group(1)
+    return None
 
 
 def admin_channel_only():
@@ -185,13 +204,16 @@ class AdminCog(commands.Cog):
         Usage: !status <student> [module]
 
         Args:
-            student: Student Discord ID or username to look up
+            student: Student @mention, Discord ID, or username to look up
             module: Optional module to show detailed progress for
         """
         try:
             async with ctx.typing():
+                # Extract user ID from mention if applicable
+                identifier = extract_user_id_from_mention(student) or student
+
                 # Look up the student
-                user = await self.bot.repository.search_user_by_identifier(student)
+                user = await self.bot.repository.search_user_by_identifier(identifier)
                 if not user:
                     await ctx.send(ERROR_STUDENT_NOT_FOUND)
                     return
