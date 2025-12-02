@@ -4,15 +4,12 @@ Chibi is an AI-powered Discord bot that helps students learn course material thr
 
 ## Features
 
-- **`/quiz [module] [format] [concept]`** - Get quiz questions to test your knowledge
-- **`/status [view]`** - Track your learning progress and concept mastery
+- **`/quiz [module]`** - Get quiz questions to test your knowledge
+- **`/status [module]`** - Track your learning progress and concept mastery
+- **`/show_grade [module]`** - (Admin only) Generate CSV report of student grades
 
-### Quiz Formats
-- Multiple Choice
-- Free Form (open-ended)
-- Short Answer
-- True/False
-- Fill in the Blank
+### Quiz Format
+- Free Form (open-ended questions with AI-evaluated responses)
 
 ### Mastery System
 - Tracks quiz performance per concept
@@ -59,7 +56,7 @@ ollama pull llama3.2
 ### 5. Run the Bot
 
 ```bash
-python bot.py
+python main.py
 ```
 
 ## Configuration
@@ -67,6 +64,9 @@ python bot.py
 ### config.yaml
 
 ```yaml
+discord:
+  admin_channel_name: "admin"  # Channel for admin commands
+
 llm:
   primary:
     provider: "ollama"
@@ -106,15 +106,18 @@ modules:
 
 ```
 discord-qa-agent/
-├── bot.py                 # Entry point
+├── main.py                # Entry point
 ├── config.yaml            # Bot configuration
 ├── course.yaml            # Course content
 ├── chibi/
 │   ├── bot.py             # Discord bot class
 │   ├── config.py          # Config loader
+│   ├── constants.py       # Constants and error messages
 │   ├── cogs/              # Discord commands
 │   │   ├── quiz.py        # /quiz command
-│   │   └── status.py      # /status command
+│   │   ├── status.py      # /status command
+│   │   ├── admin.py       # /show_grade command
+│   │   └── utils.py       # Common utilities
 │   ├── llm/               # LLM integration
 │   │   ├── base.py        # Provider interface
 │   │   ├── ollama_provider.py
@@ -126,10 +129,10 @@ discord-qa-agent/
 │   ├── database/          # SQLite storage
 │   │   ├── connection.py
 │   │   ├── models.py
+│   │   ├── mappers.py     # Row-to-model mappers
 │   │   └── repository.py
 │   ├── learning/          # Learning profile
-│   │   ├── mastery.py
-│   │   └── profile.py
+│   │   └── mastery.py
 │   └── prompts/
 │       └── templates.py   # Chibi persona
 └── data/
