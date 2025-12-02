@@ -122,10 +122,14 @@ def load_config(config_path: str = "config.yaml") -> Config:
     mastery_data = data.get("mastery", {})
     database_data = data.get("database", {})
 
+    # Load admin channel ID from environment variable
+    admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
+    admin_channel_id = int(admin_channel_id_str) if admin_channel_id_str else None
+
     config = Config(
         discord=DiscordConfig(
             sync_commands_on_startup=discord_data.get("sync_commands_on_startup", True),
-            admin_channel_id=discord_data.get("admin_channel_id"),
+            admin_channel_id=admin_channel_id,
         ),
         llm=llm_config,
         persona=PersonaConfig(

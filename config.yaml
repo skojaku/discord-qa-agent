@@ -3,10 +3,6 @@
 # Discord settings
 discord:
   sync_commands_on_startup: true
-  # Admin channel ID where admin commands are visible and allowed
-  # To get a channel ID: Enable Developer Mode in Discord settings,
-  # then right-click the channel and select "Copy Channel ID"
-  admin_channel_id: null  # Set to your admin channel ID (e.g., 1234567890123456789)
 
 # LLM Configuration
 llm:

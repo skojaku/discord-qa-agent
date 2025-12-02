@@ -42,6 +42,7 @@ Edit `.env`:
 ```
 DISCORD_TOKEN=your_discord_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key  # Optional, for fallback
+ADMIN_CHANNEL_ID=your_admin_channel_id      # Optional, restricts admin commands
 ```
 
 ### 3. Configure the Bot
@@ -72,7 +73,6 @@ python main.py
 ```yaml
 discord:
   sync_commands_on_startup: true
-  admin_channel_id: 1234567890123456789  # Channel ID for admin commands
 
 llm:
   primary:
@@ -93,7 +93,7 @@ mastery:
 
 1. Enable Developer Mode in Discord: **Settings** → **Advanced** → **Developer Mode**
 2. Right-click your admin channel and select **Copy Channel ID**
-3. Paste the ID into `config.yaml` as `admin_channel_id`
+3. Paste the ID into `.env` as `ADMIN_CHANNEL_ID`
 
 ### course.yaml
 
