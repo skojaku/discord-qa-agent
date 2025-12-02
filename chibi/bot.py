@@ -275,9 +275,9 @@ class ChibiBot(commands.Bot):
     async def on_message(self, message: discord.Message) -> None:
         """Handle incoming messages for natural language routing.
 
-        This method processes messages in designated channels and routes
-        them through the LangGraph agent for intent classification and
-        tool invocation.
+        This method processes messages in designated channels, DMs, or
+        when the bot is mentioned, and routes them through the LangGraph
+        agent for intent classification and tool invocation.
         """
         # Ignore messages from the bot itself
         if message.author == self.user:
@@ -294,18 +294,6 @@ class ChibiBot(commands.Bot):
         if not self.config.agent.enabled or self.agent_graph is None:
             return
 
-        # Check if this channel is enabled for NL routing
-        channel_id = message.channel.id
-        nl_channels = self.config.agent.nl_routing_channels
-
-        # If no channels configured, NL routing is disabled
-        if not nl_channels:
-            return
-
-        # Check if current channel is in the list
-        if channel_id not in nl_channels:
-            return
-
         # Don't process if message starts with command prefix
         if message.content.startswith(self.command_prefix):
             return
@@ -314,9 +302,43 @@ class ChibiBot(commands.Bot):
         if not message.content.strip():
             return
 
+        # Determine if we should process this message
+        should_process = False
+        is_dm = isinstance(message.channel, discord.DMChannel)
+        is_mentioned = self.user in message.mentions
+
+        # Always process DMs
+        if is_dm:
+            should_process = True
+            logger.debug(f"Processing DM from {message.author.display_name}")
+
+        # Always process mentions
+        elif is_mentioned:
+            should_process = True
+            logger.debug(f"Processing mention from {message.author.display_name}")
+
+        # Check if channel is in the configured NL routing channels
+        else:
+            channel_id = message.channel.id
+            nl_channels = self.config.agent.nl_routing_channels
+            if nl_channels and channel_id in nl_channels:
+                should_process = True
+
+        if not should_process:
+            return
+
+        # Clean up message content (remove bot mention if present)
+        content = message.content
+        if is_mentioned and self.user:
+            content = content.replace(f"<@{self.user.id}>", "").strip()
+            content = content.replace(f"<@!{self.user.id}>", "").strip()
+
+        # Store cleaned content for the agent
+        message._cleaned_content = content
+
         logger.info(
-            f"Processing NL message from {message.author.display_name} "
-            f"in channel {channel_id}: {message.content[:50]}..."
+            f"Processing NL message from {message.author.display_name}: "
+            f"{content[:50]}..."
         )
 
         try:

@@ -37,14 +37,15 @@ async def parse_message(state: "MainAgentState") -> dict[str, Any]:
     channel_id = str(discord_message.channel.id)
     guild_id = str(discord_message.guild.id) if discord_message.guild else None
 
-    # Get message content
-    content = discord_message.content.strip()
-
-    # Remove bot mention if present
-    if discord_message.mentions:
-        for mention in discord_message.mentions:
-            content = content.replace(f"<@{mention.id}>", "").strip()
-            content = content.replace(f"<@!{mention.id}>", "").strip()
+    # Get message content (use cleaned content if available from bot.py)
+    content = getattr(discord_message, "_cleaned_content", None)
+    if content is None:
+        content = discord_message.content.strip()
+        # Remove bot mention if present
+        if discord_message.mentions:
+            for mention in discord_message.mentions:
+                content = content.replace(f"<@{mention.id}>", "").strip()
+                content = content.replace(f"<@!{mention.id}>", "").strip()
 
     logger.debug(f"Parsed message from {user_name}: {content[:100]}...")
 
