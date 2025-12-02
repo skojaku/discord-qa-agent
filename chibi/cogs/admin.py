@@ -277,6 +277,11 @@ class AdminCog(commands.Cog):
             # Extract user ID from mention if applicable
             mention_id = extract_user_id_from_mention(student)
             identifier = mention_id or student
+
+            # Strip leading @ if present (e.g., @username -> username)
+            if identifier.startswith("@"):
+                identifier = identifier[1:]
+
             logger.info(f"Looking up student: raw='{student}', mention_id='{mention_id}', identifier='{identifier}'")
 
             # Look up the student
