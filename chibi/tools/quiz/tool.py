@@ -103,6 +103,24 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
 
             await interaction.followup.send(embed=embed)
 
+            # Log the user's answer and feedback to conversation memory
+            status = "PASS" if result.is_correct else ("PARTIAL" if result.is_partial else "FAIL")
+            feedback_content = (
+                f"[User's Quiz Answer]\n"
+                f"Question: {self.question}\n"
+                f"User's Answer: {student_answer}\n\n"
+                f"[Quiz Feedback - {status} (Score: {result.quality_score}/5)]\n"
+                f"Concept: {self.concept_name}\n"
+                f"Feedback: {result.feedback}"
+            )
+            self.tool.bot.log_to_conversation(
+                user_id=str(interaction.user.id),
+                channel_id=str(interaction.channel.id),
+                role="assistant",
+                content=feedback_content,
+                metadata={"tool": "quiz", "type": "feedback", "is_correct": result.is_correct},
+            )
+
             logger.info(
                 f"Quiz evaluated for user {self.db_user_id}: "
                 f"{self.concept_name} - {'correct' if result.is_correct else 'incorrect'}"
@@ -320,10 +338,24 @@ class QuizTool(BaseTool):
 
             logger.info(f"Quiz generated for {state.user_name}: {concept_obj.name}")
 
+            # Log the question to conversation memory for context
+            displayed_content = (
+                f"[Quiz Question - {concept_obj.name}]\n"
+                f"Module: {module_obj.name}\n"
+                f"Question: {question_text}"
+            )
+            self.bot.log_to_conversation(
+                user_id=state.user_id,
+                channel_id=str(discord_message.channel.id),
+                role="assistant",
+                content=displayed_content,
+                metadata={"tool": "quiz", "type": "question"},
+            )
+
             return ToolResult(
                 success=True,
                 result={"question": question_text, "concept": concept_obj.name},
-                summary=f"Quiz question generated for {concept_obj.name} in {module_obj.name}",
+                summary=displayed_content,
                 metadata={
                     "db_user_id": user.id,
                     "module_id": module_obj.id,

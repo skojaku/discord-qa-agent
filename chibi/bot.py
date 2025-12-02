@@ -81,6 +81,35 @@ class ChibiBot(commands.Bot):
         self.agent_graph: Optional[AgentGraph] = None
         self.context_manager: Optional[ContextManagerAgent] = None
 
+    def log_to_conversation(
+        self,
+        user_id: str,
+        channel_id: str,
+        role: str,
+        content: str,
+        metadata: Optional[dict] = None,
+    ) -> None:
+        """Log a message to conversation memory.
+
+        This allows tools and modals to add entries to conversation history
+        for better context in follow-up questions.
+
+        Args:
+            user_id: Discord user ID
+            channel_id: Discord channel ID
+            role: "user" or "assistant"
+            content: Message content to log
+            metadata: Optional metadata
+        """
+        if self.agent_graph and self.agent_graph.conversation_memory:
+            self.agent_graph.conversation_memory.add_message(
+                user_id=user_id,
+                channel_id=channel_id,
+                role=role,
+                content=content,
+                metadata=metadata,
+            )
+
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
         logger.info("Setting up Chibi bot...")

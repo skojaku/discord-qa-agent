@@ -106,23 +106,14 @@ async def dispatch_to_tool(state: "MainAgentState") -> dict[str, Any]:
         # Execute tool - sub_state is discarded after this
         result = await tool.execute(sub_state)
 
-        # Log the interaction to conversation memory
+        # Log the user's message to conversation memory
+        # (Tools are responsible for logging their own responses)
         if _conversation_memory and result.success:
             _conversation_memory.add_message(
                 user_id=user_id,
                 channel_id=channel_id,
                 role="user",
                 content=task_description,
-            )
-            _conversation_memory.add_message(
-                user_id=user_id,
-                channel_id=channel_id,
-                role="assistant",
-                content=result.summary,
-                metadata={
-                    "tool": tool.name,
-                    "result_metadata": result.metadata,
-                },
             )
 
         return {"tool_result": result}

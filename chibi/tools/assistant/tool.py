@@ -176,6 +176,15 @@ Now provide your final answer using <answer>...</answer>"""
             # Send response to Discord
             await self._send_response(discord_message, answer)
 
+            # Log the response to conversation memory
+            self.bot.log_to_conversation(
+                user_id=state.user_id,
+                channel_id=str(discord_message.channel.id),
+                role="assistant",
+                content=answer,
+                metadata={"tool": "assistant", "used_rag": used_rag},
+            )
+
             logger.info(f"Assistant responded to {state.user_name} (used_rag={used_rag})")
 
             return ToolResult(
