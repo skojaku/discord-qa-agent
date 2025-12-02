@@ -1,14 +1,17 @@
 """Router node for intent classification."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Literal
 
+from ..state import MainAgentState
+
 if TYPE_CHECKING:
     from ...llm.manager import LLMManager
     from ...tools.registry import ToolRegistry
-    from ..state import MainAgentState
 
 logger = logging.getLogger(__name__)
 
