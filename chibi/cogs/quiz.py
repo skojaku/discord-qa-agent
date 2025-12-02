@@ -21,6 +21,7 @@ from ..constants import (
 )
 from ..learning.mastery import MasteryCalculator, MasteryConfig
 from ..prompts.templates import PromptTemplates
+from ..ui.embeds import QuizEmbedBuilder
 from .utils import (
     defer_interaction,
     get_or_create_user_from_interaction,
@@ -188,14 +189,11 @@ class QuizCog(commands.Cog):
             question_text = self._clean_question(question_text)
 
             # Send question
-            embed = discord.Embed(
-                title=f"📝 Quiz: {concept_obj.name}",
-                description=question_text,
-                color=discord.Color.blue(),
-            )
-            embed.set_footer(
-                text=f"Module: {module_obj.name} | {selection_reason}\n"
-                f"Reply to this message with your answer!"
+            embed = QuizEmbedBuilder.create_question_embed(
+                concept_name=concept_obj.name,
+                question_text=question_text,
+                module_name=module_obj.name,
+                selection_reason=selection_reason,
             )
 
             message = await interaction.followup.send(embed=embed)
@@ -381,22 +379,13 @@ class QuizCog(commands.Cog):
             )
 
             # Send feedback with clear pass/fail status
-            if result_status == "PASS":
-                color = discord.Color.green()
-                title = f"✅ PASS (Score: {quality_score}/5)"
-            elif result_status == "PARTIAL":
-                color = discord.Color.gold()
-                title = f"🔶 PARTIAL (Score: {quality_score}/5)"
-            else:
-                color = discord.Color.red()
-                title = f"❌ FAIL (Score: {quality_score}/5)"
-
-            embed = discord.Embed(
-                title=title,
-                description=feedback if feedback else eval_text,
-                color=color,
+            embed = QuizEmbedBuilder.create_feedback_embed(
+                is_pass=is_correct,
+                is_partial=is_partial,
+                quality_score=quality_score,
+                feedback=feedback if feedback else eval_text,
+                concept_name=pending.concept_name,
             )
-            embed.set_footer(text=f"Concept: {pending.concept_name}")
 
             await message.reply(embed=embed)
 

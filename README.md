@@ -135,7 +135,10 @@ discord-qa-agent/
 │   │   ├── admin.py       # !show_grade, !status commands
 │   │   └── utils.py       # Common utilities
 │   ├── ui/                # UI utilities
-│   │   └── formatters.py  # Progress bars, mastery display
+│   │   ├── formatters.py  # Progress bars, mastery display
+│   │   └── embeds/        # Discord embed builders
+│   │       ├── quiz.py    # Quiz question/feedback embeds
+│   │       └── status.py  # Status/progress embeds
 │   ├── llm/               # LLM integration
 │   │   ├── base.py        # Provider interface
 │   │   ├── ollama_provider.py
