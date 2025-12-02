@@ -216,7 +216,7 @@ Now provide your final answer using <answer>...</answer>"""
         Returns:
             Tuple of (tool_name, query) or None if no tool call found
         """
-        # Pattern: <tool>tool_name</tool><query>query text</query>
+        # Pattern 1: <tool>tool_name</tool><query>query text</query>
         pattern = r"<tool>(\w+)</tool>\s*<query>(.*?)</query>"
         match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
 
@@ -224,6 +224,15 @@ Now provide your final answer using <answer>...</answer>"""
             tool_name = match.group(1).strip()
             query = match.group(2).strip()
             return (tool_name, query)
+
+        # Pattern 2: Malformed - tool name followed directly by query (no tags)
+        # e.g., "search_course_content: query" or "search_course_content query"
+        pattern2 = r"search_course_content[:\s]+(.+?)(?:\n|$)"
+        match2 = re.search(pattern2, text, re.IGNORECASE)
+        if match2:
+            query = match2.group(1).strip()
+            logger.warning(f"Parsed malformed tool call: search_course_content('{query}')")
+            return ("search_course_content", query)
 
         return None
 
@@ -289,8 +298,15 @@ Now provide your final answer using <answer>...</answer>"""
             message: Discord message to reply to
             answer: Answer text to send
         """
-        # Clean up any remaining tags
+        # Clean up any remaining XML tags
         answer = re.sub(r"</?(?:tool|query|answer)>", "", answer).strip()
+
+        # Clean up any malformed tool call syntax that slipped through
+        answer = re.sub(r"search_course_content[:\s]*", "", answer, flags=re.IGNORECASE).strip()
+
+        # If answer is empty after cleaning, provide a fallback
+        if not answer:
+            answer = "I'm sorry, I couldn't generate a helpful response. Please try rephrasing your question."
 
         if len(answer) > 2000:
             chunks = [answer[i : i + 2000] for i in range(0, len(answer), 2000)]

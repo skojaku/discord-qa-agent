@@ -118,10 +118,10 @@ class LLMQuizChallengeService:
                 factual_issues = getattr(evaluation, "factual_issues", [])
 
             except Exception as e:
-                logger.error(f"Error evaluating answers: {e}")
+                logger.error(f"Error evaluating answers: {e}", exc_info=True)
                 # Default to student loses on error
                 student_wins = False
-                summary = "Error during evaluation."
+                summary = f"Evaluation error: {str(e)[:100]}"
                 explanation = f"Error during evaluation: {str(e)}"
                 student_answer_correctness = "CORRECT"
                 factual_issues = []
