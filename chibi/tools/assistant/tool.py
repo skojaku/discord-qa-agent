@@ -203,7 +203,7 @@ class AssistantTool(BaseTool):
         # Add concept list
         all_concepts = self.bot.course.get_all_concepts()
         if all_concepts:
-            concept_names = [c.name for c in all_concepts[:15]]
+            concept_names = [c.name for c in list(all_concepts.values())[:15]]
             context_parts.append(
                 f"\nKey concepts include: {', '.join(concept_names)}"
             )
