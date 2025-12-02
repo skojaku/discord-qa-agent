@@ -191,8 +191,8 @@ class QuizService:
 
         is_correct = False
         is_partial = False
-        quality_score = 0
-        feedback = eval_text
+        quality_score = 1  # Default to 1 instead of 0
+        feedback = ""
 
         if lines:
             first_line = lines[0].upper().strip()
@@ -209,6 +209,15 @@ class QuizService:
                     feedback = "\n".join(lines[2:]).strip()
                 except ValueError:
                     feedback = "\n".join(lines[1:]).strip()
+
+        # Ensure feedback is never empty
+        if not feedback:
+            if is_correct:
+                feedback = "✅ Good job! Your answer demonstrates understanding of the concept."
+            elif is_partial:
+                feedback = "🔶 Your answer shows some understanding but could be more complete."
+            else:
+                feedback = "❌ Your answer needs improvement. Please review the concept and try again."
 
         return EvaluationResult(
             is_correct=is_correct,

@@ -10,7 +10,7 @@ llm:
   primary:
     provider: "ollama"
     base_url: "http://localhost:11434"
-    model: "gpt-oss:120b-cloud"
+    model: "glm-4.6:cloud"
     timeout: 60
     max_retries: 2
 
@@ -45,7 +45,7 @@ database:
 llm_quiz:
   target_wins_per_module: 3  # Number of successful stumps required per module
   # Quiz model (the one students try to stump)
-  quiz_model: "meta-llama/llama-3-8b-instruct"
+  quiz_model: "openrouter/meta-llama/llama-3-8b-instruct"
   quiz_base_url: "https://openrouter.ai/api/v1"
   # Evaluator model (judges both answers)
   evaluator_model: "glm-4.6:cloud"
