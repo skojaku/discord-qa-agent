@@ -1,6 +1,7 @@
 """Assistant tool implementation - default helpful assistant with RAG."""
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 import discord
@@ -13,6 +14,25 @@ if TYPE_CHECKING:
     from ...bot import ChibiBot
 
 logger = logging.getLogger(__name__)
+
+# Patterns that indicate conversational/non-course queries (skip RAG)
+SKIP_RAG_PATTERNS = [
+    r"^(hi|hello|hey|yo|sup)\b",  # Greetings
+    r"^(thanks|thank you|thx)\b",  # Thanks
+    r"^(bye|goodbye|see you)\b",  # Farewells
+    r"(your name|who are you|what are you)\b",  # Identity questions
+    r"^(how are you|how do you do)\b",  # Small talk
+    r"^(good morning|good afternoon|good evening|good night)\b",  # Time greetings
+]
+
+# Patterns that indicate course-related queries (use RAG)
+USE_RAG_PATTERNS = [
+    r"\b(explain|describe|what is|what are|how does|how do|why)\b",
+    r"\b(module|concept|topic|lesson|chapter)\b",
+    r"\b(learn|understand|study|teach)\b",
+    r"\b(example|definition|meaning)\b",
+    r"\b(network|graph|node|edge|algorithm)\b",  # Common course terms
+]
 
 
 ASSISTANT_SYSTEM_PROMPT = """You are Chibi, a friendly and helpful AI tutor assistant.
@@ -64,8 +84,13 @@ class AssistantTool(BaseTool):
 
             user_question = state.task_description
 
-            # Build context using RAG
-            context = await self._build_context_with_rag(user_question)
+            # Only use RAG for course-related questions
+            if self._should_use_rag(user_question):
+                context = await self._build_context_with_rag(user_question)
+                logger.debug(f"Using RAG for query: {user_question[:50]}...")
+            else:
+                context = ""
+                logger.debug(f"Skipping RAG for conversational query: {user_question[:50]}...")
 
             # Build module list
             module_list = "\n".join(
@@ -133,6 +158,53 @@ class AssistantTool(BaseTool):
                 summary="Error generating response",
                 error=str(e),
             )
+
+    def _should_use_rag(self, query: str) -> bool:
+        """Determine if RAG should be used for this query.
+
+        Skips RAG for simple conversational queries (greetings, thanks, etc.)
+        and uses RAG for course-related questions.
+
+        Args:
+            query: The user's question
+
+        Returns:
+            True if RAG should be used, False otherwise
+        """
+        query_lower = query.lower().strip()
+
+        # Very short queries are usually conversational
+        if len(query_lower.split()) <= 3:
+            # Check if it matches skip patterns
+            for pattern in SKIP_RAG_PATTERNS:
+                if re.search(pattern, query_lower, re.IGNORECASE):
+                    logger.debug(f"Skipping RAG: matches skip pattern '{pattern}'")
+                    return False
+
+        # Check if query matches explicit skip patterns
+        for pattern in SKIP_RAG_PATTERNS:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                # But if it also has course keywords, still use RAG
+                for rag_pattern in USE_RAG_PATTERNS:
+                    if re.search(rag_pattern, query_lower, re.IGNORECASE):
+                        return True
+                logger.debug(f"Skipping RAG: matches skip pattern '{pattern}'")
+                return False
+
+        # Check if query has course-related keywords
+        for pattern in USE_RAG_PATTERNS:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                return True
+
+        # For medium-length queries (4-10 words), use RAG by default
+        # For very short queries without course keywords, skip RAG
+        word_count = len(query_lower.split())
+        if word_count <= 5:
+            logger.debug(f"Skipping RAG: short query without course keywords")
+            return False
+
+        # Default: use RAG for longer queries
+        return True
 
     async def _build_context_with_rag(self, query: str) -> str:
         """Build context using the context manager.
