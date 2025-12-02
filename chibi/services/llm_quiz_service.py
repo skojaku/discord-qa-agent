@@ -1,5 +1,6 @@
 """LLM Quiz Challenge service for the stump-the-AI feature."""
 
+import asyncio
 import logging
 import sys
 from dataclasses import dataclass
@@ -67,30 +68,17 @@ class LLMQuizChallengeService:
             )
         return self._evaluator_lm
 
-    async def challenge_llm(
+    def _run_challenge_sync(
         self,
         question: str,
         student_answer: str,
-        module_content: Optional[str] = None,
+        module_content: Optional[str],
+        quiz_lm: dspy.LM,
+        evaluator_lm: dspy.LM,
     ) -> LLMQuizChallengeResult:
-        """
-        Run the LLM Quiz Challenge:
-        1. Quiz model attempts to answer the student's question
-        2. Evaluator model evaluates if LLM got it wrong (student wins if LLM wrong AND student right)
-
-        Args:
-            question: The student's question
-            student_answer: The student's provided correct answer
-            module_content: Optional context content from module
-
-        Returns:
-            LLMQuizChallengeResult with outcome
-        """
-        quiz_lm = self._get_quiz_lm()
-        evaluator_lm = self._get_evaluator_lm()
-
+        """Synchronous implementation of challenge logic (runs in thread pool)."""
         # Step 1: Quiz model attempts to answer the question
-        logger.info(f"LLM Quiz Challenge: Quiz model attempting to answer question")
+        logger.info("LLM Quiz Challenge: Quiz model attempting to answer question")
         with dspy.context(lm=quiz_lm):
             answerer = dspy.Predict(AnswerQuizQuestion)
             try:
@@ -103,7 +91,7 @@ class LLMQuizChallengeService:
                 logger.error(f"Error generating LLM answer: {e}")
                 llm_answer = f"Error generating answer: {str(e)}"
 
-        logger.info(f"LLM Quiz Challenge: LLM answered, now evaluating")
+        logger.info("LLM Quiz Challenge: LLM answered, now evaluating")
 
         # Step 2: Evaluator model checks BOTH answers
         with dspy.context(lm=evaluator_lm):
@@ -139,6 +127,38 @@ class LLMQuizChallengeService:
             student_answer_correctness=student_answer_correctness,
             evaluation_explanation=explanation,
             factual_issues=factual_issues if isinstance(factual_issues, list) else [],
+        )
+
+    async def challenge_llm(
+        self,
+        question: str,
+        student_answer: str,
+        module_content: Optional[str] = None,
+    ) -> LLMQuizChallengeResult:
+        """
+        Run the LLM Quiz Challenge:
+        1. Quiz model attempts to answer the student's question
+        2. Evaluator model evaluates if LLM got it wrong (student wins if LLM wrong AND student right)
+
+        Args:
+            question: The student's question
+            student_answer: The student's provided correct answer
+            module_content: Optional context content from module
+
+        Returns:
+            LLMQuizChallengeResult with outcome
+        """
+        quiz_lm = self._get_quiz_lm()
+        evaluator_lm = self._get_evaluator_lm()
+
+        # Run blocking DSPy calls in thread pool to avoid blocking event loop
+        return await asyncio.to_thread(
+            self._run_challenge_sync,
+            question,
+            student_answer,
+            module_content,
+            quiz_lm,
+            evaluator_lm,
         )
 
     async def log_attempt(
