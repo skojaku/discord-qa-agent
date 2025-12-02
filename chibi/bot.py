@@ -76,6 +76,7 @@ class ChibiBot(commands.Bot):
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
+        await self.load_extension("chibi.cogs.admin")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
@@ -124,7 +125,7 @@ class ChibiBot(commands.Bot):
         # Set activity status
         activity = discord.Activity(
             type=discord.ActivityType.listening,
-            name="/quiz and /status",
+            name="/quiz, /status, /show_grade",
         )
         await self.change_presence(activity=activity)
 

@@ -49,3 +49,9 @@ ERROR_QUIZ = "Oops! Something went wrong while generating your quiz. Please try 
 ERROR_STATUS = "Oops! Something went wrong while fetching your status. Please try again! 🔧"
 ERROR_MODULE_NOT_FOUND = "Could not find the specified module. Please try again! 📚"
 ERROR_NO_CONCEPTS = "No concepts found for this module. Please try a different module! 📖"
+ERROR_ADMIN_ONLY = "This command is only available to administrators."
+ERROR_ADMIN_CHANNEL_ONLY = "This command can only be used in the admin channel."
+ERROR_SHOW_GRADE = "Failed to generate grade report. Please try again."
+
+# Admin command settings
+CSV_FILENAME_PREFIX = "student_grades"

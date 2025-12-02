@@ -3,6 +3,7 @@
 # Discord settings
 discord:
   sync_commands_on_startup: true
+  admin_channel_name: "admin"  # Channel name where admin commands are allowed
 
 # LLM Configuration
 llm:

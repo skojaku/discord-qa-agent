@@ -268,3 +268,52 @@ class Repository:
         summary["total_correct"] = row["correct"] if row else 0
 
         return summary
+
+    # ==================== Admin Operations ====================
+
+    async def get_all_users(self) -> List[User]:
+        """Get all users in the database."""
+        conn = self.db.connection
+        cursor = await conn.execute(
+            "SELECT * FROM users ORDER BY username"
+        )
+        rows = await cursor.fetchall()
+
+        return [row_to_user(row) for row in rows]
+
+    async def get_all_mastery_records(self) -> List[ConceptMastery]:
+        """Get all concept mastery records for all users."""
+        conn = self.db.connection
+        cursor = await conn.execute(
+            "SELECT * FROM concept_mastery ORDER BY user_id, concept_id"
+        )
+        rows = await cursor.fetchall()
+
+        return [row_to_concept_mastery(row) for row in rows]
+
+    async def get_mastery_by_module(
+        self, user_id: int, concept_ids: List[str]
+    ) -> List[ConceptMastery]:
+        """Get mastery records for specific concepts (module filtering).
+
+        Args:
+            user_id: The user's database ID
+            concept_ids: List of concept IDs to filter by
+
+        Returns:
+            List of ConceptMastery records for the specified concepts
+        """
+        if not concept_ids:
+            return []
+
+        conn = self.db.connection
+        placeholders = ",".join("?" * len(concept_ids))
+        cursor = await conn.execute(
+            f"""SELECT * FROM concept_mastery
+               WHERE user_id = ? AND concept_id IN ({placeholders})
+               ORDER BY concept_id""",
+            (user_id, *concept_ids),
+        )
+        rows = await cursor.fetchall()
+
+        return [row_to_concept_mastery(row) for row in rows]
