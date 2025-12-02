@@ -67,9 +67,12 @@ class LLMQuizConfig:
     """LLM Quiz Challenge configuration."""
 
     target_wins_per_module: int = 3
-    quiz_model: str = "openrouter/google/gemma-3-12b-it"  # Model that answers questions
-    evaluator_model: str = "openrouter/google/gemini-2.5-flash-lite"  # Model that evaluates answers
-    base_url: str = "https://openrouter.ai/api/v1"
+    # Quiz model (the one students try to stump)
+    quiz_model: str = "openrouter/google/gemma-3-12b-it"
+    quiz_base_url: str = "https://openrouter.ai/api/v1"
+    # Evaluator model (judges both answers)
+    evaluator_model: str = "openrouter/google/gemini-2.5-flash-lite"
+    evaluator_base_url: str = "https://openrouter.ai/api/v1"
 
 
 @dataclass
@@ -181,8 +184,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
         llm_quiz=LLMQuizConfig(
             target_wins_per_module=llm_quiz_data.get("target_wins_per_module", 3),
             quiz_model=llm_quiz_data.get("quiz_model", "openrouter/google/gemma-3-12b-it"),
+            quiz_base_url=llm_quiz_data.get("quiz_base_url", "https://openrouter.ai/api/v1"),
             evaluator_model=llm_quiz_data.get("evaluator_model", "openrouter/google/gemini-2.5-flash-lite"),
-            base_url=llm_quiz_data.get("base_url", "https://openrouter.ai/api/v1"),
+            evaluator_base_url=llm_quiz_data.get("evaluator_base_url", "https://openrouter.ai/api/v1"),
         ),
         similarity=SimilarityConfig(
             enabled=similarity_data.get("enabled", True),

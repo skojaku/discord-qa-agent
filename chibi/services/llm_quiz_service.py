@@ -56,7 +56,7 @@ class LLMQuizChallengeService:
         if self._quiz_lm is None:
             self._quiz_lm = dspy.LM(
                 model=self.config.quiz_model,
-                api_base=self.config.base_url,
+                api_base=self.config.quiz_base_url,
                 api_key=self.api_key,
             )
         return self._quiz_lm
@@ -66,7 +66,7 @@ class LLMQuizChallengeService:
         if self._evaluator_lm is None:
             self._evaluator_lm = dspy.LM(
                 model=self.config.evaluator_model,
-                api_base=self.config.base_url,
+                api_base=self.config.evaluator_base_url,
                 api_key=self.api_key,
             )
         return self._evaluator_lm
