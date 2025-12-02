@@ -83,13 +83,13 @@ class AdminCog(commands.Cog):
     def __init__(self, bot: "ChibiBot"):
         self.bot = bot
 
-    @commands.command(name="admin")
+    @commands.command(name="help", aliases=["admin"])
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
     async def admin_help(self, ctx: commands.Context):
         """Show admin commands, available modules, and registered students.
 
-        Usage: !admin
+        Usage: !help or !admin
         """
         try:
             async with ctx.typing():
@@ -101,7 +101,7 @@ class AdminCog(commands.Cog):
 
                 # Commands as individual fields for better readability
                 embed.add_field(
-                    name="`!admin`",
+                    name="`!help` or `!admin`",
                     value="Show this help message",
                     inline=False,
                 )
