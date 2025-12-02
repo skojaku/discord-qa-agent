@@ -143,6 +143,7 @@ class LLMQuizChallengeService:
         question: str,
         student_answer: str,
         module_content: Optional[str] = None,
+        rag_context: Optional[str] = None,
     ) -> LLMQuizChallengeResult:
         """
         Run the LLM Quiz Challenge:
@@ -152,7 +153,8 @@ class LLMQuizChallengeService:
         Args:
             question: The student's question
             student_answer: The student's provided correct answer
-            module_content: Optional context content from module
+            module_content: Optional context content from module (fallback)
+            rag_context: Optional RAG-retrieved context (preferred over module_content)
 
         Returns:
             LLMQuizChallengeResult with outcome
@@ -160,12 +162,15 @@ class LLMQuizChallengeService:
         quiz_lm = self._get_quiz_lm()
         evaluator_lm = self._get_evaluator_lm()
 
+        # Use RAG context if available, otherwise fall back to module content
+        context = rag_context if rag_context else module_content
+
         # Run blocking DSPy calls in thread pool to avoid blocking event loop
         return await asyncio.to_thread(
             self._run_challenge_sync,
             question,
             student_answer,
-            module_content,
+            context,
             quiz_lm,
             evaluator_lm,
         )

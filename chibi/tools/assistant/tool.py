@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from ...agent.state import SubAgentState, ToolResult
+from ...agent.context_manager import ContextType
 from ..base import BaseTool, ToolConfig
 
 if TYPE_CHECKING:
@@ -134,10 +135,10 @@ class AssistantTool(BaseTool):
             )
 
     async def _build_context_with_rag(self, query: str) -> str:
-        """Build context using RAG (Retrieval-Augmented Generation).
+        """Build context using the context manager.
 
-        Uses semantic search to find relevant content chunks
-        from the indexed course materials.
+        Uses the centralized context manager for semantic search
+        to find relevant content from indexed course materials.
 
         Args:
             query: The user's question
@@ -145,43 +146,37 @@ class AssistantTool(BaseTool):
         Returns:
             Context string with relevant content
         """
-        # Check if RAG service is available
-        if self.bot.rag_service is None:
-            logger.warning("RAG service not available, falling back to basic context")
+        # Use context manager if available
+        if self.bot.context_manager is None:
+            logger.warning("Context manager not available, falling back to basic context")
             return self._build_fallback_context()
 
         try:
-            # Check if RAG is ready
-            is_ready = await self.bot.rag_service.is_ready()
-            if not is_ready:
-                logger.warning("RAG service not ready, falling back to basic context")
-                return self._build_fallback_context()
-
-            # Retrieve relevant chunks
-            result = await self.bot.rag_service.retrieve(
-                query=query,
-                top_k=5,
+            # Get context from context manager
+            context_result = await self.bot.context_manager.get_context_for_assistant(
+                question=query,
             )
 
-            if not result.chunks:
-                logger.debug(f"No RAG results for query: {query[:50]}")
+            if not context_result.has_relevant_content:
+                logger.debug(f"No relevant context for query: {query[:50]}")
                 return self._build_fallback_context()
 
-            # Format context
-            context = f"Relevant course content (retrieved based on your question):\n\n{result.context}"
+            # Format context with source attribution
+            context = f"Relevant course content (retrieved based on your question):\n\n{context_result.context}"
 
             # Add source attribution
-            sources = set(c.source_name for c in result.chunks)
-            context += f"\n\n(Sources: {', '.join(sources)})"
+            if context_result.source_names:
+                context += f"\n\n(Sources: {', '.join(context_result.source_names)})"
 
             logger.info(
-                f"RAG retrieved {result.total_chunks} chunks from {len(sources)} sources"
+                f"Context manager retrieved {context_result.total_chunks} chunks "
+                f"from {len(context_result.source_names)} sources"
             )
 
             return context
 
         except Exception as e:
-            logger.error(f"RAG retrieval error: {e}", exc_info=True)
+            logger.error(f"Context retrieval error: {e}", exc_info=True)
             return self._build_fallback_context()
 
     def _build_fallback_context(self) -> str:

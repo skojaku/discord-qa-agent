@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional
 import discord
 
 from ...agent.state import SubAgentState, ToolResult
+from ...agent.context_manager import ContextType
 from ...constants import ERROR_MODULE_NOT_FOUND, ERROR_NO_CONCEPTS, ERROR_QUIZ
 from ...ui.embeds import QuizEmbedBuilder
 from ..base import BaseTool, ToolConfig
@@ -30,6 +31,7 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
         concept_description: str,
         question: str,
         correct_answer: Optional[str],
+        rag_context: Optional[str] = None,
     ):
         super().__init__()
         self.tool = tool
@@ -40,6 +42,7 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
         self.concept_description = concept_description
         self.question = question
         self.correct_answer = correct_answer
+        self.rag_context = rag_context  # RAG context for evaluation
 
         # Add question as read-only text display
         question_display = question[:2000] if len(question) > 2000 else question
@@ -62,13 +65,14 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
         try:
             student_answer = self.answer_field.value
 
-            # Evaluate the answer
+            # Evaluate the answer with RAG context
             result = await self.tool.bot.quiz_service.evaluate_answer(
                 question=self.question,
                 student_answer=student_answer,
                 concept_name=self.concept_name,
                 concept_description=self.concept_description,
                 correct_answer=self.correct_answer,
+                context=self.rag_context,
             )
 
             if not result:
@@ -125,6 +129,7 @@ class QuizAnswerButton(discord.ui.View):
         concept_description: str,
         question: str,
         correct_answer: Optional[str],
+        rag_context: Optional[str] = None,
         timeout: float = 600,  # 10 minutes
     ):
         super().__init__(timeout=timeout)
@@ -136,6 +141,7 @@ class QuizAnswerButton(discord.ui.View):
         self.concept_description = concept_description
         self.question = question
         self.correct_answer = correct_answer
+        self.rag_context = rag_context  # RAG context for evaluation
         self.answered = False
         self.original_user_id: Optional[int] = None
 
@@ -170,6 +176,7 @@ class QuizAnswerButton(discord.ui.View):
             concept_description=self.concept_description,
             question=self.question,
             correct_answer=self.correct_answer,
+            rag_context=self.rag_context,
         )
         await interaction.response.send_modal(modal)
         self.answered = True
@@ -254,8 +261,26 @@ class QuizTool(BaseTool):
                     error=ERROR_NO_CONCEPTS,
                 )
 
-            # Generate quiz question
-            result = await self.bot.quiz_service.generate_question(concept_obj, module_obj)
+            # Get context from context manager for quiz generation
+            rag_context = None
+            if self.bot.context_manager:
+                try:
+                    context_result = await self.bot.context_manager.get_context_for_quiz(
+                        concept=concept_obj,
+                        module=module_obj,
+                    )
+                    if context_result.has_relevant_content:
+                        rag_context = context_result.context
+                        logger.debug(
+                            f"RAG context retrieved for quiz: {context_result.total_chunks} chunks"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to get RAG context for quiz: {e}")
+
+            # Generate quiz question with RAG context
+            result = await self.bot.quiz_service.generate_question(
+                concept_obj, module_obj, context=rag_context
+            )
 
             if not result:
                 error_msg = self.bot.llm_manager.get_error_message()
@@ -269,7 +294,7 @@ class QuizTool(BaseTool):
 
             question_text, correct_answer = result
 
-            # Create answer button view
+            # Create answer button view with RAG context for evaluation
             view = QuizAnswerButton(
                 tool=self,
                 db_user_id=user.id,
@@ -279,6 +304,7 @@ class QuizTool(BaseTool):
                 concept_description=concept_obj.description,
                 question=question_text,
                 correct_answer=correct_answer,
+                rag_context=rag_context,
             )
             view.original_user_id = int(state.user_id)
 

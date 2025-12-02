@@ -99,25 +99,29 @@ class QuizService:
         return selected[0], selected[1]
 
     async def generate_question(
-        self, concept: "Concept", module: "Module"
+        self, concept: "Concept", module: "Module", context: Optional[str] = None
     ) -> Optional[Tuple[str, Optional[str]]]:
         """Generate a quiz question for a concept.
 
         Args:
             concept: The concept to quiz on
             module: The module containing the concept
+            context: Optional RAG-retrieved context (overrides module.content)
 
         Returns:
             Tuple of (question_text, correct_answer) or None if generation fails
         """
         quiz_format = "free-form"
 
+        # Use RAG context if provided, otherwise fall back to module content
+        module_content = context if context else (module.content or "")
+
         quiz_prompt = PromptTemplates.get_quiz_prompt(
             concept_name=concept.name,
             concept_description=concept.description,
             quiz_focus=concept.quiz_focus,
             quiz_format=quiz_format,
-            module_content=module.content or "",
+            module_content=module_content,
         )
 
         response = await self.llm_manager.generate(
@@ -142,17 +146,31 @@ class QuizService:
         concept_name: str,
         concept_description: str,
         correct_answer: Optional[str] = None,
+        context: Optional[str] = None,
     ) -> Optional[EvaluationResult]:
         """Evaluate a student's answer.
+
+        Args:
+            question: The quiz question
+            student_answer: The student's answer
+            concept_name: Name of the concept being tested
+            concept_description: Description of the concept
+            correct_answer: Expected correct answer (if available)
+            context: Optional RAG-retrieved context for evaluation
 
         Returns:
             EvaluationResult or None if evaluation fails
         """
+        # Build concept description with context if available
+        enhanced_description = concept_description
+        if context:
+            enhanced_description = f"{concept_description}\n\nRelevant context:\n{context}"
+
         eval_prompt = PromptTemplates.get_evaluation_prompt(
             question=question,
             student_answer=student_answer,
             concept_name=concept_name,
-            concept_description=concept_description,
+            concept_description=enhanced_description,
             correct_answer=correct_answer or "",
         )
 

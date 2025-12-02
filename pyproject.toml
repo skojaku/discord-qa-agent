@@ -11,4 +11,5 @@ dependencies = [
     "httpx>=0.27.0",
     "discord>=2.3.2",
     "aiosqlite>=0.21.0",
+    "langgraph>=1.0.4",
 ]

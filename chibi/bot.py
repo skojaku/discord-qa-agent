@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from .agent.graph import AgentGraph, create_agent_graph
+from .agent.context_manager import ContextManagerAgent, create_context_manager
 from .config import Config, load_config
 from .content.course import Course, load_course
 from .content.loader import ContentLoader
@@ -78,6 +79,7 @@ class ChibiBot(commands.Bot):
         # Agent components
         self.tool_registry: Optional[ToolRegistry] = None
         self.agent_graph: Optional[AgentGraph] = None
+        self.context_manager: Optional[ContextManagerAgent] = None
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
@@ -190,6 +192,14 @@ class ChibiBot(commands.Bot):
             )
         except Exception as e:
             logger.warning(f"Failed to index course content: {e}")
+
+        # Initialize context manager
+        self.context_manager = create_context_manager(
+            rag_service=self.rag_service,
+            embedding_service=self.embedding_service,
+            course=self.course,
+        )
+        logger.info("Context manager initialized")
 
         # Initialize tool registry and load tools
         self.tool_registry = ToolRegistry(self)
