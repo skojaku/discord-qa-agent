@@ -27,9 +27,10 @@ class ChibiBot(commands.Bot):
         intents.message_content = True
 
         super().__init__(
-            command_prefix="!",  # Not used for slash commands
+            command_prefix="!",
             intents=intents,
             description="Chibi - Your AI tutor from the future!",
+            help_command=None,  # Disable default help, we have custom !help
         )
 
         self.config = config
