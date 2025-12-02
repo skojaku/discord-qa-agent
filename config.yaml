@@ -48,7 +48,7 @@ llm_quiz:
   quiz_model: "openrouter/meta-llama/llama-3-8b-instruct"
   quiz_base_url: "https://openrouter.ai/api/v1"
   # Evaluator model (judges both answers)
-  evaluator_model: "glm-4.6:cloud"
+  evaluator_model: "ollama/glm-4.6:cloud"
   evaluator_base_url: "http://localhost:11434"
 
 # Similarity detection for LLM Quiz anti-cheat

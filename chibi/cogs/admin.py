@@ -125,6 +125,11 @@ class AdminCog(commands.Cog):
                 value="View a student's learning progress\n*Accepts @mention, Discord ID, or username*",
                 inline=False,
             )
+            embed.add_field(
+                name="`!clear_similarity [module]`",
+                value="Clear LLM Quiz similarity database\n*Optional: specify module to clear only that module*",
+                inline=False,
+            )
 
             # Quick stats
             modules = self.bot.course.modules
@@ -444,6 +449,42 @@ class AdminCog(commands.Cog):
         embed.set_footer(text="Use !status <student> for overall summary")
 
         return embed
+
+    @commands.command(name="clear_similarity")
+    @commands.has_permissions(administrator=True)
+    @admin_channel_only()
+    @handle_prefix_command_errors(
+        error_message="Failed to clear similarity database.", context="!clear_similarity"
+    )
+    async def clear_similarity(self, ctx: commands.Context, module_id: Optional[str] = None):
+        """Clear questions from the LLM Quiz similarity database.
+
+        Usage:
+            !clear_similarity           - Clear ALL modules
+            !clear_similarity <module>  - Clear specific module only
+
+        This removes stored questions used for duplicate detection,
+        allowing previously submitted questions to be used again.
+        """
+        if not hasattr(self.bot, 'similarity_service') or self.bot.similarity_service is None:
+            await ctx.send("Similarity service is not configured.")
+            return
+
+        try:
+            if module_id:
+                # Clear specific module
+                count = await self.bot.similarity_service.similarity_repo.clear_module(module_id)
+                await ctx.send(f"✅ Cleared **{count}** questions from module `{module_id}`")
+            else:
+                # Clear all - confirm first
+                count = await self.bot.similarity_service.similarity_repo.clear_all()
+                await ctx.send(f"✅ Cleared **{count}** questions from all modules")
+
+            logger.info(f"Admin {ctx.author} cleared similarity database (module={module_id}, count={count})")
+
+        except Exception as e:
+            logger.error(f"Error clearing similarity database: {e}", exc_info=True)
+            await ctx.send(f"❌ Error clearing similarity database: {str(e)}")
 
 
 async def setup(bot: "ChibiBot"):
