@@ -1,13 +1,12 @@
-"""Assistant tool implementation - default helpful assistant with RAG."""
+"""Assistant tool implementation with ReAct framework for intelligent RAG usage."""
 
 import logging
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import discord
 
 from ...agent.state import SubAgentState, ToolResult
-from ...agent.context_manager import ContextType
 from ..base import BaseTool, ToolConfig
 
 if TYPE_CHECKING:
@@ -15,56 +14,65 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Patterns that indicate conversational/non-course queries (skip RAG)
-SKIP_RAG_PATTERNS = [
-    r"^(hi|hello|hey|yo|sup)\b",  # Greetings
-    r"^(thanks|thank you|thx)\b",  # Thanks
-    r"^(bye|goodbye|see you)\b",  # Farewells
-    r"(your name|who are you|what are you)\b",  # Identity questions
-    r"^(how are you|how do you do)\b",  # Small talk
-    r"^(good morning|good afternoon|good evening|good night)\b",  # Time greetings
-]
+# Maximum iterations for ReAct loop to prevent infinite loops
+MAX_REACT_ITERATIONS = 3
 
-# Patterns that indicate course-related queries (use RAG)
-USE_RAG_PATTERNS = [
-    r"\b(explain|describe|what is|what are|how does|how do|why)\b",
-    r"\b(module|concept|topic|lesson|chapter)\b",
-    r"\b(learn|understand|study|teach)\b",
-    r"\b(example|definition|meaning)\b",
-    r"\b(network|graph|node|edge|algorithm)\b",  # Common course terms
-]
-
-
-ASSISTANT_SYSTEM_PROMPT = """You are Chibi, a friendly and helpful AI tutor assistant.
+REACT_SYSTEM_PROMPT = """You are Chibi, a friendly and helpful AI tutor assistant.
 Your role is to help students learn and understand course material.
+
+You have access to a tool to search course content when needed:
+
+**Tool: search_course_content**
+Use this to find relevant information from the course materials.
+Call it by writing: <tool>search_course_content</tool><query>your search query</query>
+
+WHEN TO USE THE TOOL:
+- When the student asks about course concepts, topics, or modules
+- When you need specific information from the course materials
+- When explaining technical concepts that are covered in the course
+
+WHEN NOT TO USE THE TOOL:
+- For greetings (hi, hello, how are you)
+- For questions about yourself (what's your name, who are you)
+- For simple thanks or farewells
+- For general conversation not related to course content
+
+After gathering information (if needed), provide your final answer.
+Mark your final response with: <answer>your response here</answer>
+
+Available course modules:
+{module_list}
 
 Guidelines:
 - Be encouraging and supportive
 - Explain concepts clearly and concisely
 - Use examples when helpful
-- If you're not sure about something, say so
-- Keep responses focused and not too long (under 500 words)
-- Base your answers on the provided context when available
-- If the context doesn't contain relevant information, provide general guidance and suggest checking the course materials
-- Always cite which module the information comes from when using context
+- Keep responses focused (under 500 words)
+- Cite which module information comes from when using search results
+- If search returns no relevant results, provide general guidance
+"""
 
-Available course modules:
-{module_list}
+REACT_USER_PROMPT = """Student question: {question}
 
 {context}
-"""
+
+Think step by step:
+1. Do I need to search course content to answer this?
+2. If yes, what should I search for?
+3. Provide the answer.
+
+Remember: Use <tool>search_course_content</tool><query>...</query> to search, then <answer>...</answer> for your final response."""
 
 
 class AssistantTool(BaseTool):
-    """Default assistant tool for general questions.
+    """Default assistant tool using ReAct framework.
 
-    This tool handles general questions about course content,
-    using RAG (Retrieval-Augmented Generation) to provide
-    relevant context from indexed course materials.
+    This tool uses a ReAct (Reasoning + Acting) approach where
+    the LLM decides when to search course content for context.
     """
 
     async def execute(self, state: SubAgentState) -> ToolResult:
-        """Execute the assistant tool.
+        """Execute the assistant tool with ReAct loop.
 
         Args:
             state: Sub-agent state with task description and parameters
@@ -84,61 +92,91 @@ class AssistantTool(BaseTool):
 
             user_question = state.task_description
 
-            # Only use RAG for course-related questions
-            if self._should_use_rag(user_question):
-                context = await self._build_context_with_rag(user_question)
-                logger.debug(f"Using RAG for query: {user_question[:50]}...")
-            else:
-                context = ""
-                logger.debug(f"Skipping RAG for conversational query: {user_question[:50]}...")
-
-            # Build module list
+            # Build module list for context
             module_list = "\n".join(
                 f"- {m.name}: {m.description or 'No description'}"
                 for m in self.bot.course.modules
             )
 
             # Build system prompt
-            system_prompt = ASSISTANT_SYSTEM_PROMPT.format(
-                module_list=module_list,
+            system_prompt = REACT_SYSTEM_PROMPT.format(module_list=module_list)
+
+            # Add conversation context if available
+            context = ""
+            if state.context_summary:
+                context = f"Recent conversation:\n{state.context_summary}\n"
+
+            # Build initial prompt
+            prompt = REACT_USER_PROMPT.format(
+                question=user_question,
                 context=context,
             )
 
-            # Add conversation context if available
-            prompt = user_question
-            if state.context_summary:
-                prompt = f"Recent conversation:\n{state.context_summary}\n\nCurrent question: {user_question}"
+            # ReAct loop
+            search_results = []
+            answer = None
+            used_rag = False
 
-            # Generate response using LLM
-            response = await self.bot.llm_manager.generate(
-                prompt=prompt,
-                system_prompt=system_prompt,
-                max_tokens=1024,
-                temperature=0.7,
-            )
+            for iteration in range(MAX_REACT_ITERATIONS):
+                logger.debug(f"ReAct iteration {iteration + 1}")
 
-            if not response or not response.content:
-                return ToolResult(
-                    success=False,
-                    result=None,
-                    summary="Failed to generate response",
-                    error="LLM error",
+                # Generate response
+                response = await self.bot.llm_manager.generate(
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                    max_tokens=1024,
+                    temperature=0.7,
                 )
 
-            answer = response.content.strip()
+                if not response or not response.content:
+                    logger.warning("Empty LLM response in ReAct loop")
+                    break
 
-            # Split long responses
-            if len(answer) > 2000:
-                chunks = [answer[i : i + 2000] for i in range(0, len(answer), 2000)]
-                for i, chunk in enumerate(chunks):
-                    if i == 0:
-                        await discord_message.reply(chunk, mention_author=False)
-                    else:
-                        await discord_message.channel.send(chunk)
-            else:
-                await discord_message.reply(answer, mention_author=False)
+                llm_output = response.content.strip()
+                logger.debug(f"LLM output: {llm_output[:200]}...")
 
-            logger.info(f"Assistant responded to {state.user_name}")
+                # Check for tool call
+                tool_call = self._parse_tool_call(llm_output)
+                if tool_call:
+                    tool_name, query = tool_call
+                    logger.info(f"ReAct tool call: {tool_name}('{query}')")
+
+                    if tool_name == "search_course_content":
+                        # Execute search
+                        search_result = await self._search_course_content(query)
+                        search_results.append(search_result)
+                        used_rag = True
+
+                        # Add search result to prompt for next iteration
+                        prompt = f"""{prompt}
+
+Assistant's action: Searched for "{query}"
+
+Search results:
+{search_result}
+
+Now provide your final answer using <answer>...</answer>"""
+                        continue
+
+                # Check for final answer
+                answer = self._parse_answer(llm_output)
+                if answer:
+                    logger.debug("ReAct loop: Found final answer")
+                    break
+
+                # If no tool call and no answer tag, treat whole response as answer
+                if not tool_call:
+                    answer = llm_output
+                    break
+
+            # If no answer after loop, use last response
+            if not answer:
+                answer = llm_output if 'llm_output' in locals() else "I'm sorry, I couldn't generate a response."
+
+            # Send response to Discord
+            await self._send_response(discord_message, answer)
+
+            logger.info(f"Assistant responded to {state.user_name} (used_rag={used_rag})")
 
             return ToolResult(
                 success=True,
@@ -146,7 +184,8 @@ class AssistantTool(BaseTool):
                 summary=f"Answered question about: {user_question[:50]}...",
                 metadata={
                     "response_sent": True,
-                    "used_rag": bool(context),
+                    "used_rag": used_rag,
+                    "search_count": len(search_results),
                 },
             )
 
@@ -159,128 +198,100 @@ class AssistantTool(BaseTool):
                 error=str(e),
             )
 
-    def _should_use_rag(self, query: str) -> bool:
-        """Determine if RAG should be used for this query.
-
-        Skips RAG for simple conversational queries (greetings, thanks, etc.)
-        and uses RAG for course-related questions.
+    def _parse_tool_call(self, text: str) -> Optional[Tuple[str, str]]:
+        """Parse a tool call from LLM output.
 
         Args:
-            query: The user's question
+            text: LLM output text
 
         Returns:
-            True if RAG should be used, False otherwise
+            Tuple of (tool_name, query) or None if no tool call found
         """
-        query_lower = query.lower().strip()
+        # Pattern: <tool>tool_name</tool><query>query text</query>
+        pattern = r"<tool>(\w+)</tool>\s*<query>(.*?)</query>"
+        match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
 
-        # Very short queries are usually conversational
-        if len(query_lower.split()) <= 3:
-            # Check if it matches skip patterns
-            for pattern in SKIP_RAG_PATTERNS:
-                if re.search(pattern, query_lower, re.IGNORECASE):
-                    logger.debug(f"Skipping RAG: matches skip pattern '{pattern}'")
-                    return False
+        if match:
+            tool_name = match.group(1).strip()
+            query = match.group(2).strip()
+            return (tool_name, query)
 
-        # Check if query matches explicit skip patterns
-        for pattern in SKIP_RAG_PATTERNS:
-            if re.search(pattern, query_lower, re.IGNORECASE):
-                # But if it also has course keywords, still use RAG
-                for rag_pattern in USE_RAG_PATTERNS:
-                    if re.search(rag_pattern, query_lower, re.IGNORECASE):
-                        return True
-                logger.debug(f"Skipping RAG: matches skip pattern '{pattern}'")
-                return False
+        return None
 
-        # Check if query has course-related keywords
-        for pattern in USE_RAG_PATTERNS:
-            if re.search(pattern, query_lower, re.IGNORECASE):
-                return True
-
-        # For medium-length queries (4-10 words), use RAG by default
-        # For very short queries without course keywords, skip RAG
-        word_count = len(query_lower.split())
-        if word_count <= 5:
-            logger.debug(f"Skipping RAG: short query without course keywords")
-            return False
-
-        # Default: use RAG for longer queries
-        return True
-
-    async def _build_context_with_rag(self, query: str) -> str:
-        """Build context using the context manager.
-
-        Uses the centralized context manager for semantic search
-        to find relevant content from indexed course materials.
+    def _parse_answer(self, text: str) -> Optional[str]:
+        """Parse the final answer from LLM output.
 
         Args:
-            query: The user's question
+            text: LLM output text
 
         Returns:
-            Context string with relevant content
+            Answer text or None if no answer tag found
         """
-        # Use context manager if available
+        # Pattern: <answer>answer text</answer>
+        pattern = r"<answer>(.*?)</answer>"
+        match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+
+        if match:
+            return match.group(1).strip()
+
+        return None
+
+    async def _search_course_content(self, query: str) -> str:
+        """Search course content using context manager.
+
+        Args:
+            query: Search query
+
+        Returns:
+            Search results as formatted string
+        """
         if self.bot.context_manager is None:
-            logger.warning("Context manager not available, falling back to basic context")
-            return self._build_fallback_context()
+            logger.warning("Context manager not available")
+            return "No course content available for search."
 
         try:
-            # Get context from context manager
             context_result = await self.bot.context_manager.get_context_for_assistant(
                 question=query,
             )
 
             if not context_result.has_relevant_content:
-                logger.debug(f"No relevant context for query: {query[:50]}")
-                return self._build_fallback_context()
+                return f"No relevant content found for: {query}"
 
-            # Format context with source attribution
-            context = f"Relevant course content (retrieved based on your question):\n\n{context_result.context}"
-
-            # Add source attribution
+            # Format results
+            result = context_result.context
             if context_result.source_names:
-                context += f"\n\n(Sources: {', '.join(context_result.source_names)})"
+                result += f"\n\n(Sources: {', '.join(context_result.source_names)})"
 
             logger.info(
-                f"Context manager retrieved {context_result.total_chunks} chunks "
+                f"RAG search returned {context_result.total_chunks} chunks "
                 f"from {len(context_result.source_names)} sources"
             )
 
-            return context
+            return result
 
         except Exception as e:
-            logger.error(f"Context retrieval error: {e}", exc_info=True)
-            return self._build_fallback_context()
+            logger.error(f"Search error: {e}", exc_info=True)
+            return f"Search error: {str(e)}"
 
-    def _build_fallback_context(self) -> str:
-        """Build basic context when RAG is not available.
+    async def _send_response(self, message: discord.Message, answer: str) -> None:
+        """Send response to Discord, handling long messages.
 
-        Returns:
-            Basic course overview context
+        Args:
+            message: Discord message to reply to
+            answer: Answer text to send
         """
-        context_parts = []
+        # Clean up any remaining tags
+        answer = re.sub(r"</?(?:tool|query|answer)>", "", answer).strip()
 
-        # Add course overview
-        context_parts.append(
-            f"Course: {self.bot.course.name}\n"
-            f"Description: {self.bot.course.description or 'No description'}"
-        )
-
-        # Add module list with descriptions
-        for module in self.bot.course.modules[:5]:  # Limit to first 5
-            module_info = f"\nModule: {module.name}"
-            if module.description:
-                module_info += f"\n{module.description}"
-            context_parts.append(module_info)
-
-        # Add concept list
-        all_concepts = self.bot.course.get_all_concepts()
-        if all_concepts:
-            concept_names = [c.name for c in list(all_concepts.values())[:15]]
-            context_parts.append(
-                f"\nKey concepts include: {', '.join(concept_names)}"
-            )
-
-        return "Course overview:\n" + "\n".join(context_parts)
+        if len(answer) > 2000:
+            chunks = [answer[i : i + 2000] for i in range(0, len(answer), 2000)]
+            for i, chunk in enumerate(chunks):
+                if i == 0:
+                    await message.reply(chunk, mention_author=False)
+                else:
+                    await message.channel.send(chunk)
+        else:
+            await message.reply(answer, mention_author=False)
 
 
 async def create_tool(bot: "ChibiBot", config: ToolConfig) -> AssistantTool:
