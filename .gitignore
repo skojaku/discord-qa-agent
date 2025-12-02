@@ -16,6 +16,7 @@ build/
 
 # Database
 data/*.db
+data/chromadb/
 
 # IDE
 .idea/
