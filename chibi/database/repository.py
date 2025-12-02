@@ -281,6 +281,44 @@ class Repository:
 
         return [row_to_user(row) for row in rows]
 
+    async def search_user_by_identifier(self, identifier: str) -> Optional[User]:
+        """Search for a user by Discord ID, username, or partial match.
+
+        Args:
+            identifier: Discord ID, username, or partial name to search for
+
+        Returns:
+            User if found, None otherwise
+        """
+        conn = self.db.connection
+
+        # First try exact match on discord_id
+        cursor = await conn.execute(
+            "SELECT * FROM users WHERE discord_id = ?", (identifier,)
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row_to_user(row)
+
+        # Then try exact match on username (case-insensitive)
+        cursor = await conn.execute(
+            "SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (identifier,)
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row_to_user(row)
+
+        # Finally try partial match on username (case-insensitive)
+        cursor = await conn.execute(
+            "SELECT * FROM users WHERE LOWER(username) LIKE LOWER(?)",
+            (f"%{identifier}%",)
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row_to_user(row)
+
+        return None
+
     async def get_all_mastery_records(self) -> List[ConceptMastery]:
         """Get all concept mastery records for all users."""
         conn = self.db.connection
