@@ -204,6 +204,11 @@ class QuizCog(commands.Cog):
 
             message = await interaction.followup.send(embed=embed)
 
+            # Add to conversation history for context
+            chat_cog = self.bot.get_cog("ChatCog")
+            if chat_cog:
+                chat_cog.add_bot_message(interaction.channel_id, f"[Quiz Question] {question_text}")
+
             # Store pending quiz
             self._pending_quizzes[interaction.user.id] = PendingQuiz(
                 user_id=interaction.user.id,
@@ -405,6 +410,14 @@ class QuizCog(commands.Cog):
             embed.set_footer(text=f"Concept: {pending.concept_name}")
 
             await message.reply(embed=embed)
+
+            # Add to conversation history for context
+            chat_cog = self.bot.get_cog("ChatCog")
+            if chat_cog:
+                chat_cog.add_bot_message(
+                    message.channel.id,
+                    f"[Quiz Feedback - {result_status}] {feedback if feedback else eval_text}"
+                )
 
             logger.info(
                 f"Quiz evaluated for user {message.author.display_name}: "
