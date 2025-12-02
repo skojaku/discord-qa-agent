@@ -134,6 +134,8 @@ discord-qa-agent/
 │   │   ├── status.py      # /status command
 │   │   ├── admin.py       # !show_grade, !status commands
 │   │   └── utils.py       # Common utilities
+│   ├── ui/                # UI utilities
+│   │   └── formatters.py  # Progress bars, mastery display
 │   ├── llm/               # LLM integration
 │   │   ├── base.py        # Provider interface
 │   │   ├── ollama_provider.py
