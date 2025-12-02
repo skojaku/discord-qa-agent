@@ -4,7 +4,6 @@ Admin commands use prefix commands (!command) instead of slash commands
 to keep them hidden from students. They only work in the configured admin channel.
 """
 
-import csv
 import io
 import logging
 import re
@@ -25,10 +24,9 @@ from ..constants import (
     ERROR_STUDENT_NOT_FOUND,
     ERROR_STUDENT_STATUS,
     MASTERY_EMOJI,
-    MASTERY_MASTERED,
-    MASTERY_PROFICIENT,
 )
 from ..ui import create_progress_bar, truncate_text
+from .utils import handle_prefix_command_errors
 
 if TYPE_CHECKING:
     from ..bot import ChibiBot
@@ -88,145 +86,134 @@ class AdminCog(commands.Cog):
     @commands.command(name="help", aliases=["admin"])
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
+    @handle_prefix_command_errors(error_message="Failed to show admin help.", context="!help")
     async def admin_help(self, ctx: commands.Context):
         """Show admin commands, available modules, and registered students.
 
         Usage: !help or !admin
         """
-        try:
-            async with ctx.typing():
-                embed = discord.Embed(
-                    title="Admin Commands",
-                    description="Use these commands to manage and monitor student progress.",
-                    color=discord.Color.blue(),
-                )
+        async with ctx.typing():
+            embed = discord.Embed(
+                title="Admin Commands",
+                description="Use these commands to manage and monitor student progress.",
+                color=discord.Color.blue(),
+            )
 
-                # Commands as individual fields for better readability
-                embed.add_field(
-                    name="`!help` or `!admin`",
-                    value="Show this help message",
-                    inline=False,
-                )
-                embed.add_field(
-                    name="`!modules`",
-                    value="List all available modules with details",
-                    inline=False,
-                )
-                embed.add_field(
-                    name="`!students`",
-                    value="List all registered students with activity info",
-                    inline=False,
-                )
-                embed.add_field(
-                    name="`!show_grade [module]`",
-                    value="Export student grades as CSV file\n*Optional: filter by module ID*",
-                    inline=False,
-                )
-                embed.add_field(
-                    name="`!status <student> [module]`",
-                    value="View a student's learning progress\n*Accepts @mention, Discord ID, or username*",
-                    inline=False,
-                )
+            # Commands as individual fields for better readability
+            embed.add_field(
+                name="`!help` or `!admin`",
+                value="Show this help message",
+                inline=False,
+            )
+            embed.add_field(
+                name="`!modules`",
+                value="List all available modules with details",
+                inline=False,
+            )
+            embed.add_field(
+                name="`!students`",
+                value="List all registered students with activity info",
+                inline=False,
+            )
+            embed.add_field(
+                name="`!show_grade [module]`",
+                value="Export student grades as CSV file\n*Optional: filter by module ID*",
+                inline=False,
+            )
+            embed.add_field(
+                name="`!status <student> [module]`",
+                value="View a student's learning progress\n*Accepts @mention, Discord ID, or username*",
+                inline=False,
+            )
 
-                # Quick stats
-                modules = self.bot.course.modules
-                users = await self.bot.repository.get_all_users()
-                embed.add_field(
-                    name="Quick Stats",
-                    value=f"**{len(modules)}** modules | **{len(users)}** students registered",
-                    inline=False,
-                )
+            # Quick stats
+            modules = self.bot.course.modules
+            users = await self.bot.user_repo.get_all()
+            embed.add_field(
+                name="Quick Stats",
+                value=f"**{len(modules)}** modules | **{len(users)}** students registered",
+                inline=False,
+            )
 
-                embed.set_footer(text="Use !modules or !students for detailed lists")
-                await ctx.send(embed=embed)
-
-        except Exception as e:
-            logger.error(f"Error in !admin command: {e}", exc_info=True)
-            await ctx.send("Failed to show admin help.")
+            embed.set_footer(text="Use !modules or !students for detailed lists")
+            await ctx.send(embed=embed)
 
     @commands.command(name="modules")
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
+    @handle_prefix_command_errors(error_message="Failed to list modules.", context="!modules")
     async def list_modules(self, ctx: commands.Context):
         """List all available modules.
 
         Usage: !modules
         """
-        try:
-            modules = self.bot.course.modules
-            if not modules:
-                await ctx.send("No modules configured.")
-                return
+        modules = self.bot.course.modules
+        if not modules:
+            await ctx.send("No modules configured.")
+            return
 
-            embed = discord.Embed(
-                title=f"Available Modules ({len(modules)})",
-                color=discord.Color.green(),
+        embed = discord.Embed(
+            title=f"Available Modules ({len(modules)})",
+            color=discord.Color.green(),
+        )
+
+        for m in modules:
+            concept_count = len(m.concepts) if m.concepts else 0
+            description = truncate_text(
+                m.description, DESCRIPTION_TRUNCATE_LENGTH
+            ) if m.description else "No description"
+            embed.add_field(
+                name=f"`{m.id}` - {m.name}",
+                value=f"{description}\n*{concept_count} concepts*",
+                inline=False,
             )
 
-            for m in modules:
-                concept_count = len(m.concepts) if m.concepts else 0
-                description = truncate_text(
-                    m.description, DESCRIPTION_TRUNCATE_LENGTH
-                ) if m.description else "No description"
-                embed.add_field(
-                    name=f"`{m.id}` - {m.name}",
-                    value=f"{description}\n*{concept_count} concepts*",
-                    inline=False,
-                )
-
-            await ctx.send(embed=embed)
-
-        except Exception as e:
-            logger.error(f"Error in !modules command: {e}", exc_info=True)
-            await ctx.send("Failed to list modules.")
+        await ctx.send(embed=embed)
 
     @commands.command(name="students")
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
+    @handle_prefix_command_errors(error_message="Failed to list students.", context="!students")
     async def list_students(self, ctx: commands.Context):
         """List all registered students.
 
         Usage: !students
         """
-        try:
-            async with ctx.typing():
-                users = await self.bot.repository.get_all_users()
+        async with ctx.typing():
+            users = await self.bot.user_repo.get_all()
 
-                if not users:
-                    await ctx.send("No students registered yet.")
-                    return
+            if not users:
+                await ctx.send("No students registered yet.")
+                return
 
-                embed = discord.Embed(
-                    title=f"Registered Students ({len(users)})",
-                    color=discord.Color.green(),
+            embed = discord.Embed(
+                title=f"Registered Students ({len(users)})",
+                color=discord.Color.green(),
+            )
+
+            # Build student list with activity info
+            lines = []
+            for u in users:
+                last_active = u.last_active.strftime("%Y-%m-%d") if u.last_active else "Never"
+                lines.append(f"`{u.discord_id}` - **{u.username}** (Last: {last_active})")
+
+            # Split into chunks if too many students (embed field limit is 1024 chars)
+            for i in range(0, len(lines), EMBED_FIELD_CHUNK_SIZE):
+                chunk = lines[i:i + EMBED_FIELD_CHUNK_SIZE]
+                field_name = "Students" if i == 0 else f"Students (cont.)"
+                embed.add_field(
+                    name=field_name,
+                    value="\n".join(chunk),
+                    inline=False,
                 )
 
-                # Build student list with activity info
-                lines = []
-                for u in users:
-                    last_active = u.last_active.strftime("%Y-%m-%d") if u.last_active else "Never"
-                    lines.append(f"`{u.discord_id}` - **{u.username}** (Last: {last_active})")
-
-                # Split into chunks if too many students (embed field limit is 1024 chars)
-                for i in range(0, len(lines), EMBED_FIELD_CHUNK_SIZE):
-                    chunk = lines[i:i + EMBED_FIELD_CHUNK_SIZE]
-                    field_name = "Students" if i == 0 else f"Students (cont.)"
-                    embed.add_field(
-                        name=field_name,
-                        value="\n".join(chunk),
-                        inline=False,
-                    )
-
-                embed.set_footer(text="Use !status <student> to view a student's progress")
-                await ctx.send(embed=embed)
-
-        except Exception as e:
-            logger.error(f"Error in !students command: {e}", exc_info=True)
-            await ctx.send("Failed to list students.")
+            embed.set_footer(text="Use !status <student> to view a student's progress")
+            await ctx.send(embed=embed)
 
     @commands.command(name="show_grade")
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
+    @handle_prefix_command_errors(error_message=ERROR_SHOW_GRADE, context="!show_grade")
     async def show_grade(
         self,
         ctx: commands.Context,
@@ -239,101 +226,39 @@ class AdminCog(commands.Cog):
         Args:
             module: Optional module ID to filter by
         """
-        try:
-            async with ctx.typing():
-                # Validate module if specified
-                target_module = None
-                if module:
-                    target_module = self.bot.course.get_module(module)
-                    if not target_module:
-                        await ctx.send(ERROR_MODULE_NOT_FOUND)
-                        return
+        async with ctx.typing():
+            # Validate module if specified
+            target_module = None
+            if module:
+                target_module = self.bot.course.get_module(module)
+                if not target_module:
+                    await ctx.send(ERROR_MODULE_NOT_FOUND)
+                    return
 
-                # Generate CSV data
-                csv_content = await self._generate_grade_csv(target_module)
+            # Generate CSV data using grade service
+            csv_content = await self.bot.grade_service.generate_grade_csv(target_module)
 
-                # Create file object
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                module_suffix = f"_{module}" if module else ""
-                filename = f"{CSV_FILENAME_PREFIX}{module_suffix}_{timestamp}.csv"
+            # Create file object
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            module_suffix = f"_{module}" if module else ""
+            filename = f"{CSV_FILENAME_PREFIX}{module_suffix}_{timestamp}.csv"
 
-                file = discord.File(
-                    io.BytesIO(csv_content.encode("utf-8")),
-                    filename=filename
-                )
+            file = discord.File(
+                io.BytesIO(csv_content.encode("utf-8")),
+                filename=filename
+            )
 
-                # Send the file
-                module_info = f" for module **{target_module.name}**" if target_module else ""
-                await ctx.send(
-                    f"Grade report{module_info} generated successfully.",
-                    file=file
-                )
-
-        except Exception as e:
-            logger.error(f"Error in !show_grade command: {e}", exc_info=True)
-            await ctx.send(ERROR_SHOW_GRADE)
-
-    async def _generate_grade_csv(
-        self,
-        target_module=None,
-    ) -> str:
-        """Generate CSV content with student grades in tidy format.
-
-        Args:
-            target_module: If specified, only include data for this module
-
-        Returns:
-            CSV content as a string (one row per user-module combination)
-        """
-        # Get all users
-        users = await self.bot.repository.get_all_users()
-
-        # Get course modules info
-        if target_module:
-            modules = [target_module]
-        else:
-            modules = self.bot.course.modules
-
-        # Create CSV writer with tidy format headers
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["discord_id", "username", "module", "completion_pct"])
-
-        # Process each user
-        for user in users:
-            # Get user's mastery records
-            mastery_records = await self.bot.repository.get_user_mastery_all(user.id)
-            mastery_by_concept = {m.concept_id: m for m in mastery_records}
-
-            # One row per module (tidy format)
-            for mod in modules:
-                module_concepts = mod.concepts
-
-                # Count completed concepts (proficient or mastered)
-                completed_count = sum(
-                    1 for concept in module_concepts
-                    if mastery_by_concept.get(concept.id)
-                    and mastery_by_concept[concept.id].mastery_level in (MASTERY_PROFICIENT, MASTERY_MASTERED)
-                )
-
-                # Calculate completion percentage
-                completion_pct = (
-                    (completed_count / len(module_concepts) * 100)
-                    if module_concepts else 0
-                )
-
-                writer.writerow([
-                    user.discord_id,
-                    user.username,
-                    mod.id,
-                    f"{completion_pct:.1f}"
-                ])
-
-        return output.getvalue()
+            # Send the file
+            module_info = f" for module **{target_module.name}**" if target_module else ""
+            await ctx.send(
+                f"Grade report{module_info} generated successfully.",
+                file=file
+            )
 
     @commands.command(name="status")
     @commands.has_permissions(administrator=True)
     @admin_channel_only()
+    @handle_prefix_command_errors(error_message=ERROR_STUDENT_STATUS, context="!status")
     async def student_status(
         self,
         ctx: commands.Context,
@@ -348,50 +273,45 @@ class AdminCog(commands.Cog):
             student: Student @mention, Discord ID, or username to look up
             module: Optional module to show detailed progress for
         """
-        try:
-            async with ctx.typing():
-                # Extract user ID from mention if applicable
-                mention_id = extract_user_id_from_mention(student)
-                identifier = mention_id or student
-                logger.info(f"Looking up student: raw='{student}', mention_id='{mention_id}', identifier='{identifier}'")
+        async with ctx.typing():
+            # Extract user ID from mention if applicable
+            mention_id = extract_user_id_from_mention(student)
+            identifier = mention_id or student
+            logger.info(f"Looking up student: raw='{student}', mention_id='{mention_id}', identifier='{identifier}'")
 
-                # Look up the student
-                user = await self.bot.repository.search_user_by_identifier(identifier)
-                if not user:
-                    # Check if it's a valid Discord user who just hasn't used the bot yet
-                    mention_id = extract_user_id_from_mention(student)
-                    if mention_id:
-                        await ctx.send(
-                            f"User <@{mention_id}> hasn't taken any quizzes yet. "
-                            "They need to use `/quiz` first to appear in the system."
-                        )
-                    else:
-                        await ctx.send(ERROR_STUDENT_NOT_FOUND)
+            # Look up the student
+            user = await self.bot.user_repo.search_by_identifier(identifier)
+            if not user:
+                # Check if it's a valid Discord user who just hasn't used the bot yet
+                mention_id = extract_user_id_from_mention(student)
+                if mention_id:
+                    await ctx.send(
+                        f"User <@{mention_id}> hasn't taken any quizzes yet. "
+                        "They need to use `/quiz` first to appear in the system."
+                    )
+                else:
+                    await ctx.send(ERROR_STUDENT_NOT_FOUND)
+                return
+
+            # Validate module if specified
+            target_module = None
+            if module:
+                target_module = self.bot.course.get_module(module)
+                if not target_module:
+                    await ctx.send(ERROR_MODULE_NOT_FOUND)
                     return
 
-                # Validate module if specified
-                target_module = None
-                if module:
-                    target_module = self.bot.course.get_module(module)
-                    if not target_module:
-                        await ctx.send(ERROR_MODULE_NOT_FOUND)
-                        return
+            # Build the appropriate embed
+            if target_module is None:
+                embed = await self._build_student_summary_embed(user)
+            else:
+                embed = await self._build_student_module_embed(user, target_module)
 
-                # Build the appropriate embed
-                if target_module is None:
-                    embed = await self._build_student_summary_embed(user)
-                else:
-                    embed = await self._build_student_module_embed(user, target_module)
-
-                await ctx.send(embed=embed)
-
-        except Exception as e:
-            logger.error(f"Error in !status command: {e}", exc_info=True)
-            await ctx.send(ERROR_STUDENT_STATUS)
+            await ctx.send(embed=embed)
 
     async def _build_student_summary_embed(self, user: "User") -> discord.Embed:
         """Build summary status embed for a student."""
-        summary = await self.bot.repository.get_mastery_summary(user.id)
+        summary = await self.bot.mastery_repo.get_summary(user.id)
         total_concepts = len(self.bot.course.get_all_concepts())
 
         embed = discord.Embed(
@@ -464,7 +384,7 @@ class AdminCog(commands.Cog):
         )
 
         # Get all mastery records for this user
-        mastery_records = await self.bot.repository.get_user_mastery_all(user.id)
+        mastery_records = await self.bot.mastery_repo.get_all_for_user(user.id)
         mastery_by_concept = {m.concept_id: m for m in mastery_records}
 
         # Module progress stats

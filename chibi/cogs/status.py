@@ -15,8 +15,8 @@ from ..ui import create_progress_bar, get_mastery_emoji
 from .utils import (
     defer_interaction,
     get_or_create_user_from_interaction,
+    handle_slash_command_errors,
     module_autocomplete_choices,
-    send_error_response,
 )
 
 if TYPE_CHECKING:
@@ -44,43 +44,38 @@ class StatusCog(commands.Cog):
     )
     @app_commands.autocomplete(module=module_autocomplete)
     @defer_interaction(thinking=True)
+    @handle_slash_command_errors(error_message=ERROR_STATUS, context="/status")
     async def status(
         self,
         interaction: discord.Interaction,
         module: Optional[str] = None,
     ):
         """Show learning status and progress."""
-        try:
-            # Get or create user
-            user = await get_or_create_user_from_interaction(
-                self.bot.repository, interaction
+        # Get or create user
+        user = await get_or_create_user_from_interaction(
+            self.bot.user_repo, interaction
+        )
+
+        if module is None:
+            # No module specified: show summary
+            embed = await self._build_summary_embed(user.id, interaction.user)
+        else:
+            # Module specified: show detailed view for that module
+            target_module = self.bot.course.get_module(module)
+            if target_module is None:
+                await interaction.followup.send(ERROR_MODULE_NOT_FOUND)
+                return
+            embed = await self._build_module_detail_embed(
+                user.id, interaction.user, target_module
             )
 
-            if module is None:
-                # No module specified: show summary
-                embed = await self._build_summary_embed(user.id, interaction.user)
-            else:
-                # Module specified: show detailed view for that module
-                target_module = self.bot.course.get_module(module)
-                if target_module is None:
-                    await interaction.followup.send(ERROR_MODULE_NOT_FOUND)
-                    return
-                embed = await self._build_module_detail_embed(
-                    user.id, interaction.user, target_module
-                )
-
-            await interaction.followup.send(embed=embed)
-
-        except Exception as e:
-            await send_error_response(
-                interaction, ERROR_STATUS, logger, e, "/status command"
-            )
+        await interaction.followup.send(embed=embed)
 
     async def _build_summary_embed(
         self, user_id: int, discord_user: discord.User
     ) -> discord.Embed:
         """Build summary status embed."""
-        summary = await self.bot.repository.get_mastery_summary(user_id)
+        summary = await self.bot.mastery_repo.get_summary(user_id)
         total_concepts = len(self.bot.course.get_all_concepts())
 
         embed = discord.Embed(
@@ -149,7 +144,7 @@ class StatusCog(commands.Cog):
         )
 
         # Get all mastery records for this user
-        mastery_records = await self.bot.repository.get_user_mastery_all(user_id)
+        mastery_records = await self.bot.mastery_repo.get_all_for_user(user_id)
         mastery_by_concept = {m.concept_id: m for m in mastery_records}
 
         # Module progress stats

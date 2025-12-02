@@ -11,10 +11,12 @@ from .config import Config, load_config
 from .content.course import Course, load_course
 from .content.loader import ContentLoader
 from .database.connection import Database
-from .database.repository import Repository
+from .database.repositories import MasteryRepository, QuizRepository, UserRepository
+from .learning.mastery import MasteryCalculator, MasteryConfig
 from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
+from .services import GradeService, QuizService
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +39,27 @@ class ChibiBot(commands.Bot):
         self.course: Optional[Course] = None
         self.llm_manager: Optional[LLMManager] = None
         self.database: Optional[Database] = None
-        self.repository: Optional[Repository] = None
         self.content_loader: Optional[ContentLoader] = None
+
+        # Repositories
+        self.user_repo: Optional[UserRepository] = None
+        self.quiz_repo: Optional[QuizRepository] = None
+        self.mastery_repo: Optional[MasteryRepository] = None
+
+        # Services
+        self.quiz_service: Optional[QuizService] = None
+        self.grade_service: Optional[GradeService] = None
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
         logger.info("Setting up Chibi bot...")
 
-        # Initialize database
+        # Initialize database and repositories
         self.database = Database(self.config.database.path)
         await self.database.connect()
-        self.repository = Repository(self.database)
+        self.user_repo = UserRepository(self.database)
+        self.quiz_repo = QuizRepository(self.database)
+        self.mastery_repo = MasteryRepository(self.database)
         logger.info("Database connected")
 
         # Initialize LLM providers
@@ -73,6 +85,26 @@ class ChibiBot(commands.Bot):
         self.content_loader = ContentLoader()
         await self.content_loader.load_all_content(self.course)
         logger.info("Module content loaded")
+
+        # Initialize services
+        mastery_config = MasteryConfig(
+            min_attempts_for_mastery=self.config.mastery.min_attempts_for_mastery,
+        )
+        mastery_calculator = MasteryCalculator(mastery_config)
+
+        self.quiz_service = QuizService(
+            mastery_repo=self.mastery_repo,
+            quiz_repo=self.quiz_repo,
+            llm_manager=self.llm_manager,
+            mastery_calculator=mastery_calculator,
+            max_tokens=self.config.llm.max_tokens,
+        )
+        self.grade_service = GradeService(
+            user_repo=self.user_repo,
+            mastery_repo=self.mastery_repo,
+            course=self.course,
+        )
+        logger.info("Services initialized")
 
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")

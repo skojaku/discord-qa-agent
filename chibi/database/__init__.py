@@ -1,6 +1,6 @@
 """Database layer for Chibi bot."""
 
 from .connection import Database
-from .repository import Repository
+from .repositories import MasteryRepository, QuizRepository, UserRepository
 
-__all__ = ["Database", "Repository"]
+__all__ = ["Database", "MasteryRepository", "QuizRepository", "UserRepository"]

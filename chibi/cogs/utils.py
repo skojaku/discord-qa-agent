@@ -2,10 +2,11 @@
 
 import functools
 import logging
-from typing import List, TYPE_CHECKING
+from typing import Callable, List, TYPE_CHECKING
 
 import discord
 from discord import app_commands
+from discord.ext import commands
 
 from ..constants import (
     DISCORD_AUTOCOMPLETE_LIMIT,
@@ -16,7 +17,7 @@ from ..constants import (
 
 if TYPE_CHECKING:
     from ..database.models import User
-    from ..database.repository import Repository
+    from ..database.repositories import UserRepository
     from ..content.course import Course
 
 logger = logging.getLogger(__name__)
@@ -58,19 +59,19 @@ def defer_interaction(thinking: bool = True):
 
 
 async def get_or_create_user_from_interaction(
-    repository: "Repository",
+    user_repo: "UserRepository",
     interaction: discord.Interaction,
 ) -> "User":
     """Get or create a user from a Discord interaction.
 
     Args:
-        repository: The database repository
+        user_repo: The user repository
         interaction: The Discord interaction
 
     Returns:
         The User model instance
     """
-    return await repository.get_or_create_user(
+    return await user_repo.get_or_create(
         discord_id=str(interaction.user.id),
         username=interaction.user.display_name,
     )
@@ -93,28 +94,6 @@ async def send_chunked_response(
     chunks = [content[i:i + DISCORD_CHUNK_SIZE] for i in range(0, len(content), DISCORD_CHUNK_SIZE)]
     for chunk in chunks:
         await interaction.followup.send(chunk)
-
-
-async def send_error_response(
-    interaction: discord.Interaction,
-    error_message: str = ERROR_GENERIC,
-    logger_instance: logging.Logger = None,
-    exception: Exception = None,
-    context: str = "",
-) -> None:
-    """Send a standardized error response.
-
-    Args:
-        interaction: The Discord interaction (must be deferred)
-        error_message: The error message to display
-        logger_instance: Optional logger for error logging
-        exception: Optional exception to log
-        context: Optional context string for logging
-    """
-    if logger_instance and exception:
-        logger_instance.error(f"Error in {context}: {exception}", exc_info=True)
-
-    await interaction.followup.send(error_message)
 
 
 async def module_autocomplete_choices(
@@ -142,3 +121,79 @@ async def module_autocomplete_choices(
             )
 
     return choices[:DISCORD_AUTOCOMPLETE_LIMIT]
+
+
+def handle_slash_command_errors(
+    error_message: str = ERROR_GENERIC,
+    context: str = "",
+):
+    """Decorator for standardized error handling in slash commands.
+
+    Wraps slash command handlers to catch exceptions and send
+    user-friendly error messages.
+
+    Args:
+        error_message: Error message to display to the user
+        context: Context string for logging
+
+    Usage:
+        @app_commands.command(name="example")
+        @defer_interaction(thinking=True)
+        @handle_slash_command_errors(error_message="Failed!", context="/example")
+        async def example(self, interaction: discord.Interaction):
+            # Command implementation
+            pass
+    """
+    def decorator(func: Callable):
+        @functools.wraps(func)
+        async def wrapper(self, interaction: discord.Interaction, *args, **kwargs):
+            try:
+                return await func(self, interaction, *args, **kwargs)
+            except discord.NotFound:
+                logger.warning(f"Interaction expired in {context or func.__name__}")
+            except Exception as e:
+                logger.error(
+                    f"Error in {context or func.__name__}: {e}",
+                    exc_info=True
+                )
+                try:
+                    await interaction.followup.send(error_message)
+                except discord.NotFound:
+                    pass
+        return wrapper
+    return decorator
+
+
+def handle_prefix_command_errors(
+    error_message: str = ERROR_GENERIC,
+    context: str = "",
+):
+    """Decorator for standardized error handling in prefix commands.
+
+    Wraps prefix command handlers to catch exceptions and send
+    user-friendly error messages.
+
+    Args:
+        error_message: Error message to display to the user
+        context: Context string for logging
+
+    Usage:
+        @commands.command(name="example")
+        @handle_prefix_command_errors(error_message="Failed!", context="!example")
+        async def example(self, ctx: commands.Context):
+            # Command implementation
+            pass
+    """
+    def decorator(func: Callable):
+        @functools.wraps(func)
+        async def wrapper(self, ctx: commands.Context, *args, **kwargs):
+            try:
+                return await func(self, ctx, *args, **kwargs)
+            except Exception as e:
+                logger.error(
+                    f"Error in {context or func.__name__}: {e}",
+                    exc_info=True
+                )
+                await ctx.send(error_message)
+        return wrapper
+    return decorator
