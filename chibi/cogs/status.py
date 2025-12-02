@@ -1,23 +1,28 @@
 """Status command cog for learning progress tracking."""
 
 import logging
-from typing import Literal, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from ..constants import (
-    CONCEPTS_PER_LEVEL_LIMIT,
-    CONCEPTS_PER_MODULE_LIMIT,
+    ERROR_MODULE_NOT_FOUND,
     ERROR_STATUS,
     MASTERY_EMOJI,
     PROGRESS_BAR_LENGTH,
 )
-from .utils import defer_interaction, get_or_create_user_from_interaction, send_error_response
+from .utils import (
+    defer_interaction,
+    get_or_create_user_from_interaction,
+    module_autocomplete_choices,
+    send_error_response,
+)
 
 if TYPE_CHECKING:
     from ..bot import ChibiBot
+    from ..content.course import Module
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +33,22 @@ class StatusCog(commands.Cog):
     def __init__(self, bot: "ChibiBot"):
         self.bot = bot
 
+    async def module_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
+        """Autocomplete callback for module selection."""
+        return await module_autocomplete_choices(self.bot.course, current)
+
     @app_commands.command(name="status", description="View your learning progress")
     @app_commands.describe(
-        view="What kind of status to show",
+        module="Module to show detailed progress for (leave empty for summary)",
     )
+    @app_commands.autocomplete(module=module_autocomplete)
     @defer_interaction(thinking=True)
     async def status(
         self,
         interaction: discord.Interaction,
-        view: Literal["summary", "detailed", "recent", "concepts"] = "summary",
+        module: Optional[str] = None,
     ):
         """Show learning status and progress."""
         try:
@@ -45,16 +57,18 @@ class StatusCog(commands.Cog):
                 self.bot.repository, interaction
             )
 
-            if view == "summary":
+            if module is None:
+                # No module specified: show summary
                 embed = await self._build_summary_embed(user.id, interaction.user)
-            elif view == "detailed":
-                embed = await self._build_detailed_embed(user.id, interaction.user)
-            elif view == "recent":
-                embed = await self._build_recent_embed(user.id, interaction.user)
-            elif view == "concepts":
-                embed = await self._build_concepts_embed(user.id, interaction.user)
             else:
-                embed = await self._build_summary_embed(user.id, interaction.user)
+                # Module specified: show detailed view for that module
+                target_module = self.bot.course.get_module(module)
+                if target_module is None:
+                    await interaction.followup.send(ERROR_MODULE_NOT_FOUND)
+                    return
+                embed = await self._build_module_detail_embed(
+                    user.id, interaction.user, target_module
+                )
 
             await interaction.followup.send(embed=embed)
 
@@ -68,14 +82,7 @@ class StatusCog(commands.Cog):
     ) -> discord.Embed:
         """Build summary status embed."""
         summary = await self.bot.repository.get_mastery_summary(user_id)
-
         total_concepts = len(self.bot.course.get_all_concepts())
-        concepts_started = (
-            summary.get("novice", 0)
-            + summary.get("learning", 0)
-            + summary.get("proficient", 0)
-            + summary.get("mastered", 0)
-        )
 
         embed = discord.Embed(
             title=f"📊 Learning Progress - {discord_user.display_name}",
@@ -122,143 +129,80 @@ class StatusCog(commands.Cog):
             inline=False,
         )
 
-        embed.set_footer(text="Use /status detailed for more info | /status concepts for concept breakdown")
+        embed.set_footer(text="Use /status <module> for detailed module progress")
 
         return embed
 
-    async def _build_detailed_embed(
-        self, user_id: int, discord_user: discord.User
+    async def _build_module_detail_embed(
+        self, user_id: int, discord_user: discord.User, module: "Module"
     ) -> discord.Embed:
-        """Build detailed status embed with module breakdown."""
+        """Build detailed status embed for a specific module.
+
+        Args:
+            user_id: Database user ID
+            discord_user: Discord user object
+            module: The module to show details for
+        """
         embed = discord.Embed(
-            title=f"📈 Detailed Progress - {discord_user.display_name}",
+            title=f"📚 {module.name} - {discord_user.display_name}",
+            description=module.description if module.description else None,
             color=discord.Color.blue(),
         )
 
-        # Get all mastery records
+        # Get all mastery records for this user
         mastery_records = await self.bot.repository.get_user_mastery_all(user_id)
         mastery_by_concept = {m.concept_id: m for m in mastery_records}
 
-        # Group by module
-        for module in self.bot.course.modules:
-            module_concepts = []
-            for concept in module.concepts:
-                mastery = mastery_by_concept.get(concept.id)
-                if mastery:
-                    emoji = self._get_mastery_emoji(mastery.mastery_level)
-                    accuracy = (
-                        mastery.correct_attempts / mastery.total_attempts * 100
-                        if mastery.total_attempts > 0
-                        else 0
-                    )
-                    module_concepts.append(
-                        f"{emoji} {concept.name} ({accuracy:.0f}% - {mastery.total_attempts} attempts)"
-                    )
-                else:
-                    module_concepts.append(f"⬜ {concept.name} (not started)")
+        # Module progress stats
+        total_concepts = len(module.concepts)
+        started_count = 0
+        mastered_count = 0
+        proficient_count = 0
 
-            if module_concepts:
-                embed.add_field(
-                    name=f"📚 {module.name}",
-                    value="\n".join(module_concepts[:CONCEPTS_PER_MODULE_LIMIT]),
-                    inline=False,
+        concept_lines = []
+        for concept in module.concepts:
+            mastery = mastery_by_concept.get(concept.id)
+            if mastery:
+                started_count += 1
+                if mastery.mastery_level == "mastered":
+                    mastered_count += 1
+                elif mastery.mastery_level == "proficient":
+                    proficient_count += 1
+
+                emoji = self._get_mastery_emoji(mastery.mastery_level)
+                accuracy = (
+                    mastery.correct_attempts / mastery.total_attempts * 100
+                    if mastery.total_attempts > 0
+                    else 0
                 )
+                concept_lines.append(
+                    f"{emoji} **{concept.name}** ({accuracy:.0f}% - {mastery.total_attempts} attempts)"
+                )
+            else:
+                concept_lines.append(f"⬜ {concept.name} (not started)")
 
-        embed.set_footer(text="Use /quiz to practice concepts")
-
-        return embed
-
-    async def _build_recent_embed(
-        self, user_id: int, discord_user: discord.User
-    ) -> discord.Embed:
-        """Build recent activity embed."""
-        embed = discord.Embed(
-            title=f"🕐 Recent Activity - {discord_user.display_name}",
-            color=discord.Color.blue(),
+        # Module summary
+        progress_pct = (
+            (mastered_count + proficient_count) / total_concepts * 100
+            if total_concepts > 0
+            else 0
+        )
+        embed.add_field(
+            name="Module Progress",
+            value=f"**{progress_pct:.1f}%** complete ({mastered_count + proficient_count}/{total_concepts})\n"
+            f"🏆 Mastered: {mastered_count} | ⭐ Proficient: {proficient_count} | Started: {started_count}/{total_concepts}",
+            inline=False,
         )
 
-        # Recent quiz attempts
-        recent_quizzes = await self.bot.repository.get_recent_quiz_attempts(
-            user_id, limit=5
-        )
-
-        if recent_quizzes:
-            quiz_lines = []
-            for quiz in recent_quizzes:
-                emoji = "✅" if quiz.is_correct else "❌"
-                time_str = quiz.created_at.strftime("%m/%d %H:%M") if quiz.created_at else "Unknown"
-                quiz_lines.append(
-                    f"{emoji} **{quiz.concept_id}** ({quiz.quiz_format}) - {time_str}"
-                )
-
+        # Concept details
+        if concept_lines:
             embed.add_field(
-                name="Recent Quizzes",
-                value="\n".join(quiz_lines),
-                inline=False,
-            )
-        else:
-            embed.add_field(
-                name="Recent Quizzes",
-                value="No quiz attempts yet. Try /quiz to get started! 📝",
+                name="Concepts",
+                value="\n".join(concept_lines),
                 inline=False,
             )
 
-        return embed
-
-    async def _build_concepts_embed(
-        self, user_id: int, discord_user: discord.User
-    ) -> discord.Embed:
-        """Build concepts mastery embed."""
-        embed = discord.Embed(
-            title=f"🎯 Concept Mastery - {discord_user.display_name}",
-            color=discord.Color.blue(),
-        )
-
-        # Get all mastery records
-        mastery_records = await self.bot.repository.get_user_mastery_all(user_id)
-
-        if not mastery_records:
-            embed.description = (
-                "You haven't started any concepts yet!\n\n"
-                "Use `/quiz` to start practicing and track your progress. 🚀"
-            )
-            return embed
-
-        # Group by mastery level
-        levels = {
-            "mastered": [],
-            "proficient": [],
-            "learning": [],
-            "novice": [],
-        }
-
-        all_concepts = self.bot.course.get_all_concepts()
-
-        for mastery in mastery_records:
-            concept = all_concepts.get(mastery.concept_id)
-            if concept:
-                levels[mastery.mastery_level].append(
-                    f"**{concept.name}** ({mastery.correct_attempts}/{mastery.total_attempts})"
-                )
-
-        # Add fields for each level
-        level_info = [
-            ("🏆 Mastered", "mastered"),
-            ("⭐ Proficient", "proficient"),
-            ("📖 Learning", "learning"),
-            ("🌱 Novice", "novice"),
-        ]
-
-        for title, level in level_info:
-            concepts = levels[level]
-            if concepts:
-                embed.add_field(
-                    name=f"{title} ({len(concepts)})",
-                    value="\n".join(concepts[:CONCEPTS_PER_LEVEL_LIMIT]),
-                    inline=False,
-                )
-
-        embed.set_footer(text="Keep practicing to level up your concepts! 💪")
+        embed.set_footer(text="Use /quiz to practice concepts | /status for overall summary")
 
         return embed
 
