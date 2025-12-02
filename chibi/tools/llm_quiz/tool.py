@@ -59,6 +59,18 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
         await interaction.response.defer(thinking=True)
 
         try:
+            # Log the user's question and answer to conversation memory
+            self.tool.bot.log_to_conversation(
+                user_id=self.user_id,
+                channel_id=str(interaction.channel.id),
+                role="user",
+                content=(
+                    f"LLM Quiz Challenge for {self.module_name}:\n"
+                    f"My question: {self.question.value}\n"
+                    f"My answer: {self.answer.value}"
+                ),
+            )
+
             # Get or create user
             user = await self.tool.bot.user_repo.get_or_create(
                 discord_id=self.user_id,
@@ -87,13 +99,11 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                 )
                 await interaction.followup.send(embed=embed)
 
-                # Log the rejected question to conversation memory
+                # Log the rejection to conversation memory
                 rejected_content = (
                     f"[LLM Quiz Challenge - Question Rejected]\n"
-                    f"Module: {self.module_name}\n"
-                    f"Your Question: {self.question.value}\n"
-                    f"Your Answer: {self.answer.value}\n"
-                    f"Reason: Question too similar to a previously submitted question."
+                    f"Reason: Your question is too similar to a previously submitted question. "
+                    f"Please try a more unique question!"
                 )
                 self.tool.bot.log_to_conversation(
                     user_id=self.user_id,
@@ -165,13 +175,10 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
             # Log the challenge result to conversation memory
             outcome = "WIN - You stumped the AI!" if result.student_wins else "LOSE - The AI got it right"
             challenge_content = (
-                f"[LLM Quiz Challenge - {outcome}]\n"
-                f"Module: {self.module_name}\n"
-                f"Your Question: {self.question.value}\n"
-                f"Your Answer: {self.answer.value}\n"
+                f"[LLM Quiz Challenge Result - {outcome}]\n"
                 f"AI's Answer: {result.llm_answer_summary}\n"
                 f"Evaluation: {result.evaluation_summary}\n"
-                f"Progress: {wins}/{target} wins"
+                f"Progress: {wins}/{target} wins for {self.module_name}"
             )
             self.tool.bot.log_to_conversation(
                 user_id=self.user_id,

@@ -65,6 +65,14 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
         try:
             student_answer = self.answer_field.value
 
+            # Log the user's answer to conversation memory
+            self.tool.bot.log_to_conversation(
+                user_id=str(interaction.user.id),
+                channel_id=str(interaction.channel.id),
+                role="user",
+                content=f"My answer to the quiz question about {self.concept_name}: {student_answer}",
+            )
+
             # Evaluate the answer with RAG context
             result = await self.tool.bot.quiz_service.evaluate_answer(
                 question=self.question,
@@ -103,12 +111,9 @@ class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
 
             await interaction.followup.send(embed=embed)
 
-            # Log the user's answer and feedback to conversation memory
+            # Log the feedback to conversation memory
             status = "PASS" if result.is_correct else ("PARTIAL" if result.is_partial else "FAIL")
             feedback_content = (
-                f"[User's Quiz Answer]\n"
-                f"Question: {self.question}\n"
-                f"User's Answer: {student_answer}\n\n"
                 f"[Quiz Feedback - {status} (Score: {result.quality_score}/5)]\n"
                 f"Concept: {self.concept_name}\n"
                 f"Feedback: {result.feedback}"
