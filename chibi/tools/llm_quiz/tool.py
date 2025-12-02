@@ -326,27 +326,49 @@ class LLMQuizTool(BaseTool):
             # Get module from parameters
             module_id = state.parameters.get("module")
             if not module_id:
-                # Try to extract from task description or prompt user
+                # Build list of available modules
+                module_list = ", ".join(
+                    f"`{m.id}`" for m in self.bot.course.modules[:5]
+                )
+                if len(self.bot.course.modules) > 5:
+                    module_list += f", ... ({len(self.bot.course.modules)} total)"
+
                 await discord_message.reply(
-                    "Please specify a module to challenge the AI on. "
-                    "Use `/llm-quiz <module>` or tell me which module you want to challenge.",
+                    f"Please specify a module to challenge the AI on!\n\n"
+                    f"**Available modules:** {module_list}\n\n"
+                    f"**Examples:**\n"
+                    f"• \"LLM quiz on module-1\"\n"
+                    f"• \"Challenge the AI on m02\"\n"
+                    f"• Use `/modules` to see all available modules",
                     mention_author=False,
                 )
                 return ToolResult(
-                    success=False,
+                    success=True,  # Mark as success since we sent a helpful response
                     result=None,
-                    summary="Module not specified",
-                    error="Module parameter required",
+                    summary="Prompted user to specify module",
+                    metadata={"response_sent": True},
                 )
 
             module_obj = self.bot.course.get_module(module_id)
             if not module_obj:
-                await discord_message.reply(ERROR_MODULE_NOT_FOUND, mention_author=False)
+                # Build list of available modules
+                module_list = ", ".join(
+                    f"`{m.id}`" for m in self.bot.course.modules[:5]
+                )
+                if len(self.bot.course.modules) > 5:
+                    module_list += f", ... ({len(self.bot.course.modules)} total)"
+
+                await discord_message.reply(
+                    f"Module `{module_id}` not found.\n\n"
+                    f"**Available modules:** {module_list}\n\n"
+                    f"Use `/modules` to see all available modules.",
+                    mention_author=False,
+                )
                 return ToolResult(
-                    success=False,
+                    success=True,  # Mark as success since we sent a helpful response
                     result=None,
-                    summary="Module not found",
-                    error=ERROR_MODULE_NOT_FOUND,
+                    summary=f"Module {module_id} not found - showed available modules",
+                    metadata={"response_sent": True},
                 )
 
             # For natural language routing, we need to show a modal

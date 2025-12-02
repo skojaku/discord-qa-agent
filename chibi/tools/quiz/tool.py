@@ -263,12 +263,24 @@ class QuizTool(BaseTool):
                 module_obj = random.choice(self.bot.course.modules)
 
             if not module_obj:
-                await discord_message.reply(ERROR_MODULE_NOT_FOUND, mention_author=False)
+                # Build list of available modules
+                module_list = ", ".join(
+                    f"`{m.id}`" for m in self.bot.course.modules[:5]
+                )
+                if len(self.bot.course.modules) > 5:
+                    module_list += f", ... ({len(self.bot.course.modules)} total)"
+
+                await discord_message.reply(
+                    f"Module `{module_id}` not found.\n\n"
+                    f"**Available modules:** {module_list}\n\n"
+                    f"**Tip:** Just say \"quiz me\" for a random module, or specify one like \"quiz me on module-1\"",
+                    mention_author=False,
+                )
                 return ToolResult(
-                    success=False,
+                    success=True,
                     result=None,
-                    summary="Module not found",
-                    error=ERROR_MODULE_NOT_FOUND,
+                    summary=f"Module {module_id} not found - showed available modules",
+                    metadata={"response_sent": True},
                 )
 
             # Select concept based on mastery level
