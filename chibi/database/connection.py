@@ -78,10 +78,27 @@ class Database:
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
 
+        -- LLM Quiz Challenge attempts (students try to stump the AI)
+        CREATE TABLE IF NOT EXISTS llm_quiz_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            module_id TEXT NOT NULL,
+            question TEXT NOT NULL,
+            student_answer TEXT NOT NULL,
+            llm_answer TEXT NOT NULL,
+            student_wins BOOLEAN NOT NULL,
+            student_answer_correctness TEXT NOT NULL,
+            evaluation_explanation TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
         -- Indexes for performance
         CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id);
         CREATE INDEX IF NOT EXISTS idx_quiz_attempts_concept ON quiz_attempts(concept_id);
         CREATE INDEX IF NOT EXISTS idx_concept_mastery_user ON concept_mastery(user_id);
+        CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_user ON llm_quiz_attempts(user_id);
+        CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_module ON llm_quiz_attempts(module_id);
         """
 
         await self._connection.executescript(schema)

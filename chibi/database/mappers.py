@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from .models import User, QuizAttempt, ConceptMastery
+from .models import User, QuizAttempt, ConceptMastery, LLMQuizAttempt
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -65,4 +65,20 @@ def row_to_concept_mastery(row: Any) -> ConceptMastery:
         mastery_level=row["mastery_level"],
         last_attempt_at=_parse_datetime(row["last_attempt_at"]),
         updated_at=_parse_datetime(row["updated_at"]),
+    )
+
+
+def row_to_llm_quiz_attempt(row: Any) -> LLMQuizAttempt:
+    """Convert database row to LLMQuizAttempt model."""
+    return LLMQuizAttempt(
+        id=row["id"],
+        user_id=row["user_id"],
+        module_id=row["module_id"],
+        question=row["question"],
+        student_answer=row["student_answer"],
+        llm_answer=row["llm_answer"],
+        student_wins=bool(row["student_wins"]),
+        student_answer_correctness=row["student_answer_correctness"],
+        evaluation_explanation=row["evaluation_explanation"],
+        created_at=_parse_datetime(row["created_at"]),
     )

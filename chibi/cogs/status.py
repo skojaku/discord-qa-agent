@@ -123,7 +123,23 @@ class StatusCog(commands.Cog):
             inline=False,
         )
 
-        embed.set_footer(text="Use /status <module> for detailed module progress")
+        # LLM Quiz Challenge progress
+        llm_quiz_progress = await self.bot.llm_quiz_service.get_all_progress(user_id)
+        if llm_quiz_progress:
+            progress_lines = []
+            for module_id, (wins, target) in llm_quiz_progress.items():
+                module_obj = self.bot.course.get_module(module_id)
+                module_name = module_obj.name if module_obj else module_id
+                status = "✅" if wins >= target else "⏳"
+                progress_lines.append(f"{status} {module_name}: {wins}/{target}")
+
+            embed.add_field(
+                name="🎯 LLM Quiz Challenge",
+                value="\n".join(progress_lines) if progress_lines else "No challenges attempted yet",
+                inline=False,
+            )
+
+        embed.set_footer(text="Use /status <module> for detailed progress | /llm-quiz to challenge the AI")
 
         return embed
 
@@ -196,7 +212,7 @@ class StatusCog(commands.Cog):
                 inline=False,
             )
 
-        embed.set_footer(text="Use /quiz to practice concepts | /status for overall summary")
+        embed.set_footer(text="Use /quiz to practice | /llm-quiz to challenge AI | /status for summary")
 
         return embed
 

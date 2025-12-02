@@ -47,3 +47,19 @@ class ConceptMastery:
     mastery_level: str = "novice"  # novice, learning, proficient, mastered
     last_attempt_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+@dataclass
+class LLMQuizAttempt:
+    """Represents an LLM Quiz Challenge attempt where student tries to stump the AI."""
+
+    id: Optional[int]
+    user_id: int
+    module_id: str
+    question: str
+    student_answer: str
+    llm_answer: str
+    student_wins: bool
+    student_answer_correctness: str  # "CORRECT", "INCORRECT", "PARTIALLY_CORRECT"
+    evaluation_explanation: Optional[str] = None
+    created_at: Optional[datetime] = None

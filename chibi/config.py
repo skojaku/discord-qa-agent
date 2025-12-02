@@ -63,6 +63,16 @@ class DiscordConfig:
 
 
 @dataclass
+class LLMQuizConfig:
+    """LLM Quiz Challenge configuration."""
+
+    target_wins_per_module: int = 3
+    quiz_model: str = "openrouter/google/gemma-3-12b-it"  # Model that answers questions
+    evaluator_model: str = "openrouter/google/gemini-2.5-flash-lite"  # Model that evaluates answers
+    base_url: str = "https://openrouter.ai/api/v1"
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -71,6 +81,7 @@ class Config:
     persona: PersonaConfig
     mastery: MasteryConfig
     database: DatabaseConfig
+    llm_quiz: LLMQuizConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -121,6 +132,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     persona_data = data.get("persona", {})
     mastery_data = data.get("mastery", {})
     database_data = data.get("database", {})
+    llm_quiz_data = data.get("llm_quiz", {})
 
     # Load admin channel ID from environment variable
     admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
@@ -145,6 +157,12 @@ def load_config(config_path: str = "config.yaml") -> Config:
         ),
         database=DatabaseConfig(
             path=database_data.get("path", "data/chibi.db"),
+        ),
+        llm_quiz=LLMQuizConfig(
+            target_wins_per_module=llm_quiz_data.get("target_wins_per_module", 3),
+            quiz_model=llm_quiz_data.get("quiz_model", "openrouter/google/gemma-3-12b-it"),
+            evaluator_model=llm_quiz_data.get("evaluator_model", "openrouter/google/gemini-2.5-flash-lite"),
+            base_url=llm_quiz_data.get("base_url", "https://openrouter.ai/api/v1"),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

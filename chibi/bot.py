@@ -11,12 +11,12 @@ from .config import Config, load_config
 from .content.course import Course, load_course
 from .content.loader import ContentLoader
 from .database.connection import Database
-from .database.repositories import MasteryRepository, QuizRepository, UserRepository
+from .database.repositories import LLMQuizRepository, MasteryRepository, QuizRepository, UserRepository
 from .learning.mastery import MasteryCalculator, MasteryConfig
 from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
-from .services import GradeService, QuizService
+from .services import GradeService, LLMQuizChallengeService, QuizService
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,12 @@ class ChibiBot(commands.Bot):
         self.user_repo: Optional[UserRepository] = None
         self.quiz_repo: Optional[QuizRepository] = None
         self.mastery_repo: Optional[MasteryRepository] = None
+        self.llm_quiz_repo: Optional[LLMQuizRepository] = None
 
         # Services
         self.quiz_service: Optional[QuizService] = None
         self.grade_service: Optional[GradeService] = None
+        self.llm_quiz_service: Optional[LLMQuizChallengeService] = None
 
     async def setup_hook(self) -> None:
         """Initialize bot components on startup."""
@@ -60,6 +62,7 @@ class ChibiBot(commands.Bot):
         self.user_repo = UserRepository(self.database)
         self.quiz_repo = QuizRepository(self.database)
         self.mastery_repo = MasteryRepository(self.database)
+        self.llm_quiz_repo = LLMQuizRepository(self.database)
         logger.info("Database connected")
 
         # Initialize LLM providers
@@ -104,12 +107,18 @@ class ChibiBot(commands.Bot):
             mastery_repo=self.mastery_repo,
             course=self.course,
         )
+        self.llm_quiz_service = LLMQuizChallengeService(
+            llm_quiz_repo=self.llm_quiz_repo,
+            config=self.config.llm_quiz,
+            api_key=self.config.openrouter_api_key,
+        )
         logger.info("Services initialized")
 
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
         await self.load_extension("chibi.cogs.admin")
+        await self.load_extension("chibi.cogs.llm_quiz")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
@@ -158,7 +167,7 @@ class ChibiBot(commands.Bot):
         # Set activity status (only show student-facing commands)
         activity = discord.Activity(
             type=discord.ActivityType.listening,
-            name="/quiz, /status",
+            name="/quiz, /status, /llm-quiz",
         )
         await self.change_presence(activity=activity)
 
