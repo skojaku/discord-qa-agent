@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from ..database.models import LLMQuizAttempt
     from ..database.repositories import LLMQuizRepository
 
+from ..database.models import ReviewStatus
+
 logger = logging.getLogger(__name__)
 
 
@@ -177,12 +179,30 @@ class LLMQuizChallengeService:
         question: str,
         student_answer: str,
         result: LLMQuizChallengeResult,
+        discord_user_id: Optional[str] = None,
+        requires_review: bool = False,
     ) -> "LLMQuizAttempt":
         """Log an LLM quiz challenge attempt to the database.
+
+        Args:
+            user_id: Database user ID
+            module_id: Module identifier
+            question: The student's question
+            student_answer: The student's answer
+            result: Challenge result
+            discord_user_id: Discord user ID for DM notifications
+            requires_review: If True and student wins, set status to pending
 
         Returns:
             The created LLMQuizAttempt record
         """
+        # Determine review status based on result and requires_review flag
+        if result.student_wins and requires_review:
+            review_status = ReviewStatus.PENDING
+        else:
+            # Auto-approve losses (no review needed)
+            review_status = ReviewStatus.AUTO_APPROVED
+
         return await self.llm_quiz_repo.log_attempt(
             user_id=user_id,
             module_id=module_id,
@@ -192,6 +212,8 @@ class LLMQuizChallengeService:
             student_wins=result.student_wins,
             student_answer_correctness=result.student_answer_correctness,
             evaluation_explanation=result.evaluation_explanation,
+            review_status=review_status,
+            discord_user_id=discord_user_id,
         )
 
     async def get_module_progress(

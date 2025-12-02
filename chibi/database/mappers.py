@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from .models import User, QuizAttempt, ConceptMastery, LLMQuizAttempt
+from .models import User, QuizAttempt, ConceptMastery, LLMQuizAttempt, ReviewStatus
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -80,5 +80,9 @@ def row_to_llm_quiz_attempt(row: Any) -> LLMQuizAttempt:
         student_wins=bool(row["student_wins"]),
         student_answer_correctness=row["student_answer_correctness"],
         evaluation_explanation=row["evaluation_explanation"],
+        review_status=row["review_status"] or ReviewStatus.AUTO_APPROVED,
+        reviewed_at=_parse_datetime(row["reviewed_at"]),
+        reviewed_by=row["reviewed_by"],
+        discord_user_id=row["discord_user_id"],
         created_at=_parse_datetime(row["created_at"]),
     )

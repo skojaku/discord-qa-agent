@@ -89,6 +89,10 @@ class Database:
             student_wins BOOLEAN NOT NULL,
             student_answer_correctness TEXT NOT NULL,
             evaluation_explanation TEXT,
+            review_status TEXT DEFAULT 'auto_approved',
+            reviewed_at TIMESTAMP,
+            reviewed_by TEXT,
+            discord_user_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
@@ -99,7 +103,40 @@ class Database:
         CREATE INDEX IF NOT EXISTS idx_concept_mastery_user ON concept_mastery(user_id);
         CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_user ON llm_quiz_attempts(user_id);
         CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_module ON llm_quiz_attempts(module_id);
+        CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_review_status ON llm_quiz_attempts(review_status);
         """
 
         await self._connection.executescript(schema)
+        await self._connection.commit()
+
+        # Run migrations for existing databases
+        await self._run_migrations()
+
+    async def _run_migrations(self) -> None:
+        """Run database migrations for schema updates."""
+        # Check if llm_quiz_attempts table has review_status column
+        cursor = await self._connection.execute(
+            "PRAGMA table_info(llm_quiz_attempts)"
+        )
+        columns = await cursor.fetchall()
+        column_names = {col["name"] for col in columns}
+
+        # Migration: Add review columns if they don't exist
+        if "review_status" not in column_names:
+            await self._connection.execute(
+                "ALTER TABLE llm_quiz_attempts ADD COLUMN review_status TEXT DEFAULT 'auto_approved'"
+            )
+        if "reviewed_at" not in column_names:
+            await self._connection.execute(
+                "ALTER TABLE llm_quiz_attempts ADD COLUMN reviewed_at TIMESTAMP"
+            )
+        if "reviewed_by" not in column_names:
+            await self._connection.execute(
+                "ALTER TABLE llm_quiz_attempts ADD COLUMN reviewed_by TEXT"
+            )
+        if "discord_user_id" not in column_names:
+            await self._connection.execute(
+                "ALTER TABLE llm_quiz_attempts ADD COLUMN discord_user_id TEXT"
+            )
+
         await self._connection.commit()

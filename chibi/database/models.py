@@ -49,6 +49,25 @@ class ConceptMastery:
     updated_at: Optional[datetime] = None
 
 
+# Review status constants for LLM Quiz attempts
+class ReviewStatus:
+    """Review status options for LLM Quiz attempts."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    APPROVED_WITH_BONUS = "approved_with_bonus"
+    REJECTED_CONTENT_MISMATCH = "rejected_content_mismatch"
+    REJECTED_HEAVY_MATH = "rejected_heavy_math"
+    REJECTED_DEADLINE_PASSED = "rejected_deadline_passed"
+    AUTO_APPROVED = "auto_approved"  # For backward compatibility (losses auto-approved)
+
+    # All approved statuses (for counting wins)
+    APPROVED_STATUSES = {APPROVED, APPROVED_WITH_BONUS, AUTO_APPROVED}
+
+    # All rejected statuses
+    REJECTED_STATUSES = {REJECTED_CONTENT_MISMATCH, REJECTED_HEAVY_MATH, REJECTED_DEADLINE_PASSED}
+
+
 @dataclass
 class LLMQuizAttempt:
     """Represents an LLM Quiz Challenge attempt where student tries to stump the AI."""
@@ -62,4 +81,8 @@ class LLMQuizAttempt:
     student_wins: bool
     student_answer_correctness: str  # "CORRECT", "INCORRECT", "PARTIALLY_CORRECT"
     evaluation_explanation: Optional[str] = None
+    review_status: str = ReviewStatus.AUTO_APPROVED
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None  # Discord user ID of reviewer
+    discord_user_id: Optional[str] = None  # Discord user ID of student (for DM notifications)
     created_at: Optional[datetime] = None
