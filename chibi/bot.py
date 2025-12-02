@@ -249,6 +249,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.status")
         await self.load_extension("chibi.cogs.admin")
         await self.load_extension("chibi.cogs.llm_quiz")
+        await self.load_extension("chibi.cogs.modules")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
