@@ -86,6 +86,23 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                     inline=True,
                 )
                 await interaction.followup.send(embed=embed)
+
+                # Log the rejected question to conversation memory
+                rejected_content = (
+                    f"[LLM Quiz Challenge - Question Rejected]\n"
+                    f"Module: {self.module_name}\n"
+                    f"Your Question: {self.question.value}\n"
+                    f"Your Answer: {self.answer.value}\n"
+                    f"Reason: Question too similar to a previously submitted question."
+                )
+                self.tool.bot.log_to_conversation(
+                    user_id=self.user_id,
+                    channel_id=str(interaction.channel.id),
+                    role="assistant",
+                    content=rejected_content,
+                    metadata={"tool": "llm_quiz", "rejected": True},
+                )
+
                 logger.info(
                     f"LLM Quiz rejected for {self.user_name}: "
                     f"similarity {similarity_result.highest_similarity:.2f} "
