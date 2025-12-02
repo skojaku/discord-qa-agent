@@ -203,40 +203,6 @@ class StatusCog(commands.Cog):
                 inline=False,
             )
 
-        # Recent interactions
-        recent_interactions = await self.bot.repository.get_recent_interactions(
-            user_id, limit=5
-        )
-
-        if recent_interactions:
-            interaction_lines = []
-            for interaction in recent_interactions:
-                time_str = (
-                    interaction.created_at.strftime("%m/%d %H:%M")
-                    if interaction.created_at
-                    else "Unknown"
-                )
-                question_preview = (
-                    interaction.question[:50] + "..."
-                    if len(interaction.question) > 50
-                    else interaction.question
-                )
-                interaction_lines.append(
-                    f"💬 **{interaction.module_id}**: {question_preview} - {time_str}"
-                )
-
-            embed.add_field(
-                name="Recent Questions",
-                value="\n".join(interaction_lines),
-                inline=False,
-            )
-        else:
-            embed.add_field(
-                name="Recent Questions",
-                value="No questions asked yet. Try /ask to learn! 🤔",
-                inline=False,
-            )
-
         return embed
 
     async def _build_concepts_embed(

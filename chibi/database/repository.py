@@ -6,11 +6,10 @@ from typing import List, Optional
 from .connection import Database
 from .mappers import (
     row_to_concept_mastery,
-    row_to_interaction,
     row_to_quiz_attempt,
     row_to_user,
 )
-from .models import User, Interaction, QuizAttempt, ConceptMastery
+from .models import User, QuizAttempt, ConceptMastery
 
 
 class Repository:
@@ -73,45 +72,6 @@ class Repository:
             return None
 
         return row_to_user(row)
-
-    # ==================== Interaction Operations ====================
-
-    async def log_interaction(
-        self, user_id: int, module_id: str, question: str, response: str
-    ) -> Interaction:
-        """Log a Q&A interaction."""
-        conn = self.db.connection
-        cursor = await conn.execute(
-            """INSERT INTO interactions (user_id, module_id, question, response)
-               VALUES (?, ?, ?, ?)""",
-            (user_id, module_id, question, response),
-        )
-        await conn.commit()
-
-        return Interaction(
-            id=cursor.lastrowid,
-            user_id=user_id,
-            module_id=module_id,
-            question=question,
-            response=response,
-            created_at=datetime.now(),
-        )
-
-    async def get_recent_interactions(
-        self, user_id: int, limit: int = 10
-    ) -> List[Interaction]:
-        """Get recent interactions for a user."""
-        conn = self.db.connection
-        cursor = await conn.execute(
-            """SELECT * FROM interactions
-               WHERE user_id = ?
-               ORDER BY created_at DESC
-               LIMIT ?""",
-            (user_id, limit),
-        )
-        rows = await cursor.fetchall()
-
-        return [row_to_interaction(row) for row in rows]
 
     # ==================== Quiz Operations ====================
 

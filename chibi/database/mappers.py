@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from .models import User, Interaction, QuizAttempt, ConceptMastery
+from .models import User, QuizAttempt, ConceptMastery
 
 
 def row_to_user(row: Any) -> User:
@@ -13,18 +13,6 @@ def row_to_user(row: Any) -> User:
         username=row["username"],
         created_at=row["created_at"],
         last_active=row["last_active"],
-    )
-
-
-def row_to_interaction(row: Any) -> Interaction:
-    """Convert database row to Interaction model."""
-    return Interaction(
-        id=row["id"],
-        user_id=row["user_id"],
-        module_id=row["module_id"],
-        question=row["question"],
-        response=row["response"],
-        created_at=row["created_at"],
     )
 
 

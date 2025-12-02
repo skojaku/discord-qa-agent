@@ -15,7 +15,6 @@ from .database.repository import Repository
 from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
-from .services.ask_service import AskService
 from .services.quiz_service import QuizService
 from .services.status_service import StatusService
 
@@ -43,7 +42,6 @@ class ChibiBot(commands.Bot):
         self.content_loader: Optional[ContentLoader] = None
 
         # Services
-        self.ask_service: Optional[AskService] = None
         self.quiz_service: Optional[QuizService] = None
         self.status_service: Optional[StatusService] = None
 
@@ -82,12 +80,6 @@ class ChibiBot(commands.Bot):
         logger.info("Module content loaded")
 
         # Initialize services
-        self.ask_service = AskService(
-            repository=self.repository,
-            llm_manager=self.llm_manager,
-            course=self.course,
-            config=self.config,
-        )
         self.quiz_service = QuizService(
             repository=self.repository,
             llm_manager=self.llm_manager,
@@ -103,7 +95,6 @@ class ChibiBot(commands.Bot):
         logger.info("Services initialized")
 
         # Load cogs
-        await self.load_extension("chibi.cogs.ask")
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
         logger.info("Cogs loaded")
@@ -154,7 +145,7 @@ class ChibiBot(commands.Bot):
         # Set activity status
         activity = discord.Activity(
             type=discord.ActivityType.listening,
-            name="/ask and /quiz",
+            name="/quiz and /status",
         )
         await self.change_presence(activity=activity)
 

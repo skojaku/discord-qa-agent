@@ -1,10 +1,9 @@
-# Chibi - Discord Q&A Bot for Lecture Content
+# Chibi - Discord Quiz Bot for Lecture Content
 
-Chibi is an AI-powered Discord bot that helps students learn course material through Q&A and quizzes. It uses Ollama (local) or OpenRouter (cloud) for LLM capabilities and tracks student progress with a mastery system.
+Chibi is an AI-powered Discord bot that helps students learn course material through quizzes. It uses Ollama (local) or OpenRouter (cloud) for LLM capabilities and tracks student progress with a mastery system.
 
 ## Features
 
-- **`/ask [module] <question>`** - Ask questions about lecture content with AI-powered responses
 - **`/quiz [module] [format] [concept]`** - Get quiz questions to test your knowledge
 - **`/status [view]`** - Track your learning progress and concept mastery
 
@@ -114,7 +113,6 @@ discord-qa-agent/
 │   ├── bot.py             # Discord bot class
 │   ├── config.py          # Config loader
 │   ├── cogs/              # Discord commands
-│   │   ├── ask.py         # /ask command
 │   │   ├── quiz.py        # /quiz command
 │   │   └── status.py      # /status command
 │   ├── llm/               # LLM integration

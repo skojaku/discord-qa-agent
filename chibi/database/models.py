@@ -17,18 +17,6 @@ class User:
 
 
 @dataclass
-class Interaction:
-    """Represents a Q&A interaction."""
-
-    id: Optional[int]
-    user_id: int
-    module_id: str
-    question: str
-    response: str
-    created_at: Optional[datetime] = None
-
-
-@dataclass
 class QuizAttempt:
     """Represents a quiz attempt."""
 
