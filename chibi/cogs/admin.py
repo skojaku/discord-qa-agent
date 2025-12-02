@@ -1,21 +1,22 @@
-"""Admin commands cog for instructor/admin functionality."""
+"""Admin commands cog for instructor/admin functionality.
+
+Admin commands use prefix commands (!command) instead of slash commands
+to keep them hidden from students. They only work in the configured admin channel.
+"""
 
 import csv
 import io
 import logging
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from ..constants import (
     CSV_FILENAME_PREFIX,
-    DISCORD_AUTOCOMPLETE_LIMIT,
     ERROR_ADMIN_CHANNEL_NOT_CONFIGURED,
     ERROR_ADMIN_CHANNEL_ONLY,
-    ERROR_ADMIN_ONLY,
     ERROR_MODULE_NOT_FOUND,
     ERROR_SHOW_GRADE,
     ERROR_STUDENT_NOT_FOUND,
@@ -25,7 +26,6 @@ from ..constants import (
     MASTERY_PROFICIENT,
     PROGRESS_BAR_LENGTH,
 )
-from .utils import defer_interaction, module_autocomplete_choices, send_error_response
 
 if TYPE_CHECKING:
     from ..bot import ChibiBot
@@ -35,115 +35,83 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def is_admin_channel(bot: "ChibiBot", channel: discord.abc.GuildChannel) -> bool:
-    """Check if the channel is the configured admin channel.
+def admin_channel_only():
+    """Check that ensures command is only used in the admin channel."""
+    async def predicate(ctx: commands.Context) -> bool:
+        bot: "ChibiBot" = ctx.bot
+        admin_channel_id = bot.config.discord.admin_channel_id
 
-    Args:
-        bot: The bot instance
-        channel: The channel to check
+        if admin_channel_id is None:
+            await ctx.send(ERROR_ADMIN_CHANNEL_NOT_CONFIGURED)
+            return False
 
-    Returns:
-        True if the channel matches the configured admin_channel_id
-    """
-    admin_channel_id = bot.config.discord.admin_channel_id
-    if admin_channel_id is None:
-        return False
-    return channel.id == admin_channel_id
+        if ctx.channel.id != admin_channel_id:
+            await ctx.send(f"{ERROR_ADMIN_CHANNEL_ONLY} Please use <#{admin_channel_id}>.")
+            return False
+
+        return True
+    return commands.check(predicate)
 
 
 class AdminCog(commands.Cog):
-    """Cog for admin-only commands."""
+    """Cog for admin-only prefix commands.
+
+    Commands:
+        !show_grade [module] - Generate CSV report of student grades
+        !status <student> [module] - View a student's learning progress
+    """
 
     def __init__(self, bot: "ChibiBot"):
         self.bot = bot
 
-    async def _check_admin_permissions(
-        self, interaction: discord.Interaction
-    ) -> Optional[str]:
-        """Check if user has admin permissions and is in admin channel.
-
-        Args:
-            interaction: The Discord interaction
-
-        Returns:
-            Error message if check fails, None if all checks pass
-        """
-        # Check if user is an administrator
-        if not interaction.user.guild_permissions.administrator:
-            return ERROR_ADMIN_ONLY
-
-        # Check if admin channel is configured
-        admin_channel_id = self.bot.config.discord.admin_channel_id
-        if admin_channel_id is None:
-            return ERROR_ADMIN_CHANNEL_NOT_CONFIGURED
-
-        # Check if command is used in admin channel
-        if not is_admin_channel(self.bot, interaction.channel):
-            return f"{ERROR_ADMIN_CHANNEL_ONLY} Please use <#{admin_channel_id}>."
-
-        return None
-
-    @app_commands.command(
-        name="_show_grade",
-        description="Generate a CSV report of student grades (Admin only)"
-    )
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.describe(
-        module="Filter by specific module (optional)"
-    )
-    @defer_interaction(thinking=True)
+    @commands.command(name="show_grade")
+    @commands.has_permissions(administrator=True)
+    @admin_channel_only()
     async def show_grade(
         self,
-        interaction: discord.Interaction,
+        ctx: commands.Context,
         module: Optional[str] = None,
     ):
         """Generate and send a CSV file with student grades.
 
-        The CSV includes:
-        - Student ID (Discord ID)
-        - Username
-        - Completed concepts
-        - Percentage of completion per module
+        Usage: !show_grade [module]
+
+        Args:
+            module: Optional module ID to filter by
         """
         try:
-            # Check admin permissions
-            error = await self._check_admin_permissions(interaction)
-            if error:
-                await interaction.followup.send(error, ephemeral=True)
-                return
+            async with ctx.typing():
+                # Validate module if specified
+                target_module = None
+                if module:
+                    target_module = self.bot.course.get_module(module)
+                    if not target_module:
+                        await ctx.send(ERROR_MODULE_NOT_FOUND)
+                        return
 
-            # Validate module if specified
-            target_module = None
-            if module:
-                target_module = self.bot.course.get_module(module)
-                if not target_module:
-                    await interaction.followup.send(ERROR_MODULE_NOT_FOUND, ephemeral=True)
-                    return
+                # Generate CSV data
+                csv_content = await self._generate_grade_csv(target_module)
 
-            # Generate CSV data
-            csv_content = await self._generate_grade_csv(target_module)
+                # Create file object
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                module_suffix = f"_{module}" if module else ""
+                filename = f"{CSV_FILENAME_PREFIX}{module_suffix}_{timestamp}.csv"
 
-            # Create file object
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            module_suffix = f"_{module}" if module else ""
-            filename = f"{CSV_FILENAME_PREFIX}{module_suffix}_{timestamp}.csv"
+                file = discord.File(
+                    io.BytesIO(csv_content.encode("utf-8")),
+                    filename=filename
+                )
 
-            file = discord.File(
-                io.BytesIO(csv_content.encode("utf-8")),
-                filename=filename
-            )
-
-            # Send the file
-            module_info = f" for module **{target_module.name}**" if target_module else ""
-            await interaction.followup.send(
-                f"Grade report{module_info} generated successfully.",
-                file=file
-            )
+                # Send the file
+                module_info = f" for module **{target_module.name}**" if target_module else ""
+                await ctx.send(
+                    f"Grade report{module_info} generated successfully.",
+                    file=file
+                )
 
         except Exception as e:
-            await send_error_response(
-                interaction, ERROR_SHOW_GRADE, logger, e, "/show_grade command"
-            )
+            logger.error(f"Error in !show_grade command: {e}", exc_info=True)
+            await ctx.send(ERROR_SHOW_GRADE)
 
     async def _generate_grade_csv(
         self,
@@ -203,71 +171,50 @@ class AdminCog(commands.Cog):
 
         return output.getvalue()
 
-    @show_grade.autocomplete("module")
-    async def module_autocomplete(
-        self,
-        interaction: discord.Interaction,
-        current: str,
-    ) -> list[app_commands.Choice[str]]:
-        """Provide autocomplete choices for module selection."""
-        return await module_autocomplete_choices(self.bot.course, current)
-
-    @app_commands.command(
-        name="_status",
-        description="View a student's learning progress (Admin only)"
-    )
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.describe(
-        student="Student Discord ID or username",
-        module="Module to show detailed progress for (leave empty for summary)",
-    )
-    @defer_interaction(thinking=True)
+    @commands.command(name="status")
+    @commands.has_permissions(administrator=True)
+    @admin_channel_only()
     async def student_status(
         self,
-        interaction: discord.Interaction,
+        ctx: commands.Context,
         student: str,
         module: Optional[str] = None,
     ):
         """Show learning status for a specific student.
 
+        Usage: !status <student> [module]
+
         Args:
-            interaction: The Discord interaction
             student: Student Discord ID or username to look up
             module: Optional module to show detailed progress for
         """
         try:
-            # Check admin permissions
-            error = await self._check_admin_permissions(interaction)
-            if error:
-                await interaction.followup.send(error, ephemeral=True)
-                return
-
-            # Look up the student
-            user = await self.bot.repository.search_user_by_identifier(student)
-            if not user:
-                await interaction.followup.send(ERROR_STUDENT_NOT_FOUND, ephemeral=True)
-                return
-
-            # Validate module if specified
-            target_module = None
-            if module:
-                target_module = self.bot.course.get_module(module)
-                if not target_module:
-                    await interaction.followup.send(ERROR_MODULE_NOT_FOUND, ephemeral=True)
+            async with ctx.typing():
+                # Look up the student
+                user = await self.bot.repository.search_user_by_identifier(student)
+                if not user:
+                    await ctx.send(ERROR_STUDENT_NOT_FOUND)
                     return
 
-            # Build the appropriate embed
-            if target_module is None:
-                embed = await self._build_student_summary_embed(user)
-            else:
-                embed = await self._build_student_module_embed(user, target_module)
+                # Validate module if specified
+                target_module = None
+                if module:
+                    target_module = self.bot.course.get_module(module)
+                    if not target_module:
+                        await ctx.send(ERROR_MODULE_NOT_FOUND)
+                        return
 
-            await interaction.followup.send(embed=embed)
+                # Build the appropriate embed
+                if target_module is None:
+                    embed = await self._build_student_summary_embed(user)
+                else:
+                    embed = await self._build_student_module_embed(user, target_module)
+
+                await ctx.send(embed=embed)
 
         except Exception as e:
-            await send_error_response(
-                interaction, ERROR_STUDENT_STATUS, logger, e, "/_status command"
-            )
+            logger.error(f"Error in !status command: {e}", exc_info=True)
+            await ctx.send(ERROR_STUDENT_STATUS)
 
     async def _build_student_summary_embed(self, user: "User") -> discord.Embed:
         """Build summary status embed for a student."""
@@ -328,7 +275,7 @@ class AdminCog(commands.Cog):
                 inline=True,
             )
 
-        embed.set_footer(text="Use /_status <student> <module> for detailed module progress")
+        embed.set_footer(text="Use !status <student> <module> for detailed module progress")
 
         return embed
 
@@ -396,7 +343,7 @@ class AdminCog(commands.Cog):
                 inline=False,
             )
 
-        embed.set_footer(text="Use /_status <student> for overall summary")
+        embed.set_footer(text="Use !status <student> for overall summary")
 
         return embed
 
@@ -421,51 +368,6 @@ class AdminCog(commands.Cog):
             + "░" * n_len
             + "]"
         )
-
-    async def student_autocomplete(
-        self,
-        interaction: discord.Interaction,
-        current: str,
-    ) -> List[app_commands.Choice[str]]:
-        """Provide autocomplete choices for student selection."""
-        users = await self.bot.repository.get_all_users()
-
-        choices = []
-        current_lower = current.lower()
-
-        for user in users:
-            # Match on username or discord_id
-            if current_lower in user.username.lower() or current_lower in user.discord_id:
-                # Show username with discord_id as the value for exact matching
-                choices.append(
-                    app_commands.Choice(
-                        name=f"{user.username} ({user.discord_id})",
-                        value=user.discord_id,
-                    )
-                )
-                if len(choices) >= DISCORD_AUTOCOMPLETE_LIMIT:
-                    break
-
-        return choices
-
-    @student_status.autocomplete("student")
-    async def student_status_student_autocomplete(
-        self,
-        interaction: discord.Interaction,
-        current: str,
-    ) -> List[app_commands.Choice[str]]:
-        """Autocomplete for student parameter."""
-        return await self.student_autocomplete(interaction, current)
-
-    @student_status.autocomplete("module")
-    async def student_status_module_autocomplete(
-        self,
-        interaction: discord.Interaction,
-        current: str,
-    ) -> List[app_commands.Choice[str]]:
-        """Autocomplete for module parameter."""
-        return await module_autocomplete_choices(self.bot.course, current)
-
 
 async def setup(bot: "ChibiBot"):
     """Set up the Admin cog."""
