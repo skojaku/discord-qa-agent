@@ -42,8 +42,15 @@ Available tools:
 
 User message: "{user_message}"
 
+IMPORTANT RULES:
+1. Questions about PAST interactions (what was my answer, what did I say, how did I respond,
+   what was the question, what feedback did I get) should ALWAYS go to "assistant"
+2. Only use "quiz" when user explicitly wants a NEW quiz (e.g., "quiz me", "give me a quiz")
+3. Only use "status" when user wants to see their progress/stats (e.g., "show my progress", "my status")
+4. Only use "llm_quiz" when user wants to START a new challenge (e.g., "challenge the AI", "llm quiz")
+
 Respond with a JSON object containing:
-- "intent": The tool name that best matches the user's intent (or "assistant" for general questions)
+- "intent": The tool name that best matches the user's intent
 - "confidence": A confidence score between 0 and 1
 - "params": Any extracted parameters (e.g., module name, topic)
 
@@ -51,7 +58,11 @@ Examples:
 - "Quiz me on module 1" -> {{"intent": "quiz", "confidence": 0.95, "params": {{"module": "module-1"}}}}
 - "What's my progress?" -> {{"intent": "status", "confidence": 0.9, "params": {{}}}}
 - "I want to challenge the AI" -> {{"intent": "llm_quiz", "confidence": 0.85, "params": {{}}}}
-- "How does network analysis work?" -> {{"intent": "assistant", "confidence": 0.8, "params": {{"topic": "network analysis"}}}}
+- "How does network analysis work?" -> {{"intent": "assistant", "confidence": 0.8, "params": {{}}}}
+- "What was my answer?" -> {{"intent": "assistant", "confidence": 0.95, "params": {{}}}}
+- "What was the last quiz question?" -> {{"intent": "assistant", "confidence": 0.95, "params": {{}}}}
+- "How did I respond?" -> {{"intent": "assistant", "confidence": 0.95, "params": {{}}}}
+- "What feedback did I get?" -> {{"intent": "assistant", "confidence": 0.95, "params": {{}}}}
 
 Respond ONLY with the JSON object, no other text."""
 
