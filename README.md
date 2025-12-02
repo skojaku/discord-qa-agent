@@ -6,6 +6,7 @@ Chibi is an AI-powered Discord bot that helps students learn course material thr
 
 ### Student Commands
 - **`/quiz [module]`** - Get quiz questions to test your knowledge
+- **`/llm-quiz <module>`** - Challenge the AI! Create questions to stump the LLM
 - **`/status [module]`** - Track your learning progress and concept mastery
 
 ### Admin Commands
@@ -24,6 +25,14 @@ Admin commands use prefix commands (`!command`) instead of slash commands to kee
 - Tracks quiz performance per concept
 - Hybrid evaluation: LLM quality scores + accuracy ratio
 - Four levels: Novice → Learning → Proficient → Mastered
+
+### LLM Quiz Challenge
+Students can create their own quiz questions to challenge the AI:
+- Student submits a question + their correct answer via modal dialog
+- A quiz model attempts to answer the question (contextualized with module content)
+- An evaluator model judges both answers for factual correctness
+- Student wins only if their answer is correct AND the LLM's answer is incorrect
+- Progress is tracked per module with a configurable target (default: 3 wins per module)
 
 ## Setup
 
@@ -90,6 +99,13 @@ mastery:
   min_attempts_for_mastery: 3
   quality_threshold: 3.5
   correct_ratio_threshold: 0.7
+
+# LLM Quiz Challenge settings
+llm_quiz:
+  target_wins_per_module: 3  # Wins needed to complete a module
+  quiz_model: "openrouter/google/gemma-3-12b-it"  # Model that tries to answer
+  evaluator_model: "openrouter/google/gemini-2.5-flash-lite"  # Model that judges
+  base_url: "https://openrouter.ai/api/v1"
 ```
 
 #### Getting the Admin Channel ID
@@ -131,6 +147,7 @@ discord-qa-agent/
 │   ├── constants.py       # Constants and error messages
 │   ├── cogs/              # Discord commands
 │   │   ├── quiz.py        # /quiz command
+│   │   ├── llm_quiz.py    # /llm-quiz command (challenge the AI)
 │   │   ├── status.py      # /status command
 │   │   ├── admin.py       # !show_grade, !status commands
 │   │   └── utils.py       # Common utilities
@@ -155,7 +172,12 @@ discord-qa-agent/
 │   │   └── repositories/  # Domain-specific repositories
 │   │       ├── user_repository.py
 │   │       ├── quiz_repository.py
-│   │       └── mastery_repository.py
+│   │       ├── mastery_repository.py
+│   │       └── llm_quiz_repository.py
+│   ├── services/          # Business logic
+│   │   ├── quiz_service.py
+│   │   ├── llm_quiz_service.py  # LLM Quiz Challenge logic
+│   │   └── grade_service.py
 │   ├── learning/          # Learning profile
 │   │   └── mastery.py
 │   └── prompts/
