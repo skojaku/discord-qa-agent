@@ -162,14 +162,14 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
             inline=True,
         )
 
-        # Truncate evaluation explanation if too long
-        explanation_display = result.evaluation_explanation
-        if len(explanation_display) > 500:
-            explanation_display = explanation_display[:497] + "..."
+        # Show concise summary instead of full explanation
+        summary_display = result.evaluation_summary or "Evaluation complete."
+        if len(summary_display) > 300:
+            summary_display = summary_display[:297] + "..."
 
         embed.add_field(
             name="Evaluation",
-            value=explanation_display,
+            value=summary_display,
             inline=False,
         )
 

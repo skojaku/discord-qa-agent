@@ -26,7 +26,8 @@ class LLMQuizChallengeResult:
     student_wins: bool
     llm_answer: str
     student_answer_correctness: str  # "CORRECT", "INCORRECT", "PARTIALLY_CORRECT"
-    evaluation_explanation: str
+    evaluation_summary: str  # Brief 1-2 sentence summary
+    evaluation_explanation: str  # Detailed explanation (for logging)
     factual_issues: List[str]
 
 
@@ -105,6 +106,7 @@ class LLMQuizChallengeService:
 
                 # Extract results from DSPy response
                 student_wins = getattr(evaluation, "student_wins", False)
+                summary = getattr(evaluation, "summary", "")
                 explanation = getattr(evaluation, "explanation", "No explanation available")
                 student_answer_correctness = getattr(
                     evaluation, "student_answer_correctness", "CORRECT"
@@ -115,6 +117,7 @@ class LLMQuizChallengeService:
                 logger.error(f"Error evaluating answers: {e}")
                 # Default to student loses on error
                 student_wins = False
+                summary = "Error during evaluation."
                 explanation = f"Error during evaluation: {str(e)}"
                 student_answer_correctness = "CORRECT"
                 factual_issues = []
@@ -125,6 +128,7 @@ class LLMQuizChallengeService:
             student_wins=student_wins,
             llm_answer=llm_answer,
             student_answer_correctness=student_answer_correctness,
+            evaluation_summary=summary,
             evaluation_explanation=explanation,
             factual_issues=factual_issues if isinstance(factual_issues, list) else [],
         )
