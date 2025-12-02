@@ -84,7 +84,7 @@ class AdminCog(commands.Cog):
         return None
 
     @app_commands.command(
-        name="show_grade",
+        name="_show_grade",
         description="Generate a CSV report of student grades (Admin only)"
     )
     @app_commands.default_permissions(administrator=True)
