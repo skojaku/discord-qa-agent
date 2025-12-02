@@ -52,6 +52,8 @@ ERROR_NO_CONCEPTS = "No concepts found for this module. Please try a different m
 ERROR_ADMIN_ONLY = "This command is only available to administrators."
 ERROR_ADMIN_CHANNEL_ONLY = "This command can only be used in the admin channel."
 ERROR_SHOW_GRADE = "Failed to generate grade report. Please try again."
+ERROR_STUDENT_NOT_FOUND = "Could not find a student with that identifier. Please check the Discord ID or username."
+ERROR_STUDENT_STATUS = "Failed to fetch student status. Please try again."
 
 # Admin command settings
 CSV_FILENAME_PREFIX = "student_grades"
