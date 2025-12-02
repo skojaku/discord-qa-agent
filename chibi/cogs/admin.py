@@ -141,13 +141,13 @@ class AdminCog(commands.Cog):
         self,
         target_module=None,
     ) -> str:
-        """Generate CSV content with student grades.
+        """Generate CSV content with student grades in tidy format.
 
         Args:
             target_module: If specified, only include data for this module
 
         Returns:
-            CSV content as a string
+            CSV content as a string (one row per user-module combination)
         """
         # Get all users
         users = await self.bot.repository.get_all_users()
@@ -158,77 +158,40 @@ class AdminCog(commands.Cog):
         else:
             modules = self.bot.course.modules
 
-        # Build CSV headers
-        headers = ["discord_id", "username"]
-
-        # Add columns for each module: completed concepts and completion percentage
-        for mod in modules:
-            headers.append(f"{mod.id}_completed_concepts")
-            headers.append(f"{mod.id}_completion_pct")
-
-        # Add overall columns if showing all modules
-        if not target_module:
-            headers.append("total_completed_concepts")
-            headers.append("overall_completion_pct")
-
-        # Create CSV writer
+        # Create CSV writer with tidy format headers
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(headers)
+        writer.writerow(["discord_id", "username", "module", "completion_pct"])
 
         # Process each user
         for user in users:
-            row = [user.discord_id, user.username]
-
             # Get user's mastery records
             mastery_records = await self.bot.repository.get_user_mastery_all(user.id)
             mastery_by_concept = {m.concept_id: m for m in mastery_records}
 
-            total_completed = 0
-            total_concepts = 0
-
+            # One row per module (tidy format)
             for mod in modules:
                 module_concepts = mod.concepts
-                total_concepts += len(module_concepts)
 
                 # Count completed concepts (proficient or mastered)
-                completed_concepts = []
-                for concept in module_concepts:
-                    mastery = mastery_by_concept.get(concept.id)
-                    if mastery and mastery.mastery_level in (MASTERY_PROFICIENT, MASTERY_MASTERED):
-                        completed_concepts.append(concept.id)
+                completed_count = sum(
+                    1 for concept in module_concepts
+                    if mastery_by_concept.get(concept.id)
+                    and mastery_by_concept[concept.id].mastery_level in (MASTERY_PROFICIENT, MASTERY_MASTERED)
+                )
 
-                completed_count = len(completed_concepts)
-                total_completed += completed_count
-
-                # Calculate completion percentage for this module
+                # Calculate completion percentage
                 completion_pct = (
                     (completed_count / len(module_concepts) * 100)
                     if module_concepts else 0
                 )
 
-                # Add module data to row
-                row.append(";".join(completed_concepts) if completed_concepts else "")
-                row.append(f"{completion_pct:.1f}")
-
-            # Add overall totals if showing all modules
-            if not target_module:
-                all_completed = []
-                for mod in modules:
-                    for concept in mod.concepts:
-                        mastery = mastery_by_concept.get(concept.id)
-                        if mastery and mastery.mastery_level in (MASTERY_PROFICIENT, MASTERY_MASTERED):
-                            all_completed.append(concept.id)
-
-                overall_pct = (
-                    (len(all_completed) / total_concepts * 100)
-                    if total_concepts > 0 else 0
-                )
-
-                row.append(";".join(all_completed) if all_completed else "")
-                row.append(f"{overall_pct:.1f}")
-
-            writer.writerow(row)
+                writer.writerow([
+                    user.discord_id,
+                    user.username,
+                    mod.id,
+                    f"{completion_pct:.1f}"
+                ])
 
         return output.getvalue()
 
