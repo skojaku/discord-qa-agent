@@ -1,4 +1,4 @@
-"""Assistant tool implementation - default helpful assistant."""
+"""Assistant tool implementation - default helpful assistant with RAG."""
 
 import logging
 from typing import TYPE_CHECKING
@@ -23,8 +23,9 @@ Guidelines:
 - Use examples when helpful
 - If you're not sure about something, say so
 - Keep responses focused and not too long (under 500 words)
-- If the question is about course-specific material, use the provided context
-- If you can't answer from the context, provide general guidance and suggest they check the course materials
+- Base your answers on the provided context when available
+- If the context doesn't contain relevant information, provide general guidance and suggest checking the course materials
+- Always cite which module the information comes from when using context
 
 Available course modules:
 {module_list}
@@ -37,7 +38,8 @@ class AssistantTool(BaseTool):
     """Default assistant tool for general questions.
 
     This tool handles general questions about course content,
-    providing helpful explanations using available course materials.
+    using RAG (Retrieval-Augmented Generation) to provide
+    relevant context from indexed course materials.
     """
 
     async def execute(self, state: SubAgentState) -> ToolResult:
@@ -61,8 +63,8 @@ class AssistantTool(BaseTool):
 
             user_question = state.task_description
 
-            # Build context from course content
-            context = self._build_context(state.parameters.get("topic"))
+            # Build context using RAG
+            context = await self._build_context_with_rag(user_question)
 
             # Build module list
             module_list = "\n".join(
@@ -118,6 +120,7 @@ class AssistantTool(BaseTool):
                 summary=f"Answered question about: {user_question[:50]}...",
                 metadata={
                     "response_sent": True,
+                    "used_rag": bool(context),
                 },
             )
 
@@ -130,60 +133,87 @@ class AssistantTool(BaseTool):
                 error=str(e),
             )
 
-    def _build_context(self, topic: str = None) -> str:
-        """Build context from course content.
+    async def _build_context_with_rag(self, query: str) -> str:
+        """Build context using RAG (Retrieval-Augmented Generation).
+
+        Uses semantic search to find relevant content chunks
+        from the indexed course materials.
 
         Args:
-            topic: Optional topic to focus on
+            query: The user's question
 
         Returns:
-            Context string with relevant course content
+            Context string with relevant content
+        """
+        # Check if RAG service is available
+        if self.bot.rag_service is None:
+            logger.warning("RAG service not available, falling back to basic context")
+            return self._build_fallback_context()
+
+        try:
+            # Check if RAG is ready
+            is_ready = await self.bot.rag_service.is_ready()
+            if not is_ready:
+                logger.warning("RAG service not ready, falling back to basic context")
+                return self._build_fallback_context()
+
+            # Retrieve relevant chunks
+            result = await self.bot.rag_service.retrieve(
+                query=query,
+                top_k=5,
+            )
+
+            if not result.chunks:
+                logger.debug(f"No RAG results for query: {query[:50]}")
+                return self._build_fallback_context()
+
+            # Format context
+            context = f"Relevant course content (retrieved based on your question):\n\n{result.context}"
+
+            # Add source attribution
+            sources = set(c.source_name for c in result.chunks)
+            context += f"\n\n(Sources: {', '.join(sources)})"
+
+            logger.info(
+                f"RAG retrieved {result.total_chunks} chunks from {len(sources)} sources"
+            )
+
+            return context
+
+        except Exception as e:
+            logger.error(f"RAG retrieval error: {e}", exc_info=True)
+            return self._build_fallback_context()
+
+    def _build_fallback_context(self) -> str:
+        """Build basic context when RAG is not available.
+
+        Returns:
+            Basic course overview context
         """
         context_parts = []
 
-        # If topic specified, try to find relevant module
-        if topic:
-            topic_lower = topic.lower()
-            for module in self.bot.course.modules:
-                # Check if topic matches module name or description
-                if (
-                    topic_lower in module.name.lower()
-                    or (module.description and topic_lower in module.description.lower())
-                ):
-                    if module.content:
-                        # Truncate content if too long
-                        content = module.content[:3000] if len(module.content) > 3000 else module.content
-                        context_parts.append(
-                            f"Content from {module.name}:\n{content}"
-                        )
+        # Add course overview
+        context_parts.append(
+            f"Course: {self.bot.course.name}\n"
+            f"Description: {self.bot.course.description or 'No description'}"
+        )
 
-                # Check concepts
-                for concept in module.concepts:
-                    if topic_lower in concept.name.lower():
-                        context_parts.append(
-                            f"Concept: {concept.name}\n"
-                            f"Description: {concept.description}\n"
-                            f"Focus: {concept.quiz_focus}"
-                        )
+        # Add module list with descriptions
+        for module in self.bot.course.modules[:5]:  # Limit to first 5
+            module_info = f"\nModule: {module.name}"
+            if module.description:
+                module_info += f"\n{module.description}"
+            context_parts.append(module_info)
 
-        # If no specific context found, provide general course overview
-        if not context_parts:
+        # Add concept list
+        all_concepts = self.bot.course.get_all_concepts()
+        if all_concepts:
+            concept_names = [c.name for c in all_concepts[:15]]
             context_parts.append(
-                "Course: " + self.bot.course.name + "\n"
-                "Description: " + (self.bot.course.description or "No description")
+                f"\nKey concepts include: {', '.join(concept_names)}"
             )
 
-            # Add brief concept list
-            all_concepts = self.bot.course.get_all_concepts()
-            if all_concepts:
-                concept_names = [c.name for c in all_concepts[:20]]
-                context_parts.append(
-                    "Available concepts include: " + ", ".join(concept_names)
-                )
-
-        if context_parts:
-            return "Relevant course context:\n" + "\n\n".join(context_parts)
-        return ""
+        return "Course overview:\n" + "\n".join(context_parts)
 
 
 async def create_tool(bot: "ChibiBot", config: ToolConfig) -> AssistantTool:

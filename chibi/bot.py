@@ -16,6 +16,7 @@ from .database.repositories import (
     LLMQuizRepository,
     MasteryRepository,
     QuizRepository,
+    RAGRepository,
     SimilarityRepository,
     UserRepository,
 )
@@ -24,10 +25,12 @@ from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
 from .services import (
+    ContentIndexer,
     EmbeddingService,
     GradeService,
     LLMQuizChallengeService,
     QuizService,
+    RAGService,
     SimilarityService,
 )
 from .tools.registry import ToolRegistry
@@ -61,6 +64,7 @@ class ChibiBot(commands.Bot):
         self.mastery_repo: Optional[MasteryRepository] = None
         self.llm_quiz_repo: Optional[LLMQuizRepository] = None
         self.similarity_repo: Optional[SimilarityRepository] = None
+        self.rag_repo: Optional[RAGRepository] = None
 
         # Services
         self.quiz_service: Optional[QuizService] = None
@@ -68,6 +72,8 @@ class ChibiBot(commands.Bot):
         self.llm_quiz_service: Optional[LLMQuizChallengeService] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.similarity_service: Optional[SimilarityService] = None
+        self.rag_service: Optional[RAGService] = None
+        self.content_indexer: Optional[ContentIndexer] = None
 
         # Agent components
         self.tool_registry: Optional[ToolRegistry] = None
@@ -90,6 +96,11 @@ class ChibiBot(commands.Bot):
         self.similarity_repo = SimilarityRepository(self.config.similarity)
         await self.similarity_repo.connect()
         logger.info("Similarity repository connected")
+
+        # Initialize RAG repository (ChromaDB)
+        self.rag_repo = RAGRepository(self.config.similarity)
+        await self.rag_repo.connect()
+        logger.info("RAG repository connected")
 
         # Initialize LLM providers
         primary = OllamaProvider(
@@ -149,7 +160,36 @@ class ChibiBot(commands.Bot):
             embedding_service=self.embedding_service,
             similarity_repo=self.similarity_repo,
         )
+
+        # Initialize RAG service and content indexer
+        self.rag_service = RAGService(
+            embedding_service=self.embedding_service,
+            rag_repo=self.rag_repo,
+            top_k=5,
+            min_similarity=0.3,
+            max_context_length=4000,
+        )
+        self.content_indexer = ContentIndexer(
+            embedding_service=self.embedding_service,
+            rag_repo=self.rag_repo,
+            chunk_size=500,
+            chunk_overlap=100,
+        )
         logger.info("Services initialized")
+
+        # Index course content for RAG
+        logger.info("Indexing course content for RAG...")
+        try:
+            index_stats = await self.content_indexer.index_course(
+                course=self.course,
+                force_reindex=False,  # Only index if not already indexed
+            )
+            logger.info(
+                f"Course indexing complete: {index_stats['modules_indexed']} modules, "
+                f"{index_stats['total_chunks']} chunks"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to index course content: {e}")
 
         # Initialize tool registry and load tools
         self.tool_registry = ToolRegistry(self)
@@ -285,6 +325,10 @@ class ChibiBot(commands.Bot):
     async def close(self) -> None:
         """Clean up on shutdown."""
         logger.info("Shutting down Chibi bot...")
+
+        if self.rag_repo:
+            await self.rag_repo.close()
+            logger.info("RAG repository closed")
 
         if self.similarity_repo:
             await self.similarity_repo.close()
