@@ -351,8 +351,9 @@ class AdminCog(commands.Cog):
         try:
             async with ctx.typing():
                 # Extract user ID from mention if applicable
-                identifier = extract_user_id_from_mention(student) or student
-                logger.debug(f"Looking up student: input='{student}', identifier='{identifier}'")
+                mention_id = extract_user_id_from_mention(student)
+                identifier = mention_id or student
+                logger.info(f"Looking up student: raw='{student}', mention_id='{mention_id}', identifier='{identifier}'")
 
                 # Look up the student
                 user = await self.bot.repository.search_user_by_identifier(identifier)

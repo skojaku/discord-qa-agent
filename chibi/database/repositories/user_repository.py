@@ -1,11 +1,14 @@
 """User repository for user-related database operations."""
 
+import logging
 from datetime import datetime
 from typing import List, Optional
 
 from ..mappers import row_to_user
 from ..models import User
 from .base import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository(BaseRepository):
@@ -82,6 +85,7 @@ class UserRepository(BaseRepository):
             User if found, None otherwise
         """
         conn = self.connection
+        logger.info(f"Searching for user with identifier: '{identifier}'")
 
         # First try exact match on discord_id
         cursor = await conn.execute(
@@ -89,6 +93,7 @@ class UserRepository(BaseRepository):
         )
         row = await cursor.fetchone()
         if row:
+            logger.info(f"Found user by discord_id: {row['username']} ({row['discord_id']})")
             return row_to_user(row)
 
         # Then try exact match on username (case-insensitive)
@@ -97,6 +102,7 @@ class UserRepository(BaseRepository):
         )
         row = await cursor.fetchone()
         if row:
+            logger.info(f"Found user by username: {row['username']} ({row['discord_id']})")
             return row_to_user(row)
 
         # Finally try partial match on username (case-insensitive)
@@ -106,6 +112,12 @@ class UserRepository(BaseRepository):
         )
         row = await cursor.fetchone()
         if row:
+            logger.info(f"Found user by partial match: {row['username']} ({row['discord_id']})")
             return row_to_user(row)
+
+        # List all users for debugging
+        cursor = await conn.execute("SELECT discord_id, username FROM users LIMIT 10")
+        all_rows = await cursor.fetchall()
+        logger.info(f"No user found. Available users: {[(r['discord_id'], r['username']) for r in all_rows]}")
 
         return None
