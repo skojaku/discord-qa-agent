@@ -95,50 +95,47 @@ class AdminCog(commands.Cog):
             async with ctx.typing():
                 embed = discord.Embed(
                     title="Admin Commands",
+                    description="Use these commands to manage and monitor student progress.",
                     color=discord.Color.blue(),
                 )
 
-                # Commands section
-                commands_text = (
-                    "**!admin** - Show this help message\n"
-                    "**!modules** - List all modules\n"
-                    "**!students** - List all registered students\n"
-                    "**!show_grade [module]** - Export grades as CSV\n"
-                    "**!status <student> [module]** - View student progress"
+                # Commands as individual fields for better readability
+                embed.add_field(
+                    name="`!admin`",
+                    value="Show this help message",
+                    inline=False,
                 )
-                embed.add_field(name="Commands", value=commands_text, inline=False)
+                embed.add_field(
+                    name="`!modules`",
+                    value="List all available modules with details",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="`!students`",
+                    value="List all registered students with activity info",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="`!show_grade [module]`",
+                    value="Export student grades as CSV file\n*Optional: filter by module ID*",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="`!status <student> [module]`",
+                    value="View a student's learning progress\n*Accepts @mention, Discord ID, or username*",
+                    inline=False,
+                )
 
-                # Modules section
+                # Quick stats
                 modules = self.bot.course.modules
-                if modules:
-                    module_lines = [f"`{m.id}` - {m.name}" for m in modules]
-                    embed.add_field(
-                        name=f"Modules ({len(modules)})",
-                        value="\n".join(module_lines),
-                        inline=False,
-                    )
-
-                # Students section
                 users = await self.bot.repository.get_all_users()
-                if users:
-                    # Show up to 15 students to avoid embed limits
-                    student_lines = [
-                        f"`{u.discord_id}` - {u.username}" for u in users[:15]
-                    ]
-                    if len(users) > 15:
-                        student_lines.append(f"... and {len(users) - 15} more")
-                    embed.add_field(
-                        name=f"Students ({len(users)})",
-                        value="\n".join(student_lines),
-                        inline=False,
-                    )
-                else:
-                    embed.add_field(
-                        name="Students",
-                        value="No students registered yet.",
-                        inline=False,
-                    )
+                embed.add_field(
+                    name="Quick Stats",
+                    value=f"**{len(modules)}** modules | **{len(users)}** students registered",
+                    inline=False,
+                )
 
+                embed.set_footer(text="Use !modules or !students for detailed lists")
                 await ctx.send(embed=embed)
 
         except Exception as e:
