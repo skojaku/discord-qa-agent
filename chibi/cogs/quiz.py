@@ -27,16 +27,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class QuizAnswerModal(discord.ui.Modal, title="Submit Your Answer"):
+class QuizAnswerModal(discord.ui.Modal, title="Quiz"):
     """Modal for submitting a quiz answer."""
-
-    answer = discord.ui.TextInput(
-        label="Your Answer",
-        style=discord.TextStyle.paragraph,
-        placeholder="Type your answer here...",
-        required=True,
-        max_length=2000,
-    )
 
     def __init__(
         self,
@@ -59,12 +51,36 @@ class QuizAnswerModal(discord.ui.Modal, title="Submit Your Answer"):
         self.question = question
         self.correct_answer = correct_answer
 
+        # Add question display field (read-only conceptually)
+        # Truncate if too long for modal (max ~4000 chars total)
+        question_display = question[:1500] if len(question) > 1500 else question
+        # Label max is 45 chars
+        label_concept = concept_name[:30] if len(concept_name) > 30 else concept_name
+        self.question_field = discord.ui.TextInput(
+            label=f"Question: {label_concept}",
+            style=discord.TextStyle.paragraph,
+            default=question_display,
+            required=False,
+            max_length=2000,
+        )
+        self.add_item(self.question_field)
+
+        # Add answer field
+        self.answer_field = discord.ui.TextInput(
+            label="Your Answer",
+            style=discord.TextStyle.paragraph,
+            placeholder="Type your answer here...",
+            required=True,
+            max_length=2000,
+        )
+        self.add_item(self.answer_field)
+
     async def on_submit(self, interaction: discord.Interaction):
         """Handle answer submission."""
         await interaction.response.defer(thinking=True)
 
         try:
-            student_answer = self.answer.value
+            student_answer = self.answer_field.value
 
             # Evaluate the answer
             result = await self.cog.bot.quiz_service.evaluate_answer(
