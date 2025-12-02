@@ -134,7 +134,10 @@ class ChibiBot(commands.Bot):
         )
 
         # Initialize embedding and similarity services
-        self.embedding_service = EmbeddingService(self.config.similarity)
+        self.embedding_service = EmbeddingService(
+            self.config.similarity,
+            api_key=self.config.openrouter_api_key,
+        )
         self.similarity_service = SimilarityService(
             config=self.config.similarity,
             embedding_service=self.embedding_service,

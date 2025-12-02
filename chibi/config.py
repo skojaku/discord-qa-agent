@@ -79,8 +79,14 @@ class SimilarityConfig:
     enabled: bool = True
     similarity_threshold: float = 0.85
     top_k: int = 5
+    # Primary: Ollama (local)
     embedding_model: str = "nomic-embed-text"
     ollama_base_url: str = "http://localhost:11434"
+    # Fallback: OpenRouter (cloud)
+    fallback_enabled: bool = True
+    fallback_model: str = "openai/text-embedding-3-small"
+    fallback_base_url: str = "https://openrouter.ai/api/v1"
+    # Storage
     chromadb_path: str = "data/chromadb"
 
 
@@ -184,6 +190,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
             top_k=similarity_data.get("top_k", 5),
             embedding_model=similarity_data.get("embedding_model", "nomic-embed-text"),
             ollama_base_url=similarity_data.get("ollama_base_url", "http://localhost:11434"),
+            fallback_enabled=similarity_data.get("fallback_enabled", True),
+            fallback_model=similarity_data.get("fallback_model", "openai/text-embedding-3-small"),
+            fallback_base_url=similarity_data.get("fallback_base_url", "https://openrouter.ai/api/v1"),
             chromadb_path=similarity_data.get("chromadb_path", "data/chromadb"),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),

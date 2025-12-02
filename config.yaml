@@ -54,6 +54,12 @@ similarity:
   enabled: true
   similarity_threshold: 0.85  # 0-1, questions above this are rejected
   top_k: 5  # Number of similar questions to retrieve
-  embedding_model: "nomic-embed-text"  # Ollama embedding model
+  # Primary: Ollama (local)
+  embedding_model: "nomic-embed-text"
   ollama_base_url: "http://localhost:11434"
+  # Fallback: OpenRouter (cloud) - used when Ollama is unavailable
+  fallback_enabled: true
+  fallback_model: "openai/text-embedding-3-small"
+  fallback_base_url: "https://openrouter.ai/api/v1"
+  # Storage
   chromadb_path: "data/chromadb"

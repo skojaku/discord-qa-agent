@@ -10,6 +10,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+import os
+from dotenv import load_dotenv
+
 from chibi.config import load_config
 from chibi.database.connection import Database
 from chibi.database.repositories import SimilarityRepository
@@ -26,7 +29,11 @@ async def migrate():
     """Migrate existing questions to ChromaDB."""
     logger.info("Starting migration of existing questions to ChromaDB...")
 
+    # Load environment variables for API key
+    load_dotenv(project_root / ".env")
+
     config = load_config(str(project_root / "config.yaml"))
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
 
     # Connect to SQLite
     database = Database(config.database.path)
@@ -39,7 +46,7 @@ async def migrate():
     logger.info(f"Connected to ChromaDB: {config.similarity.chromadb_path}")
 
     # Initialize embedding service
-    embedding_service = EmbeddingService(config.similarity)
+    embedding_service = EmbeddingService(config.similarity, api_key=api_key)
 
     # Check if embedding service is available
     if not await embedding_service.is_available():
