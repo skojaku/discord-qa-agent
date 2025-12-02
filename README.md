@@ -151,7 +151,11 @@ discord-qa-agent/
 │   │   ├── connection.py
 │   │   ├── models.py
 │   │   ├── mappers.py     # Row-to-model mappers
-│   │   └── repository.py
+│   │   ├── repository.py  # Facade for backward compatibility
+│   │   └── repositories/  # Domain-specific repositories
+│   │       ├── user_repository.py
+│   │       ├── quiz_repository.py
+│   │       └── mastery_repository.py
 │   ├── learning/          # Learning profile
 │   │   └── mastery.py
 │   └── prompts/
