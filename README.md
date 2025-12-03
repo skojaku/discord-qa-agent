@@ -45,12 +45,22 @@ Students can create their own quiz questions to challenge the AI:
 - Progress is tracked per module with a configurable target (default: 3 wins per module)
 - **Anti-cheat**: Embedding-based similarity detection prevents reusing questions (only winning questions are recorded)
 
-### RAG System
-Chibi uses ChromaDB for vector storage and retrieval:
+### RAG System with Contextual Retrieval
+Chibi uses ChromaDB for vector storage and retrieval, enhanced with [Anthropic's Contextual Retrieval](https://www.anthropic.com/news/contextual-retrieval) technique:
+
+- **Contextual Retrieval**: Before indexing, each chunk is enriched with an LLM-generated context summary that situates it within the source document. This dramatically improves retrieval accuracy for queries that need document-level context.
 - Course content is automatically indexed for semantic search
 - Quiz questions are generated with relevant context
 - The assistant searches course materials when answering questions
 - LLM Quiz uses RAG to give the AI fair access to course content
+
+**How Contextual Retrieval Works:**
+1. Documents are split into chunks (default 500 characters with 100 character overlap)
+2. For each chunk, an LLM generates a brief context summary (50-100 tokens)
+3. The context is prepended to the chunk before embedding
+4. Original text is stored for display, contextualized text is used for search
+
+This solves the "context conundrum" where traditional RAG chunks lose important identifiers. For example, a chunk saying "Revenue grew 3%" becomes "This chunk is from ACME Corp's Q2 2023 report. Revenue grew 3%"
 
 ### Conversation Memory
 - Tracks conversation history per user per channel
@@ -162,20 +172,23 @@ llm_quiz:
   evaluator_model: "openrouter/google/gemini-2.5-flash-lite"  # Model that judges
   base_url: "https://openrouter.ai/api/v1"
 
-# RAG settings
-rag:
+# Contextual Retrieval settings (improved RAG)
+contextual_retrieval:
   enabled: true
-  chromadb_path: "data/chromadb"
-  chunk_size: 500
-  chunk_overlap: 50
-  top_k: 5
+  max_context_tokens: 100     # Max tokens for context summary
+  batch_size: 5               # Chunks to process concurrently
+  batch_delay_seconds: 0.5    # Rate limiting between batches
+  temperature: 0.3            # LLM temperature for context generation
+  # Model for generating context (use "default" for main LLM)
+  model: "default"            # or "ollama/llama3.2" or "openrouter/model-name"
+  base_url: ""                # Optional custom endpoint
 
 # Similarity detection for LLM Quiz anti-cheat
 similarity:
   enabled: true
   chromadb_path: "data/chromadb"
   similarity_threshold: 0.85  # Questions above this similarity are rejected
-  embedding_model: "ollama"   # or "openrouter"
+  embedding_model: "nomic-embed-text"
 ```
 
 #### Getting the Admin Channel ID
@@ -262,6 +275,8 @@ discord-qa-agent/
 │   │   ├── quiz_service.py
 │   │   ├── llm_quiz_service.py
 │   │   ├── rag_service.py          # RAG retrieval
+│   │   ├── contextual_chunking_service.py  # Contextual Retrieval
+│   │   ├── content_indexer.py      # RAG content indexing
 │   │   ├── similarity_service.py   # Question similarity detection
 │   │   ├── embedding_service.py    # Embedding generation
 │   │   └── grade_service.py
