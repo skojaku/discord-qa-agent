@@ -2,14 +2,11 @@
 
 import asyncio
 import logging
-import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import dspy
 
-# Add llm-quiz to path for importing DSPy signatures
-sys.path.insert(0, "llm-quiz")
 from llm_quiz import AnswerQuizQuestion, EvaluateAnswer
 
 if TYPE_CHECKING:
