@@ -552,20 +552,18 @@ class LLMQuizTool(BaseTool):
                     metadata={"response_sent": True},
                 )
 
-            module_obj = self.bot.course.get_module(module_id)
+            # Use fuzzy matching to find module by ID, name, or concept
+            module_obj = self.bot.course.find_module(module_id)
             if not module_obj:
-                # Build list of available modules
-                module_list = ", ".join(
-                    f"`{m.id}`" for m in self.bot.course.modules[:5]
+                # Build list of available modules with names
+                module_list = "\n".join(
+                    f"• `{m.id}` - {m.name}" for m in self.bot.course.modules
                 )
-                if len(self.bot.course.modules) > 5:
-                    module_list += f", ... ({len(self.bot.course.modules)} total)"
 
                 await discord_message.reply(
                     f"Module `{module_id}` not found.\n\n"
-                    f"To start an LLM Quiz Challenge, use: `/llm-quiz module:<module-id>`\n\n"
-                    f"**Available modules:** {module_list}\n\n"
-                    f"Use `/modules` to see all available modules.",
+                    f"**Available modules:**\n{module_list}\n\n"
+                    f"**Tip:** Say \"llm quiz on Small World\" or use `/llm-quiz module:m02`",
                     mention_author=False,
                 )
                 return ToolResult(

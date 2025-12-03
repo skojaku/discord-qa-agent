@@ -257,22 +257,21 @@ class QuizTool(BaseTool):
             # Get module from parameters or select randomly
             module_id = state.parameters.get("module")
             if module_id:
-                module_obj = self.bot.course.get_module(module_id)
+                # Use fuzzy matching to find module by ID, name, or concept
+                module_obj = self.bot.course.find_module(module_id)
             else:
                 module_obj = random.choice(self.bot.course.modules)
 
             if not module_obj:
-                # Build list of available modules
-                module_list = ", ".join(
-                    f"`{m.id}`" for m in self.bot.course.modules[:5]
+                # Build list of available modules with names
+                module_list = "\n".join(
+                    f"• `{m.id}` - {m.name}" for m in self.bot.course.modules
                 )
-                if len(self.bot.course.modules) > 5:
-                    module_list += f", ... ({len(self.bot.course.modules)} total)"
 
                 await discord_message.reply(
                     f"Module `{module_id}` not found.\n\n"
-                    f"**Available modules:** {module_list}\n\n"
-                    f"**Tip:** Just say \"quiz me\" for a random module, or specify one like \"quiz me on module-1\"",
+                    f"**Available modules:**\n{module_list}\n\n"
+                    f"**Tip:** Say \"quiz me on Small World\" or \"quiz me on m02\"",
                     mention_author=False,
                 )
                 return ToolResult(
