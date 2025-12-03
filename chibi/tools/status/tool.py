@@ -121,9 +121,9 @@ class StatusTool(BaseTool):
             inline=True,
         )
 
-        # Quiz stats
-        total_quizzes = summary.get("total_quiz_attempts", 0)
-        correct = summary.get("total_correct", 0)
+        # Quiz stats (fetched from quiz_attempts table)
+        total_quizzes = await self.bot.quiz_repo.count_for_user(user_id)
+        correct = await self.bot.quiz_repo.count_correct_for_user(user_id)
         accuracy = correct / total_quizzes * 100 if total_quizzes > 0 else 0
 
         embed.add_field(
