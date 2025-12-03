@@ -129,6 +129,20 @@ Please provide a helpful answer based on the course content above."""
             exclude_chunk_ids=exclude_chunk_ids,
         )
 
+        # Log search results for debugging
+        logger.info(
+            f"Search query: '{query}' | type={context_type.value} | "
+            f"module={module_id or 'all'} | chunks={context_result.total_chunks}"
+        )
+        if context_result.sources:
+            for i, source in enumerate(context_result.sources, 1):
+                logger.info(f"  Source {i}: {source.source_name} (score: {source.relevance_score:.3f})")
+                # Log first 200 chars of each chunk
+                chunk_preview = source.content[:200].replace('\n', ' ')
+                if len(source.content) > 200:
+                    chunk_preview += "..."
+                logger.info(f"    Content: {chunk_preview}")
+
         # 3. Synthesize answer if ASSISTANT type and has relevant content
         answer = ""
         if (
