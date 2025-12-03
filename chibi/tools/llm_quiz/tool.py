@@ -538,12 +538,11 @@ class LLMQuizTool(BaseTool):
                     module_list += f", ... ({len(self.bot.course.modules)} total)"
 
                 await discord_message.reply(
-                    f"Please specify a module to challenge the AI on!\n\n"
+                    f"To start an LLM Quiz Challenge, please use the slash command:\n\n"
+                    f"**Command:** `/llm-quiz module:<module-id>`\n\n"
                     f"**Available modules:** {module_list}\n\n"
-                    f"**Examples:**\n"
-                    f"• \"LLM quiz on module-1\"\n"
-                    f"• \"Challenge the AI on m02\"\n"
-                    f"• Use `/modules` to see all available modules",
+                    f"**Example:** `/llm-quiz module:m01`\n\n"
+                    f"Use `/modules` to see all available modules.",
                     mention_author=False,
                 )
                 return ToolResult(
@@ -564,6 +563,7 @@ class LLMQuizTool(BaseTool):
 
                 await discord_message.reply(
                     f"Module `{module_id}` not found.\n\n"
+                    f"To start an LLM Quiz Challenge, use: `/llm-quiz module:<module-id>`\n\n"
                     f"**Available modules:** {module_list}\n\n"
                     f"Use `/modules` to see all available modules.",
                     mention_author=False,
