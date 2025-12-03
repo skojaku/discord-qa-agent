@@ -1,107 +1,352 @@
 # Course Configuration for Chibi Bot
-# This file defines your course modules, concepts, and content sources
-
 course:
-  name: "Introduction to Network Science"
-  code: "NETSCI101"
-  description: "Fundamentals of network analysis and graph theory"
+  name: "Advanced Topics in Network Science"
+  code: "SSIE 641"
+  description: "Advanced Topics in Network Science"
 
-# Module definitions
-# Each module has an ID, name, content URLs (list), and concepts to master
 modules:
   - id: "m01"
-    name: "Euler Path and Circuit"
-    description: "Understanding paths that traverse every edge exactly once"
+    name: "Euler Path"
+    description: "Introduction to graph theory fundamentals through the Königsberg Bridge Problem and Euler's Theorem."
     content_urls:
-      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m01-concept.md"
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m01-euler_tour/01-concepts.qmd"
     concepts:
-      # Main concepts for this module
-      - id: "euler-path"
-        name: "Euler Path"
-        type: "theory"
-        difficulty: 3
-        description: "A path in a graph that visits every edge exactly once. Understand the formal definition and when such paths exist."
-        quiz_focus: "Existence conditions, relationship to degree, coding implementation"
-        prerequisites:
-          - "walk"
-
-      - id: "euler-circuit"
-        name: "Euler Circuit"
-        type: "theory"
-        difficulty: 3
-        description: "A closed Euler path that starts and ends at the same vertex, visiting every edge exactly once."
-        quiz_focus: "Difference from Euler path, existence conditions, relationship to degree, coding implementation"
-        prerequisites:
-          - "euler-path"
-
-      # Building-block concepts (prerequisites)
-      - id: "walk"
-        name: "Walk"
+      - id: "euler-theorem"
+        name: "Euler's Theorem"
         type: "theory"
         difficulty: 2
-        description: "A sequence of nodes and edges in a graph where two consecutive nodes are connected by an edge."
-        quiz_focus: "Definition, code implementation to check if a node sequence is a walk"
-        prerequisites: []
-
-      - id: "degree"
+        description: "Conditions for the existence of an Eulerian path or circuit in a graph based on node degrees."
+        quiz_focus: "Identify if a graph has an Eulerian path/circuit based on degree counts."
+      - id: "node-degree"
         name: "Node Degree"
         type: "theory"
-        difficulty: 2
-        description: "The number of edges incident to a node. In directed graphs, distinguish between in-degree and out-degree."
-        quiz_focus: "Definition, calculating degree from adjacency matrix/list"
-        prerequisites: []
+        difficulty: 1
+        description: "The number of edges connected to a node."
+        quiz_focus: "Calculate degrees of nodes in a given graph."
+      - id: "walk-trail-path"
+        name: "Walk, Trail, and Path"
+        type: "theory"
+        difficulty: 1
+        description: "Distinctions between different types of graph traversals: walks (repeats allowed), trails (no repeated edges), and paths (no repeated nodes)."
+        quiz_focus: "Identify the type of traversal from a given sequence of nodes."
+      - id: "connected-components"
+        name: "Connected Components"
+        type: "theory"
+        difficulty: 1
+        description: "Subgraphs where any two nodes are connected to each other by paths."
+        quiz_focus: "Count connected components or identify weakly/strongly connected components."
 
   - id: "m02"
-    name: "Network Centrality"
-    description: "Measuring node importance in networks"
+    name: "Small World"
+    description: "Exploration of the small-world phenomenon, six degrees of separation, and the Watts-Strogatz model."
     content_urls:
-      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m06-concept.md"
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m02-small-world/01-concepts.qmd"
     concepts:
-      - id: "degree-centrality"
-        name: "Degree Centrality"
+      - id: "small-world-property"
+        name: "Small-world Property"
         type: "theory"
         difficulty: 2
-        description: "Simplest centrality measure based on node degree."
-        quiz_focus: "Definition, normalization, interpretation"
+        description: "Networks with high clustering and short average path lengths."
+        quiz_focus: "Characteristics that define a small-world network."
+      - id: "clustering-coefficient"
+        name: "Clustering Coefficient"
+        type: "theory"
+        difficulty: 2
+        description: "A measure of the degree to which nodes in a graph tend to cluster together."
+        quiz_focus: "Calculate local or global clustering coefficients."
+      - id: "watts-strogatz"
+        name: "Watts-Strogatz Model"
+        type: "theory"
+        difficulty: 3
+        description: "A random graph generation model that produces graphs with small-world properties."
+        quiz_focus: "How rewiring probability affects network structure."
         prerequisites:
-          - "degree"
+          - "small-world-property"
+      - id: "average-path-length"
+        name: "Average Path Length"
+        type: "theory"
+        difficulty: 1
+        description: "The average number of steps along the shortest paths for all possible pairs of network nodes."
+        quiz_focus: "Calculation on small graphs."
 
-      - id: "betweenness-centrality"
-        name: "Betweenness Centrality"
+  - id: "m03"
+    name: "Robustness"
+    description: "Analysis of network resilience against random failures and targeted attacks."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m03-robustness/01-concepts.qmd"
+    concepts:
+      - id: "percolation"
+        name: "Percolation"
+        type: "theory"
+        difficulty: 3
+        description: "Phase transitions in network connectivity as nodes/edges are added or removed."
+        quiz_focus: "Relationship between node removal and giant component size."
+      - id: "molloy-reed"
+        name: "Molloy-Reed Criterion"
         type: "theory"
         difficulty: 4
-        description: "Measures how often a node lies on shortest paths between other nodes."
-        quiz_focus: "Definition, calculation, interpretation, applications"
-        prerequisites:
-          - "degree-centrality"
+        description: "Condition for the existence of a giant component in a network with arbitrary degree distribution."
+        quiz_focus: "Conditions under which a giant component exists."
+      - id: "targeted-vs-random"
+        name: "Targeted vs Random Attacks"
+        type: "theory"
+        difficulty: 2
+        description: "The difference in network resilience when removing random nodes versus high-degree hubs."
+        quiz_focus: "Compare impact on scale-free vs random networks."
+      - id: "giant-component"
+        name: "Giant Component"
+        type: "theory"
+        difficulty: 2
+        description: "A connected component that contains a significant fraction of the entire graph's nodes."
+        quiz_focus: "Conditions for its emergence."
 
+  - id: "m04"
+    name: "Friendship Paradox"
+    description: "Understanding statistical biases in networks, specifically why your friends have more friends than you."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m04-node-degree/01-concepts.qmd"
+    concepts:
+      - id: "friendship-paradox"
+        name: "Friendship Paradox"
+        type: "theory"
+        difficulty: 2
+        description: "The phenomenon where, on average, a person's friends have more friends than they do."
+        quiz_focus: "Explain the cause of the friendship paradox (sampling bias)."
+      - id: "degree-distribution"
+        name: "Degree Distribution"
+        type: "theory"
+        difficulty: 2
+        description: "The probability distribution of these degrees over the whole network."
+        quiz_focus: "Interpret plots of degree distributions (e.g., log-log plots)."
+      - id: "scale-free-network"
+        name: "Scale-Free Network"
+        type: "theory"
+        difficulty: 3
+        description: "A network whose degree distribution follows a power law."
+        quiz_focus: "Properties of scale-free networks (hubs, robustness)."
+      - id: "pdf"
+        name: "Probability Density Function (PDF)"
+        type: "theory"
+        difficulty: 2
+        description: "The function describing the likelihood of a random variable taking on a specific value (fraction of nodes with degree k)."
+        quiz_focus: "Definition and interpretation in degree distribution."
+      - id: "cdf"
+        name: "Cumulative Distribution Function (CDF)"
+        type: "theory"
+        difficulty: 2
+        description: "The probability that a random variable takes a value less than or equal to x."
+        quiz_focus: "Relationship between PDF and CDF."
+      - id: "ccdf"
+        name: "Complementary CDF (CCDF)"
+        type: "theory"
+        difficulty: 2
+        description: "The probability that a variable is greater than x (P(X > x)), useful for visualizing power laws."
+        quiz_focus: "Advantages of CCDF over PDF for heavy-tailed distributions."
+      - id: "power-law"
+        name: "Power Law Distribution"
+        type: "theory"
+        difficulty: 3
+        description: "A relationship where one quantity varies as a power of another (P(k) ~ k^-gamma)."
+        quiz_focus: "Identifying power laws on log-log plots."
+
+  - id: "m05"
+    name: "Clustering"
+    description: "Techniques for finding community structures in networks."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m05-clustering/01-concepts.qmd"
+    concepts:
+      - id: "modularity"
+        name: "Modularity"
+        type: "theory"
+        difficulty: 3
+        description: "A measure of the structure of networks or graphs which measures the strength of division of a network into modules."
+        quiz_focus: "How modularity compares internal edges to a null model."
+      - id: "stochastic-block-model"
+        name: "Stochastic Block Model"
+        type: "theory"
+        difficulty: 4
+        description: "A generative model for random graphs with community structure."
+        quiz_focus: "Basic principles of generating networks from block probabilities."
+      - id: "resolution-limit"
+        name: "Resolution Limit"
+        type: "theory"
+        difficulty: 3
+        description: "A limitation of modularity maximization where small communities cannot be detected in large networks."
+        quiz_focus: "Why modularity fails for small clusters."
+      - id: "assortativity"
+        name: "Assortativity"
+        type: "theory"
+        difficulty: 2
+        description: "The tendency of nodes to attach to others with similar properties (e.g., degree)."
+        quiz_focus: "Positive vs negative assortativity."
+      - id: "pseudo-cliques"
+        name: "Pseudo Cliques"
+        type: "theory"
+        difficulty: 3
+        description: "Relaxed definitions of cliques used to find cohesive subgroups (e.g., k-core, k-clan, k-plex)."
+        quiz_focus: "Definitions of k-core (degree constraint) and k-clan (distance constraint)."
+      - id: "graph-cut"
+        name: "Graph Cut"
+        type: "theory"
+        difficulty: 3
+        description: "Partitioning a graph into disjoint sets by minimizing the number/weight of edges between them."
+        quiz_focus: "Difference between Ratio Cut and Normalized Cut."
+
+  - id: "m06"
+    name: "Centrality"
+    description: "Measures to identify the most important or central nodes in a network."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m06-centrality/01-concepts.qmd"
+    concepts:
       - id: "closeness-centrality"
         name: "Closeness Centrality"
         type: "theory"
+        difficulty: 2
+        description: "A measure of centrality calculated as the reciprocal of the sum of the length of the shortest paths between the node and all other nodes."
+        quiz_focus: "Calculate or identify nodes with high closeness centrality."
+      - id: "betweenness-centrality"
+        name: "Betweenness Centrality"
+        type: "theory"
         difficulty: 3
-        description: "Measures how close a node is to all other nodes in the network."
-        quiz_focus: "Definition, calculation, handling disconnected graphs"
-        prerequisites:
-          - "degree-centrality"
+        description: "A measure of centrality based on shortest paths that pass through the node."
+        quiz_focus: "Identify nodes that act as bridges or bottlenecks."
+      - id: "pagerank"
+        name: "PageRank"
+        type: "theory"
+        difficulty: 3
+        description: "An algorithm used by Google Search to rank web pages in their search engine results."
+        quiz_focus: "Mechanics of PageRank including random walks and teleportation."
+      - id: "eigenvector-centrality"
+        name: "Eigenvector Centrality"
+        type: "theory"
+        difficulty: 3
+        description: "A measure where a node's importance increases if it is connected to other important nodes."
+        quiz_focus: "Conceptual difference from degree centrality."
+      - id: "hits-algorithm"
+        name: "HITS Algorithm"
+        type: "theory"
+        difficulty: 3
+        description: "Hyperlink-Induced Topic Search, defining Hubs and Authorities."
+        quiz_focus: "Distinguish between hub and authority scores."
+      - id: "harmonic-centrality"
+        name: "Harmonic Centrality"
+        type: "theory"
+        difficulty: 2
+        description: "A variant of closeness centrality designed for disconnected graphs (sum of reciprocal distances)."
+        quiz_focus: "Advantage over closeness centrality in disconnected networks."
+      - id: "katz-centrality"
+        name: "Katz Centrality"
+        type: "theory"
+        difficulty: 3
+        description: "A centrality measure that counts walks of all lengths, penalizing longer paths."
+        quiz_focus: "Role of the attenuation factor."
 
-# Available quiz formats
+  - id: "m07"
+    name: "Random Walks"
+    description: "Study of random processes on networks and their long-term behaviors."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m07-random-walks/01-concepts.qmd"
+    concepts:
+      - id: "stationary-distribution"
+        name: "Stationary Distribution"
+        type: "theory"
+        difficulty: 3
+        description: "The long-term probability distribution of a random walker on a graph."
+        quiz_focus: "Relationship between node degree and stationary probability in undirected graphs."
+      - id: "transition-matrix"
+        name: "Transition Matrix"
+        type: "theory"
+        difficulty: 2
+        description: "A matrix describing the probabilities of moving from one node to another."
+        quiz_focus: "Construct a transition matrix from an adjacency matrix."
+      - id: "mixing-time"
+        name: "Mixing Time"
+        type: "theory"
+        difficulty: 4
+        description: "The time it takes for a random walk to reach its stationary distribution."
+        quiz_focus: "Factors affecting mixing time (spectral gap)."
+
+  - id: "m08"
+    name: "Embedding"
+    description: "Techniques to represent nodes as vectors in a low-dimensional space."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m08-embedding/01-concepts.qmd"
+    concepts:
+      - id: "network-embedding"
+        name: "Network Embedding"
+        type: "theory"
+        difficulty: 2
+        description: "Mapping nodes to a continuous vector space while preserving network structure."
+        quiz_focus: "Goals and benefits of network embedding."
+      - id: "node2vec"
+        name: "node2vec"
+        type: "theory"
+        difficulty: 3
+        description: "An algorithmic framework for learning continuous feature representations for nodes in networks."
+        quiz_focus: "How random walk parameters (p and q) affect embedding."
+      - id: "deepwalk"
+        name: "DeepWalk"
+        type: "theory"
+        difficulty: 3
+        description: "A method that uses random walks to generate sequences of nodes, treated as sentences for word2vec."
+        quiz_focus: "Connection between random walks and language modeling."
+      - id: "laplacian-eigenmap"
+        name: "Laplacian Eigenmap"
+        type: "theory"
+        difficulty: 4
+        description: "A dimensionality reduction technique using the spectrum of the graph Laplacian."
+        quiz_focus: "Objective function minimizing distance between connected nodes."
+      - id: "spectral-embedding"
+        name: "Spectral Embedding"
+        type: "theory"
+        difficulty: 3
+        description: "Embedding based on the low-rank approximation of the adjacency matrix or modularity matrix."
+        quiz_focus: "Relationship between eigenvalues/vectors and network structure."
+      - id: "hyperbolic-embedding"
+        name: "Hyperbolic Embedding"
+        type: "theory"
+        difficulty: 4
+        description: "Embedding networks in hyperbolic space to capture hierarchical structure."
+        quiz_focus: "Popularity vs Similarity trade-offs in the model."
+
+  - id: "m09"
+    name: "Graph Neural Networks"
+    description: "Deep learning architectures designed for graph-structured data."
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/lecture-note/m09-graph-neural-networks/01-concepts.qmd"
+    concepts:
+      - id: "gcn"
+        name: "Graph Convolutional Networks (GCN)"
+        type: "theory"
+        difficulty: 4
+        description: "Neural networks that generalize convolution to graphs using spectral or spatial methods."
+        quiz_focus: "Basic propagation rule of GCN."
+      - id: "spectral-graph-convolution"
+        name: "Spectral Graph Convolution"
+        type: "theory"
+        difficulty: 4
+        description: "Convolution defined in the spectral domain using the graph Laplacian (e.g., ChebNet)."
+        quiz_focus: "Analogy to Fourier transform in signal processing."
+      - id: "graphsage"
+        name: "GraphSAGE"
+        type: "theory"
+        difficulty: 4
+        description: "An inductive framework for generating node embeddings by sampling and aggregating features from a node's local neighborhood."
+        quiz_focus: "Difference between transductive (GCN) and inductive (GraphSAGE) learning."
+      - id: "gat"
+        name: "Graph Attention Networks (GAT)"
+        type: "theory"
+        difficulty: 4
+        description: "A GNN architecture that uses attention mechanisms to weigh the importance of neighbors."
+        quiz_focus: "How attention coefficients are computed."
+      - id: "weisfeiler-lehman"
+        name: "Weisfeiler-Lehman Test"
+        type: "theory"
+        difficulty: 4
+        description: "A test for graph isomorphism that iteratively aggregates neighbor labels."
+        quiz_focus: "Relation to the expressive power of GNNs (GIN)."
+
 quiz_formats:
   - id: "multiple-choice"
     name: "Multiple Choice"
     description: "Choose the correct answer from 4 options (A, B, C, D)"
-
-  - id: "free-form"
-    name: "Free Form"
-    description: "Explain concepts in your own words"
-
-  - id: "short-answer"
-    name: "Short Answer"
-    description: "Brief text response (1-3 sentences)"
-
-  - id: "true-false"
-    name: "True/False"
-    description: "Determine if a statement is true or false"
-
-  - id: "fill-blank"
-    name: "Fill in the Blank"
-    description: "Complete the sentence with the missing term"
