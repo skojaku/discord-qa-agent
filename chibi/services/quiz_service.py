@@ -362,7 +362,7 @@ class QuizService:
         return None
 
     def _clean_question(self, text: str) -> str:
-        """Remove answer markers from question text."""
+        """Remove answer markers and prefixes from question text."""
         patterns = [
             r"\[CORRECT:\s*[A-D]\]",
             r"\[CORRECT:\s*(?:True|False)\]",
@@ -371,4 +371,8 @@ class QuizService:
         ]
         for pattern in patterns:
             text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+
+        # Remove "Question:" prefix if LLM added it
+        text = re.sub(r"^Question:\s*", "", text.strip(), flags=re.IGNORECASE)
+
         return text.strip()
