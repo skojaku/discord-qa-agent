@@ -316,6 +316,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.modules")
         await self.load_extension("chibi.cogs.guidance")
         await self.load_extension("chibi.cogs.attendance")
+        await self.load_extension("chibi.cogs.help")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
