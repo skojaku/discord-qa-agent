@@ -33,6 +33,7 @@ from .services import (
     LLMQuizChallengeService,
     QuizService,
     RAGService,
+    SearchAgentService,
     SimilarityService,
 )
 from .tools.registry import ToolRegistry
@@ -82,6 +83,7 @@ class ChibiBot(commands.Bot):
         self.tool_registry: Optional[ToolRegistry] = None
         self.agent_graph: Optional[AgentGraph] = None
         self.context_manager: Optional[ContextManagerAgent] = None
+        self.search_agent: Optional[SearchAgentService] = None
 
     def log_to_conversation(
         self,
@@ -251,6 +253,15 @@ class ChibiBot(commands.Bot):
                 max_conversation_history=self.config.agent.max_conversation_history,
             )
             logger.info("Agent graph initialized")
+
+            # Initialize search agent (requires context_manager and conversation_memory)
+            if self.context_manager and self.agent_graph.conversation_memory:
+                self.search_agent = SearchAgentService(
+                    context_manager=self.context_manager,
+                    llm_manager=self.llm_manager,
+                    conversation_memory=self.agent_graph.conversation_memory,
+                )
+                logger.info("Search agent initialized")
 
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")

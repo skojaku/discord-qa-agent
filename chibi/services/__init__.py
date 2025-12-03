@@ -9,6 +9,7 @@ from .llm_quiz_service import LLMQuizChallengeResult, LLMQuizChallengeService
 from .pending_quiz_manager import PendingQuiz, PendingQuizManager
 from .quiz_service import EvaluationResult, QuizService
 from .rag_service import RAGResult, RAGService
+from .search_agent import SearchAgentService, SearchContextType, SearchResult
 from .similarity_service import SimilarityCheckResult, SimilarityService
 
 __all__ = [
@@ -24,6 +25,9 @@ __all__ = [
     "QuizService",
     "RAGResult",
     "RAGService",
+    "SearchAgentService",
+    "SearchContextType",
+    "SearchResult",
     "SimilarityCheckResult",
     "SimilarityService",
     "TextChunk",

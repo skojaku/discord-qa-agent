@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import discord
 
@@ -129,20 +129,9 @@ class AssistantTool(BaseTool):
                 context=context,
             )
 
-            # Get chunk IDs from recent conversation to avoid retrieving same content
-            exclude_chunk_ids = set()
-            if self.bot.agent_graph and self.bot.agent_graph.conversation_memory:
-                exclude_chunk_ids = self.bot.agent_graph.conversation_memory.get_recent_chunk_ids(
-                    user_id=state.user_id,
-                    channel_id=str(discord_message.channel.id),
-                    max_messages=5,
-                )
-                if exclude_chunk_ids:
-                    logger.debug(f"Excluding {len(exclude_chunk_ids)} previously retrieved chunks")
-
-            # ReAct loop
+            # ReAct loop - SearchAgent handles chunk deduplication automatically
             search_results = []
-            all_chunk_ids = []  # Track all chunk IDs retrieved in this turn
+            all_chunk_ids = []  # Track chunk IDs for conversation memory
             answer = None
             used_rag = False
 
@@ -171,15 +160,25 @@ class AssistantTool(BaseTool):
                     logger.info(f"ReAct tool call: {tool_name}('{query}')")
 
                     if tool_name == "search_course_content":
-                        # Execute search, excluding previously retrieved chunks
-                        search_result, chunk_ids = await self._search_course_content(
-                            query, exclude_chunk_ids=exclude_chunk_ids
-                        )
-                        search_results.append(search_result)
-                        all_chunk_ids.extend(chunk_ids)
-                        # Add newly retrieved chunks to exclude set for next iteration
-                        exclude_chunk_ids.update(chunk_ids)
-                        used_rag = True
+                        # Use SearchAgent for RAG (handles deduplication automatically)
+                        if self.bot.search_agent:
+                            search_result = await self.bot.search_agent.search_for_assistant(
+                                query=query,
+                                user_id=state.user_id,
+                                channel_id=str(discord_message.channel.id),
+                            )
+
+                            # Use synthesized answer if available, else raw context
+                            search_output = search_result.answer or search_result.raw_context
+                            if not search_result.has_relevant_content:
+                                search_output = f"No relevant content found for: {query}"
+
+                            search_results.append(search_output)
+                            all_chunk_ids.extend(search_result.chunk_ids)
+                            used_rag = True
+                        else:
+                            search_output = "Search agent not available."
+                            logger.warning("Search agent not initialized")
 
                         # Add search result to prompt for next iteration
                         prompt = f"""{prompt}
@@ -187,7 +186,7 @@ class AssistantTool(BaseTool):
 Assistant's action: Searched for "{query}"
 
 Search results:
-{search_result}
+{search_output}
 
 Now provide your final answer using <answer>...</answer>"""
                         continue
@@ -291,50 +290,6 @@ Now provide your final answer using <answer>...</answer>"""
             return match.group(1).strip()
 
         return None
-
-    async def _search_course_content(
-        self, query: str, exclude_chunk_ids: Optional[set] = None
-    ) -> Tuple[str, List[str]]:
-        """Search course content using context manager.
-
-        Args:
-            query: Search query
-            exclude_chunk_ids: Optional set of chunk IDs to exclude (already retrieved)
-
-        Returns:
-            Tuple of (search results as formatted string, list of retrieved chunk IDs)
-        """
-        if self.bot.context_manager is None:
-            logger.warning("Context manager not available")
-            return ("No course content available for search.", [])
-
-        try:
-            context_result = await self.bot.context_manager.get_context_for_assistant(
-                question=query,
-                exclude_chunk_ids=exclude_chunk_ids,
-            )
-
-            if not context_result.has_relevant_content:
-                return (f"No relevant content found for: {query}", [])
-
-            # Format results
-            result = context_result.context
-            if context_result.source_names:
-                result += f"\n\n(Sources: {', '.join(context_result.source_names)})"
-
-            # Extract chunk IDs for deduplication
-            chunk_ids = context_result.chunk_ids
-
-            logger.info(
-                f"RAG search returned {context_result.total_chunks} chunks "
-                f"from {len(context_result.source_names)} sources"
-            )
-
-            return (result, chunk_ids)
-
-        except Exception as e:
-            logger.error(f"Search error: {e}", exc_info=True)
-            return (f"Search error: {str(e)}", [])
 
     async def _send_response(self, message: discord.Message, answer: str) -> None:
         """Send response to Discord, handling long messages.

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Optional
 import discord
 
 from ...agent.state import SubAgentState, ToolResult
-from ...agent.context_manager import ContextType
 from ...constants import ERROR_MODULE_NOT_FOUND, ERROR_NO_CONCEPTS, ERROR_QUIZ
 from ...ui.embeds import QuizEmbedBuilder
 from ..base import BaseTool, ToolConfig
@@ -297,18 +296,18 @@ class QuizTool(BaseTool):
                     error=ERROR_NO_CONCEPTS,
                 )
 
-            # Get context from context manager for quiz generation
+            # Get context from search agent for quiz generation
             rag_context = None
-            if self.bot.context_manager:
+            if self.bot.search_agent:
                 try:
-                    context_result = await self.bot.context_manager.get_context_for_quiz(
+                    search_result = await self.bot.search_agent.search_for_quiz(
                         concept=concept_obj,
                         module=module_obj,
                     )
-                    if context_result.has_relevant_content:
-                        rag_context = context_result.context
+                    if search_result.has_relevant_content:
+                        rag_context = search_result.raw_context
                         logger.debug(
-                            f"RAG context retrieved for quiz: {context_result.total_chunks} chunks"
+                            f"RAG context retrieved for quiz: {len(search_result.chunk_ids)} chunks"
                         )
                 except Exception as e:
                     logger.warning(f"Failed to get RAG context for quiz: {e}")

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Optional
 import discord
 
 from ...agent.state import SubAgentState, ToolResult
-from ...agent.context_manager import ContextType
 from ...constants import ERROR_MODULE_NOT_FOUND
 from ..base import BaseTool, ToolConfig
 
@@ -122,18 +121,18 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
 
             # Get RAG context for the user's question
             rag_context = None
-            if self.tool.bot.context_manager:
+            if self.tool.bot.search_agent:
                 try:
                     module_obj = self.tool.bot.course.get_module(self.module_id)
                     if module_obj:
-                        context_result = await self.tool.bot.context_manager.get_context_for_llm_quiz(
+                        search_result = await self.tool.bot.search_agent.search_for_llm_quiz(
                             question=self.question.value,
                             module=module_obj,
                         )
-                        if context_result.has_relevant_content:
-                            rag_context = context_result.context
+                        if search_result.has_relevant_content:
+                            rag_context = search_result.raw_context
                             logger.debug(
-                                f"RAG context retrieved for LLM quiz: {context_result.total_chunks} chunks"
+                                f"RAG context retrieved for LLM quiz: {len(search_result.chunk_ids)} chunks"
                             )
                 except Exception as e:
                     logger.warning(f"Failed to get RAG context for LLM quiz: {e}")
