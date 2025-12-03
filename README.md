@@ -101,6 +101,38 @@ ollama pull llama3.2
 python main.py
 ```
 
+## Testing
+
+Run the test suite using pytest:
+
+```bash
+# Run all tests
+uv run pytest tests/
+
+# Run with verbose output
+uv run pytest tests/ -v
+
+# Run a specific test file
+uv run pytest tests/scenarios/test_quiz_scenarios.py -v
+
+# Run a specific test class
+uv run pytest tests/scenarios/test_quiz_scenarios.py::TestQuizEvaluationScenarios -v
+
+# Run a specific test
+uv run pytest tests/scenarios/test_quiz_scenarios.py::TestQuizEvaluationScenarios::test_scenario_student_gives_correct_answer -v
+
+# Run with coverage report
+uv run pytest tests/ --cov=chibi --cov-report=term-missing
+```
+
+The test suite includes scenario-based tests for:
+- Quiz generation and evaluation
+- Mastery progression system
+- LLM Quiz Challenge feature
+- Admin commands
+- Agent intent classification and routing
+- Status display
+
 ## Configuration
 
 ### config.yaml
