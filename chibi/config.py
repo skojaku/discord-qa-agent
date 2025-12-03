@@ -211,6 +211,14 @@ def load_config(config_path: str = "config.yaml") -> Config:
     attendance_channel_id_str = os.getenv("ATTENDANCE_CHANNEL_ID", "")
     attendance_channel_id = int(attendance_channel_id_str) if attendance_channel_id_str else None
 
+    # Load NL routing channels from environment variable (comma-separated)
+    nl_routing_channels_str = os.getenv("NL_ROUTING_CHANNELS", "")
+    nl_routing_channels = []
+    if nl_routing_channels_str:
+        nl_routing_channels = [
+            int(ch.strip()) for ch in nl_routing_channels_str.split(",") if ch.strip()
+        ]
+
     config = Config(
         discord=DiscordConfig(
             sync_commands_on_startup=discord_data.get("sync_commands_on_startup", True),
@@ -250,7 +258,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
             chromadb_path=similarity_data.get("chromadb_path", "data/chromadb"),
         ),
         agent=AgentConfig(
-            nl_routing_channels=agent_data.get("nl_routing_channels", []),
+            nl_routing_channels=nl_routing_channels,
             intent_confidence_threshold=agent_data.get("intent_confidence_threshold", 0.7),
             max_conversation_history=agent_data.get("max_conversation_history", 20),
             enabled=agent_data.get("enabled", True),

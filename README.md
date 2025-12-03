@@ -112,6 +112,7 @@ DISCORD_TOKEN=your_discord_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key  # Optional, for fallback
 ADMIN_CHANNEL_ID=your_admin_channel_id      # Optional, restricts admin commands
 ATTENDANCE_CHANNEL_ID=your_attendance_channel_id  # Optional, for /here command
+NL_ROUTING_CHANNELS=channel_id1,channel_id2  # Optional, auto-response channels
 ```
 
 ### 3. Configure the Bot
@@ -214,12 +215,6 @@ similarity:
   similarity_threshold: 0.85  # Questions above this similarity are rejected
   embedding_model: "nomic-embed-text"
 
-# Agent settings (natural language routing)
-agent:
-  enabled: true
-  nl_routing_channels: []     # Channel IDs where bot responds without @mention
-  # Example: nl_routing_channels: [123456789, 987654321]
-
 # Attendance tracking settings
 attendance:
   code_rotation_interval: 15  # Seconds between code changes
@@ -251,18 +246,15 @@ The bot now has access to see and respond in the channel.
 To make the bot respond to all messages in a channel (without requiring @mentions):
 
 1. Copy the channel ID (see "Getting Channel IDs" above)
-2. Add the ID to `config.yaml` under `agent.nl_routing_channels`:
+2. Add the ID to `.env` as `NL_ROUTING_CHANNELS`:
 
-```yaml
-agent:
-  enabled: true
-  nl_routing_channels: [123456789012345678]  # Your channel ID
+```
+NL_ROUTING_CHANNELS=123456789012345678
 ```
 
-You can add multiple channels:
-```yaml
-agent:
-  nl_routing_channels: [123456789, 987654321, 456789123]
+For multiple channels, separate with commas:
+```
+NL_ROUTING_CHANNELS=123456789,987654321,456789123
 ```
 
 This is useful for dedicated Q&A channels where students can ask questions freely.
