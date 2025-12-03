@@ -76,3 +76,12 @@ agent:
   intent_confidence_threshold: 0.7
   # Maximum conversation history to retain per user/channel
   max_conversation_history: 20
+
+# Contextual Retrieval settings (for improved RAG)
+# Uses LLM to generate context summaries for each chunk before embedding
+contextual_retrieval:
+  enabled: true  # Enable contextual retrieval for better chunk context
+  max_context_tokens: 100  # Max tokens for context summary
+  batch_size: 5  # Chunks to process concurrently
+  batch_delay_seconds: 0.5  # Delay between batches (rate limiting)
+  temperature: 0.3  # LLM temperature for context generation

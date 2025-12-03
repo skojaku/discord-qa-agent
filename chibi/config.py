@@ -120,6 +120,17 @@ class AttendanceConfig:
 
 
 @dataclass
+class ContextualRetrievalConfig:
+    """Configuration for contextual retrieval (improved RAG)."""
+
+    enabled: bool = True  # Enabled by default for better retrieval quality
+    max_context_tokens: int = 100  # Max tokens for context summary
+    batch_size: int = 5  # Chunks to process concurrently
+    batch_delay_seconds: float = 0.5  # Delay between batches (rate limiting)
+    temperature: float = 0.3  # LLM temperature for context generation
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -132,6 +143,7 @@ class Config:
     similarity: SimilarityConfig
     agent: AgentConfig
     attendance: AttendanceConfig
+    contextual_retrieval: ContextualRetrievalConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -186,6 +198,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     similarity_data = data.get("similarity", {})
     agent_data = data.get("agent", {})
     attendance_data = data.get("attendance", {})
+    contextual_retrieval_data = data.get("contextual_retrieval", {})
 
     # Load admin channel ID from environment variable
     admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
@@ -243,6 +256,13 @@ def load_config(config_path: str = "config.yaml") -> Config:
             attendance_channel_id=attendance_channel_id,
             code_rotation_interval=attendance_data.get("code_rotation_interval", 15),
             code_length=attendance_data.get("code_length", 4),
+        ),
+        contextual_retrieval=ContextualRetrievalConfig(
+            enabled=contextual_retrieval_data.get("enabled", True),
+            max_context_tokens=contextual_retrieval_data.get("max_context_tokens", 100),
+            batch_size=contextual_retrieval_data.get("batch_size", 5),
+            batch_delay_seconds=contextual_retrieval_data.get("batch_delay_seconds", 0.5),
+            temperature=contextual_retrieval_data.get("temperature", 0.3),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

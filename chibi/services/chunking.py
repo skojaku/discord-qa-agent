@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -15,11 +15,28 @@ class TextChunk:
     source_name: str  # Module name or document name
     start_char: int
     end_char: int
+    context: Optional[str] = None  # Contextual summary for improved retrieval
 
     @property
     def chunk_id(self) -> str:
         """Generate a unique ID for this chunk."""
         return f"{self.source_id}_chunk_{self.chunk_index}"
+
+    @property
+    def contextualized_text(self) -> str:
+        """Get text with context prepended for embedding.
+
+        Returns:
+            Contextualized text if context exists, otherwise original text
+        """
+        if self.context:
+            return f"{self.context}\n\n{self.text}"
+        return self.text
+
+    @property
+    def display_text(self) -> str:
+        """Get text for display to users (original without context)."""
+        return self.text
 
 
 class TextChunker:

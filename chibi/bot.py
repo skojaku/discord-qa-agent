@@ -28,6 +28,8 @@ from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
 from .services import (
     ContentIndexer,
+    ContextualChunkingService,
+    ContextualChunkConfig,
     EmbeddingService,
     GradeService,
     GuidanceService,
@@ -213,11 +215,30 @@ class ChibiBot(commands.Bot):
             min_similarity=0.3,
             max_context_length=4000,
         )
+
+        # Initialize contextual chunking service if enabled
+        contextual_service = None
+        if self.config.contextual_retrieval.enabled:
+            contextual_config = ContextualChunkConfig(
+                enabled=True,
+                max_context_tokens=self.config.contextual_retrieval.max_context_tokens,
+                batch_size=self.config.contextual_retrieval.batch_size,
+                batch_delay_seconds=self.config.contextual_retrieval.batch_delay_seconds,
+                temperature=self.config.contextual_retrieval.temperature,
+            )
+            contextual_service = ContextualChunkingService(
+                llm_manager=self.llm_manager,
+                config=contextual_config,
+            )
+            logger.info("Contextual chunking service initialized")
+
         self.content_indexer = ContentIndexer(
             embedding_service=self.embedding_service,
             rag_repo=self.rag_repo,
             chunk_size=500,
             chunk_overlap=100,
+            contextual_chunking_service=contextual_service,
+            use_contextual_retrieval=self.config.contextual_retrieval.enabled,
         )
         logger.info("Services initialized")
 

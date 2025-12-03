@@ -9,6 +9,7 @@ from .chunking import TextChunk, TextChunker
 if TYPE_CHECKING:
     from ..content.course import Course, Module
     from ..database.repositories.rag_repository import RAGRepository
+    from .contextual_chunking_service import ContextualChunkingService
     from .embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,8 @@ class ContentIndexer:
         chunk_size: int = 500,
         chunk_overlap: int = 100,
         batch_size: int = 10,
+        contextual_chunking_service: Optional["ContextualChunkingService"] = None,
+        use_contextual_retrieval: bool = False,
     ):
         """Initialize the content indexer.
 
@@ -37,6 +40,8 @@ class ContentIndexer:
             chunk_size: Target size for each chunk in characters
             chunk_overlap: Number of characters to overlap between chunks
             batch_size: Number of chunks to process in each batch
+            contextual_chunking_service: Optional service for contextual chunking
+            use_contextual_retrieval: Whether to use contextual retrieval
         """
         self.embedding_service = embedding_service
         self.rag_repo = rag_repo
@@ -45,6 +50,8 @@ class ContentIndexer:
             chunk_overlap=chunk_overlap,
         )
         self.batch_size = batch_size
+        self.contextual_service = contextual_chunking_service
+        self.use_contextual_retrieval = use_contextual_retrieval
 
     async def index_course(
         self,
@@ -149,6 +156,17 @@ class ContentIndexer:
                 logger.debug(f"No chunks generated for {source_id}")
                 continue
 
+            # Add contextual information if enabled
+            if self.use_contextual_retrieval and self.contextual_service:
+                logger.info(
+                    f"Generating context for {len(chunks)} chunks in {source_id}"
+                )
+                chunks = await self.contextual_service.contextualize_chunks(
+                    chunks=chunks,
+                    document_text=full_content,
+                    document_title=source_name,
+                )
+
             # Generate embeddings and store in batches
             for i in range(0, len(chunks), self.batch_size):
                 batch = chunks[i : i + self.batch_size]
@@ -233,20 +251,28 @@ class ContentIndexer:
         metadatas = []
 
         for chunk in chunks:
+            # Use contextualized text for embedding if contextual retrieval is enabled
+            text_for_embedding = (
+                chunk.contextualized_text
+                if self.use_contextual_retrieval
+                else chunk.text
+            )
+
             # Generate embedding
-            embedding = await self.embedding_service.get_embedding(chunk.text)
+            embedding = await self.embedding_service.get_embedding(text_for_embedding)
             if embedding is None:
                 logger.warning(f"Failed to generate embedding for chunk {chunk.chunk_id}")
                 continue
 
             chunk_ids.append(chunk.chunk_id)
-            texts.append(chunk.text)
+            texts.append(chunk.text)  # Store original text for display
             embeddings.append(embedding)
             metadatas.append(
                 {
                     "source_id": chunk.source_id,
                     "source_name": chunk.source_name,
                     "chunk_index": chunk.chunk_index,
+                    "context": chunk.context or "",  # Store context in metadata
                 }
             )
 

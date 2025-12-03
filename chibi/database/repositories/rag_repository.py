@@ -19,14 +19,22 @@ class RetrievedChunk:
     """Represents a retrieved content chunk."""
 
     chunk_id: str
-    text: str
+    text: str  # Original text for display
     source_id: str  # Module ID
     source_name: str  # Module name
     chunk_index: int
     similarity_score: float
+    context: str = ""  # Contextual summary (from contextual retrieval)
 
     def __str__(self) -> str:
         return f"[{self.source_name}] {self.text}"
+
+    @property
+    def contextualized_text(self) -> str:
+        """Get text with context prepended."""
+        if self.context:
+            return f"{self.context}\n\n{self.text}"
+        return self.text
 
 
 class RAGRepository:
@@ -192,6 +200,7 @@ class RAGRepository:
                         source_name=metadata.get("source_name", ""),
                         chunk_index=metadata.get("chunk_index", 0),
                         similarity_score=similarity,
+                        context=metadata.get("context", ""),
                     )
                 )
 
