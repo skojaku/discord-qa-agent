@@ -10,7 +10,7 @@ llm:
   primary:
     provider: "ollama"
     base_url: "http://localhost:11434"
-    model: "glm-4.6:cloud"
+    model: "ministral-3:14b-cloud"
     timeout: 60
     max_retries: 2
 
