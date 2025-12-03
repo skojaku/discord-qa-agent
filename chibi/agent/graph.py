@@ -52,7 +52,14 @@ WHEN NOT TO USE TOOLS:
 - Simple thanks or farewells
 - Questions about yourself (what's your name, who are you)
 
+TYPO TOLERANCE:
+- Users may have typos in their messages - be forgiving and interpret their intent
+- "quzi" → quiz, "statsu" → status, "challange" → challenge, "serach" → search
+- If a message looks like a question about course content (even with typos), use search_course_content
+- When in doubt about intent, default to search_course_content rather than asking for clarification
+
 CRITICAL: When a user's intent matches a tool, ALWAYS invoke the tool. Do NOT have a conversation about it.
+DEFAULT: When unclear but seems like a course-related question, use <tool>search_course_content</tool>
 - User: "let's do llm quiz" → Use <tool>llm_quiz</tool>
 - User: "quiz me" → Use <tool>quiz</tool>
 - User: "show my status" → Use <tool>status</tool>
@@ -217,9 +224,24 @@ class MainAgent:
         # Parse for final answer
         final_answer = self._parse_answer(llm_output)
 
-        # If no tool call and no answer tag, treat whole response as answer
+        # If no tool call and no answer tag, check if we should fallback to search
         if not tool_call and not final_answer:
-            final_answer = llm_output
+            # Check if this looks like a question about course content
+            user_message_lower = user_message.lower()
+            question_indicators = ['?', 'what', 'how', 'why', 'when', 'where', 'who', 'explain', 'tell me', 'describe']
+            looks_like_question = any(ind in user_message_lower for ind in question_indicators)
+
+            # If it looks like a question and we haven't tried search yet, fallback to search
+            if looks_like_question and iteration == 0 and len(user_message) > 5:
+                logger.info(f"Fallback to search for unclear question: {user_message[:50]}")
+                tool_call = {
+                    "name": "search_course_content",
+                    "query": user_message,
+                    "params": {},
+                }
+            else:
+                # Otherwise treat the LLM output as the answer
+                final_answer = llm_output
 
         return {
             "pending_tool_call": tool_call,
@@ -335,7 +357,7 @@ class MainAgent:
                 return {"response_sent": True}
 
         if not final_response:
-            final_response = "I'm not sure how to help with that. Could you rephrase your question?"
+            final_response = "I'm not sure how to help with that. Could you try rephrasing, or ask me to 'quiz', 'status', or 'search' for something specific?"
 
         # Clean up response
         final_response = self._clean_response(final_response)
