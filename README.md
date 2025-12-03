@@ -261,23 +261,99 @@ This is useful for dedicated Q&A channels where students can ask questions freel
 
 ### course.yaml
 
-Define your course modules and concepts:
+The `course.yaml` file defines your course structure, modules, and concepts. This is the core configuration that determines what the bot can teach and quiz students on.
+
+#### Generating course.yaml with AI
+
+We provide a prompt template to help you generate `course.yaml` using Google Gemini or other LLMs:
+
+1. Open the prompt file: [`prompts/generate_course_yaml.md`](prompts/generate_course_yaml.md)
+2. Copy the prompt and paste it into Gemini (or your preferred LLM)
+3. Answer the questions the AI asks about your course
+4. Review and adjust the generated YAML as needed
+
+#### Manual Configuration
+
+Here's the complete structure with all available fields:
 
 ```yaml
+# Course Configuration for Chibi Bot
 course:
-  name: "My Course"
-  code: "CS101"
+  name: "My Course"           # Full course name (required)
+  code: "CS101"               # Course code (required)
+  description: "Course desc"  # Brief description (optional)
 
 modules:
-  - id: "m01"
-    name: "Introduction"
-    content_url: "https://example.com/module1.txt"
+  - id: "m01"                 # Unique module ID (required)
+    name: "Introduction"      # Display name (required)
+    description: "Module description"  # What this module covers (optional)
+    content_urls:             # URLs to course content for RAG (required)
+      - "https://example.com/module1.md"
+      - "https://example.com/module1-exercises.md"
     concepts:
-      - id: "concept-1"
-        name: "Basic Concept"
-        description: "Description of the concept"
-        quiz_focus: "What to focus on for quizzes"
+      - id: "concept-1"       # Unique concept ID, lowercase with hyphens (required)
+        name: "Basic Concept" # Display name (required)
+        type: "theory"        # "theory" or "practical" (default: "theory")
+        difficulty: 2         # 1 (easy) to 5 (hard) (default: 1)
+        description: "Full description of the concept"  # (required)
+        quiz_focus: "Key aspects to test in quizzes"    # (required)
+        prerequisites:        # Concept IDs that should be learned first (optional)
+          - "other-concept"
+
+quiz_formats:
+  - id: "multiple-choice"
+    name: "Multiple Choice"
+    description: "Choose the correct answer from 4 options (A, B, C, D)"
+  - id: "free-form"
+    name: "Free Form"
+    description: "Explain concepts in your own words"
+  - id: "short-answer"
+    name: "Short Answer"
+    description: "Brief text response (1-3 sentences)"
+  - id: "true-false"
+    name: "True/False"
+    description: "Determine if a statement is true or false"
+  - id: "fill-blank"
+    name: "Fill in the Blank"
+    description: "Complete the sentence with the missing term"
 ```
+
+#### Field Reference
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `course.name` | Yes | Full course name |
+| `course.code` | Yes | Course code (e.g., "CS101") |
+| `course.description` | No | Brief course description |
+| `modules[].id` | Yes | Unique identifier (e.g., "m01", "m02") |
+| `modules[].name` | Yes | Display name for the module |
+| `modules[].description` | No | What the module covers |
+| `modules[].content_urls` | Yes | List of URLs to content for RAG |
+| `modules[].concepts` | Yes | List of concepts (at least 1) |
+| `concepts[].id` | Yes | Unique ID across all modules |
+| `concepts[].name` | Yes | Display name |
+| `concepts[].type` | No | "theory" or "practical" (default: "theory") |
+| `concepts[].difficulty` | No | 1-5 scale (default: 1) |
+| `concepts[].description` | Yes | Full concept description |
+| `concepts[].quiz_focus` | Yes | What quizzes should test |
+| `concepts[].prerequisites` | No | List of prerequisite concept IDs |
+
+#### Content URL Best Practices
+
+- Use **raw file URLs** (e.g., `https://raw.githubusercontent.com/...`)
+- Prefer **markdown or plain text** formats
+- Ensure URLs are **publicly accessible**
+- Each module can have **multiple content URLs**
+
+#### Difficulty Guidelines
+
+| Level | Description | Example |
+|-------|-------------|---------|
+| 1 | Basic definitions and recall | "What is a variable?" |
+| 2 | Simple applications | "Declare an integer variable" |
+| 3 | Intermediate analysis | "Compare arrays vs linked lists" |
+| 4 | Complex synthesis | "Design a cache eviction policy" |
+| 5 | Advanced/research-level | "Analyze algorithm complexity" |
 
 ## Project Structure
 
