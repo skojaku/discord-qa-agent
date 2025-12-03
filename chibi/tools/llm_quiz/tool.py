@@ -313,7 +313,9 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
         attempt_id: int,
         result,
     ) -> None:
-        """Send a review notification to the admin channel."""
+        """Send a review notification to the admin channel with interactive dropdown."""
+        from ...ui.views.admin_review import AdminReviewView
+
         admin_channel_id = self.tool.bot.config.admin_channel_id
         if not admin_channel_id:
             logger.debug("No admin channel configured, skipping review notification")
@@ -329,7 +331,13 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
             embed = discord.Embed(
                 title="🎯 LLM Quiz Review Request",
                 description=f"**{self.user_name}** stumped the AI and needs review!",
-                color=discord.Color.orange(),
+                color=discord.Color.gold(),
+            )
+
+            embed.add_field(
+                name="Student",
+                value=f"**{self.user_name}** (<@{self.user_id}>)",
+                inline=True,
             )
 
             embed.add_field(
@@ -340,7 +348,7 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
 
             embed.add_field(
                 name="Attempt ID",
-                value=f"`{attempt_id}`",
+                value=f"`#{attempt_id}`",
                 inline=True,
             )
 
@@ -349,7 +357,7 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
             if len(question_display) > 500:
                 question_display = question_display[:497] + "..."
             embed.add_field(
-                name="Student's Question",
+                name="Question",
                 value=question_display,
                 inline=False,
             )
@@ -374,21 +382,124 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                 inline=False,
             )
 
-            embed.add_field(
-                name="AI Evaluation",
-                value=result.evaluation_summary or "No summary",
-                inline=False,
-            )
+            if result.evaluation_summary:
+                eval_display = result.evaluation_summary
+                if len(eval_display) > 300:
+                    eval_display = eval_display[:297] + "..."
+                embed.add_field(
+                    name="Evaluation Summary",
+                    value=eval_display,
+                    inline=False,
+                )
 
-            embed.set_footer(
-                text=f"Use !review {attempt_id} approve/reject to review"
-            )
+            embed.set_footer(text="Select a review decision from the dropdown below")
 
-            await admin_channel.send(embed=embed)
+            # Create the review view with callback
+            async def on_review(attempt_id: int, decision: str, inter: discord.Interaction):
+                await self._handle_review_decision(attempt_id, decision, inter)
+
+            view = AdminReviewView(attempt_id, on_review)
+
+            await admin_channel.send(embed=embed, view=view)
             logger.info(f"Review notification sent for attempt {attempt_id}")
 
         except Exception as e:
             logger.error(f"Failed to send admin notification: {e}", exc_info=True)
+
+    async def _handle_review_decision(
+        self,
+        attempt_id: int,
+        decision: str,
+        interaction: discord.Interaction,
+    ) -> None:
+        """Handle admin review decision."""
+        from ...database.models import ReviewStatus
+
+        try:
+            # Update the attempt in database
+            await self.tool.bot.llm_quiz_repo.update_review_status(
+                attempt_id=attempt_id,
+                review_status=decision,
+                reviewed_by=str(interaction.user.id),
+            )
+
+            # Get status display
+            status_emoji = {
+                ReviewStatus.APPROVED: "✅",
+                ReviewStatus.APPROVED_WITH_BONUS: "🌟",
+                ReviewStatus.REJECTED_CONTENT_MISMATCH: "❌",
+                ReviewStatus.REJECTED_HEAVY_MATH: "🔢",
+                ReviewStatus.REJECTED_DEADLINE_PASSED: "⏰",
+            }
+
+            emoji = status_emoji.get(decision, "✅")
+            await interaction.response.send_message(
+                f"{emoji} Review submitted: **{decision}** for attempt #{attempt_id}",
+                ephemeral=True,
+            )
+
+            # Update the original message to show it's been reviewed
+            try:
+                original_embed = interaction.message.embeds[0]
+                original_embed.color = discord.Color.green() if "approved" in decision.lower() else discord.Color.red()
+                original_embed.set_footer(text=f"Reviewed by {interaction.user.display_name}: {decision}")
+
+                # Disable the view
+                view = discord.ui.View()
+                await interaction.message.edit(embed=original_embed, view=view)
+            except Exception as e:
+                logger.warning(f"Could not update review message: {e}")
+
+            # Notify the student via DM if they won and it was approved
+            if decision in [ReviewStatus.APPROVED, ReviewStatus.APPROVED_WITH_BONUS]:
+                await self._notify_student_approval(attempt_id, decision)
+
+            logger.info(f"Admin {interaction.user} reviewed attempt {attempt_id}: {decision}")
+
+        except Exception as e:
+            logger.error(f"Error handling review decision: {e}", exc_info=True)
+            await interaction.response.send_message(
+                f"❌ Error processing review: {str(e)}",
+                ephemeral=True,
+            )
+
+    async def _notify_student_approval(self, attempt_id: int, decision: str) -> None:
+        """Notify student that their submission was approved."""
+        from ...database.models import ReviewStatus
+
+        try:
+            # Get the attempt to find the student
+            attempt = await self.tool.bot.llm_quiz_repo.get_by_id(attempt_id)
+            if not attempt or not attempt.discord_user_id:
+                return
+
+            user = self.tool.bot.get_user(int(attempt.discord_user_id))
+            if not user:
+                user = await self.tool.bot.fetch_user(int(attempt.discord_user_id))
+
+            if not user:
+                logger.warning(f"Could not find user {attempt.discord_user_id} to notify")
+                return
+
+            # Build notification message
+            if decision == ReviewStatus.APPROVED_WITH_BONUS:
+                message = (
+                    f"🌟 **Great news!** Your LLM Quiz submission has been approved with bonus points!\n\n"
+                    f"Your question successfully stumped the AI and was particularly impressive."
+                )
+            else:
+                message = (
+                    f"✅ **Your LLM Quiz submission has been approved!**\n\n"
+                    f"Your question successfully stumped the AI."
+                )
+
+            await user.send(message)
+            logger.info(f"Sent approval notification to user {attempt.discord_user_id}")
+
+        except discord.Forbidden:
+            logger.warning(f"Cannot DM user {attempt.discord_user_id} - DMs disabled")
+        except Exception as e:
+            logger.error(f"Error notifying student: {e}", exc_info=True)
 
 
 class LLMQuizTool(BaseTool):
