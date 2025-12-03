@@ -227,6 +227,18 @@ attendance:
    - `ADMIN_CHANNEL_ID` - Channel for admin commands (hidden from students)
    - `ATTENDANCE_CHANNEL_ID` - Channel where students submit attendance with `/here`
 
+#### Adding the Bot to Private Channels
+
+If your admin channel is private, you need to explicitly grant the bot access:
+
+1. Right-click the channel and select **Edit Channel**
+2. Go to **Permissions**
+3. Click **Add members or roles**
+4. Search for and select your bot
+5. Save changes
+
+The bot now has access to see and respond in the channel.
+
 ### course.yaml
 
 Define your course modules and concepts:
