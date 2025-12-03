@@ -109,3 +109,12 @@ class QuizRepository(BaseRepository):
         )
         row = await cursor.fetchone()
         return row["correct"] if row else 0
+
+    async def get_user_attempts(
+        self, user_id: int, limit: int = 10
+    ) -> List[QuizAttempt]:
+        """Get quiz attempts for a user.
+
+        Alias for get_recent() for compatibility.
+        """
+        return await self.get_recent(user_id, limit)

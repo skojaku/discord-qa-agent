@@ -47,8 +47,12 @@ class MockLLMProvider:
         self._is_available_value = available
 
     def set_response(self, response: str) -> None:
-        """Set a fixed response for all calls."""
+        """Set a fixed response for all calls.
+
+        This clears any response generator to ensure the set response is used.
+        """
         self._default_response = response
+        self._response_generator = None  # Clear generator so default is used
 
     def queue_response(self, response: str) -> None:
         """Queue a response to be returned on the next call."""

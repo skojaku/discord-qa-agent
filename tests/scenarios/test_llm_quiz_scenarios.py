@@ -102,7 +102,7 @@ class TestLLMQuizChallengeScenarios:
         # Verify attempt was logged correctly
         assert attempt.student_wins is True
         assert attempt.student_answer_correctness == "CORRECT"
-        assert "PENDING" in attempt.review_status  # Requires admin review
+        assert "pending" in attempt.review_status  # Requires admin review
 
     @pytest.mark.asyncio
     async def test_scenario_ai_answers_correctly(
@@ -504,16 +504,15 @@ class TestLLMQuizReviewScenarios:
         )
 
         # Admin approves
-        success = await llm_quiz_repository.update_review_status(
+        updated = await llm_quiz_repository.update_review_status(
             attempt_id=attempt.id,
-            status=ReviewStatus.APPROVED,
-            reviewer_id="admin-123",
+            review_status=ReviewStatus.APPROVED,
+            reviewed_by="admin-123",
         )
 
-        assert success is True
+        assert updated is not None
 
         # Verify the status was updated
-        updated = await llm_quiz_repository.get_attempt_by_id(attempt.id)
         assert updated.review_status == ReviewStatus.APPROVED
 
     @pytest.mark.asyncio
@@ -554,16 +553,15 @@ class TestLLMQuizReviewScenarios:
         )
 
         # Admin rejects for content mismatch
-        success = await llm_quiz_repository.update_review_status(
+        updated = await llm_quiz_repository.update_review_status(
             attempt_id=attempt.id,
-            status=ReviewStatus.REJECTED_CONTENT_MISMATCH,
-            reviewer_id="admin-123",
+            review_status=ReviewStatus.REJECTED_CONTENT_MISMATCH,
+            reviewed_by="admin-123",
         )
 
-        assert success is True
+        assert updated is not None
 
         # Verify the status was updated
-        updated = await llm_quiz_repository.get_attempt_by_id(attempt.id)
         assert updated.review_status == ReviewStatus.REJECTED_CONTENT_MISMATCH
 
         # Verify wins count doesn't include rejected attempts

@@ -44,24 +44,27 @@ class MasteryRepository(BaseRepository):
         avg_quality_score: float,
         mastery_level: str,
     ) -> None:
-        """Update concept mastery record."""
+        """Update or insert concept mastery record."""
         conn = self.connection
         await conn.execute(
-            """UPDATE concept_mastery
-               SET total_attempts = ?,
-                   correct_attempts = ?,
-                   avg_quality_score = ?,
-                   mastery_level = ?,
+            """INSERT INTO concept_mastery
+               (user_id, concept_id, total_attempts, correct_attempts,
+                avg_quality_score, mastery_level, last_attempt_at)
+               VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT(user_id, concept_id) DO UPDATE SET
+                   total_attempts = excluded.total_attempts,
+                   correct_attempts = excluded.correct_attempts,
+                   avg_quality_score = excluded.avg_quality_score,
+                   mastery_level = excluded.mastery_level,
                    last_attempt_at = CURRENT_TIMESTAMP,
-                   updated_at = CURRENT_TIMESTAMP
-               WHERE user_id = ? AND concept_id = ?""",
+                   updated_at = CURRENT_TIMESTAMP""",
             (
+                user_id,
+                concept_id,
                 total_attempts,
                 correct_attempts,
                 avg_quality_score,
                 mastery_level,
-                user_id,
-                concept_id,
             ),
         )
         await conn.commit()
