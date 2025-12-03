@@ -146,13 +146,15 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                 rag_context=rag_context,
             )
 
-            # Log the attempt
+            # Log the attempt (requires review if student wins)
             attempt = await self.tool.bot.llm_quiz_service.log_attempt(
                 user_id=user.id,
                 module_id=self.module_id,
                 question=self.question.value,
                 student_answer=self.answer.value,
                 result=result,
+                discord_user_id=self.user_id,
+                requires_review=result.student_wins,  # Only require review for wins
             )
 
             # Only add question to similarity database if student won
@@ -163,6 +165,13 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                     question_text=self.question.value,
                     module_id=self.module_id,
                     user_id=user.id,
+                )
+
+                # Send notification to admin channel
+                await self._notify_admin_channel(
+                    interaction=interaction,
+                    attempt_id=attempt.id,
+                    result=result,
                 )
 
             # Get updated progress
@@ -297,6 +306,89 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
         filled = min(current, target)
         empty = target - filled
         return "[X]" * filled + "[ ]" * empty
+
+    async def _notify_admin_channel(
+        self,
+        interaction: discord.Interaction,
+        attempt_id: int,
+        result,
+    ) -> None:
+        """Send a review notification to the admin channel."""
+        admin_channel_id = self.tool.bot.config.admin_channel_id
+        if not admin_channel_id:
+            logger.debug("No admin channel configured, skipping review notification")
+            return
+
+        try:
+            admin_channel = self.tool.bot.get_channel(int(admin_channel_id))
+            if not admin_channel:
+                logger.warning(f"Admin channel {admin_channel_id} not found")
+                return
+
+            # Build review embed
+            embed = discord.Embed(
+                title="🎯 LLM Quiz Review Request",
+                description=f"**{self.user_name}** stumped the AI and needs review!",
+                color=discord.Color.orange(),
+            )
+
+            embed.add_field(
+                name="Module",
+                value=self.module_name,
+                inline=True,
+            )
+
+            embed.add_field(
+                name="Attempt ID",
+                value=f"`{attempt_id}`",
+                inline=True,
+            )
+
+            # Student's question
+            question_display = self.question.value
+            if len(question_display) > 500:
+                question_display = question_display[:497] + "..."
+            embed.add_field(
+                name="Student's Question",
+                value=question_display,
+                inline=False,
+            )
+
+            # Student's answer
+            answer_display = self.answer.value
+            if len(answer_display) > 300:
+                answer_display = answer_display[:297] + "..."
+            embed.add_field(
+                name="Student's Answer",
+                value=answer_display,
+                inline=False,
+            )
+
+            # AI's answer
+            llm_answer = result.llm_answer_summary or result.llm_answer
+            if len(llm_answer) > 300:
+                llm_answer = llm_answer[:297] + "..."
+            embed.add_field(
+                name="AI's Answer",
+                value=llm_answer,
+                inline=False,
+            )
+
+            embed.add_field(
+                name="AI Evaluation",
+                value=result.evaluation_summary or "No summary",
+                inline=False,
+            )
+
+            embed.set_footer(
+                text=f"Use !review {attempt_id} approve/reject to review"
+            )
+
+            await admin_channel.send(embed=embed)
+            logger.info(f"Review notification sent for attempt {attempt_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send admin notification: {e}", exc_info=True)
 
 
 class LLMQuizTool(BaseTool):
