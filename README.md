@@ -8,6 +8,7 @@ Chibi is an AI-powered Discord bot that helps students learn course material thr
 Students can interact with Chibi naturally by:
 - **@mentioning** the bot in any channel
 - **Direct messaging** the bot
+- **Sending messages in configured auto-response channels** (no mention needed)
 - Asking questions like "quiz me on module 1" or "how does network centrality work?"
 
 The bot uses a ReAct (Reasoning + Acting) framework to intelligently decide when to search course content.
@@ -213,6 +214,12 @@ similarity:
   similarity_threshold: 0.85  # Questions above this similarity are rejected
   embedding_model: "nomic-embed-text"
 
+# Agent settings (natural language routing)
+agent:
+  enabled: true
+  nl_routing_channels: []     # Channel IDs where bot responds without @mention
+  # Example: nl_routing_channels: [123456789, 987654321]
+
 # Attendance tracking settings
 attendance:
   code_rotation_interval: 15  # Seconds between code changes
@@ -238,6 +245,27 @@ If your admin channel is private, you need to explicitly grant the bot access:
 5. Save changes
 
 The bot now has access to see and respond in the channel.
+
+#### Setting Up Auto-Response Channels
+
+To make the bot respond to all messages in a channel (without requiring @mentions):
+
+1. Copy the channel ID (see "Getting Channel IDs" above)
+2. Add the ID to `config.yaml` under `agent.nl_routing_channels`:
+
+```yaml
+agent:
+  enabled: true
+  nl_routing_channels: [123456789012345678]  # Your channel ID
+```
+
+You can add multiple channels:
+```yaml
+agent:
+  nl_routing_channels: [123456789, 987654321, 456789123]
+```
+
+This is useful for dedicated Q&A channels where students can ask questions freely.
 
 ### course.yaml
 
