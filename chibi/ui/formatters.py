@@ -4,39 +4,30 @@ from ..constants import MASTERY_EMOJI, PROGRESS_BAR_LENGTH
 
 
 def create_progress_bar(
-    mastered: int,
-    proficient: int,
-    learning: int,
-    novice: int,
+    passed: int,
+    required: int,
 ) -> str:
-    """Create a visual progress bar showing mastery distribution.
+    """Create a visual progress bar showing passed quizzes vs required.
 
     Args:
-        mastered: Count of mastered concepts
-        proficient: Count of proficient concepts
-        learning: Count of learning concepts
-        novice: Count of novice concepts
+        passed: Number of correct quiz answers (will be capped at required)
+        required: Total number of correct answers needed
 
     Returns:
-        ASCII progress bar string like "[████▓▓▒▒░░░░░░░░░░░░]"
+        ASCII progress bar string like "[████████░░░░░░░░░░░░] 8/20"
     """
-    total = mastered + proficient + learning + novice
-    if total == 0:
+    if required == 0:
         return "[ No data yet ]"
 
-    m_len = int(mastered / total * PROGRESS_BAR_LENGTH)
-    p_len = int(proficient / total * PROGRESS_BAR_LENGTH)
-    l_len = int(learning / total * PROGRESS_BAR_LENGTH)
-    n_len = PROGRESS_BAR_LENGTH - m_len - p_len - l_len
+    # Cap passed at required
+    capped_passed = min(passed, required)
 
-    return (
-        "["
-        + "█" * m_len
-        + "▓" * p_len
-        + "▒" * l_len
-        + "░" * n_len
-        + "]"
-    )
+    # Calculate filled length
+    filled_len = int(capped_passed / required * PROGRESS_BAR_LENGTH)
+    empty_len = PROGRESS_BAR_LENGTH - filled_len
+
+    bar = "[" + "█" * filled_len + "░" * empty_len + "]"
+    return f"{bar} {capped_passed}/{required}"
 
 
 def get_mastery_emoji(level: str) -> str:

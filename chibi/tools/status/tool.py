@@ -99,26 +99,14 @@ class StatusTool(BaseTool):
         self, user_id: int, user_name: str
     ) -> discord.Embed:
         """Build summary status embed."""
-        summary = await self.bot.mastery_repo.get_summary(user_id)
-        total_concepts = len(self.bot.course.get_all_concepts())
+        # Get mastery records and config
+        mastery_records = await self.bot.mastery_repo.get_all_for_user(user_id)
+        mastery_by_concept = {m.concept_id: m for m in mastery_records}
+        min_attempts = self.bot.config.mastery.min_attempts_for_mastery
 
         embed = discord.Embed(
             title=f"Learning Progress - {user_name}",
             color=discord.Color.blue(),
-        )
-
-        # Overall progress
-        mastered = summary.get("mastered", 0)
-        proficient = summary.get("proficient", 0)
-        progress_pct = (
-            (mastered + proficient) / total_concepts * 100 if total_concepts > 0 else 0
-        )
-
-        embed.add_field(
-            name="Overall Progress",
-            value=f"**{progress_pct:.1f}%** complete\n"
-            f"({mastered + proficient}/{total_concepts} concepts)",
-            inline=True,
         )
 
         # Quiz stats (fetched from quiz_attempts table)
@@ -132,17 +120,41 @@ class StatusTool(BaseTool):
             inline=True,
         )
 
-        # Mastery breakdown
-        mastery_bar = create_progress_bar(
-            mastered, proficient, summary.get("learning", 0), summary.get("novice", 0)
-        )
+        # Calculate overall passed/required
+        total_passed = 0
+        total_required = 0
+
+        # Module progress bars
+        module_lines = []
+        for module in self.bot.course.modules:
+            module_passed = 0
+            module_required = len(module.concepts) * min_attempts
+
+            for concept in module.concepts:
+                mastery = mastery_by_concept.get(concept.id)
+                if mastery:
+                    # Cap correct_attempts at min_attempts per concept
+                    module_passed += min(mastery.correct_attempts, min_attempts)
+
+            total_passed += module_passed
+            total_required += module_required
+
+            # Create progress bar for this module
+            progress_bar = create_progress_bar(module_passed, module_required)
+            module_lines.append(f"**{module.name}**\n`{progress_bar}`")
+
+        # Overall progress
+        overall_pct = total_passed / total_required * 100 if total_required > 0 else 0
         embed.add_field(
-            name="Mastery Levels",
-            value=f"```\n{mastery_bar}\n```\n"
-            f"Mastered: {mastered}\n"
-            f"Proficient: {proficient}\n"
-            f"Learning: {summary.get('learning', 0)}\n"
-            f"Novice: {summary.get('novice', 0)}",
+            name="Overall Progress",
+            value=f"**{overall_pct:.1f}%** complete ({total_passed}/{total_required} quizzes passed)",
+            inline=True,
+        )
+
+        # Module breakdown
+        embed.add_field(
+            name="Module Progress",
+            value="\n".join(module_lines) if module_lines else "No modules available",
             inline=False,
         )
 
@@ -182,48 +194,37 @@ class StatusTool(BaseTool):
             color=discord.Color.blue(),
         )
 
-        # Get all mastery records for this user
+        # Get mastery records and config
         mastery_records = await self.bot.mastery_repo.get_all_for_user(user_id)
         mastery_by_concept = {m.concept_id: m for m in mastery_records}
+        min_attempts = self.bot.config.mastery.min_attempts_for_mastery
 
-        # Module progress stats
-        total_concepts = len(module.concepts)
-        started_count = 0
-        mastered_count = 0
-        proficient_count = 0
+        # Calculate module progress
+        module_passed = 0
+        module_required = len(module.concepts) * min_attempts
 
         concept_lines = []
         for concept in module.concepts:
             mastery = mastery_by_concept.get(concept.id)
             if mastery:
-                started_count += 1
-                if mastery.mastery_level == "mastered":
-                    mastered_count += 1
-                elif mastery.mastery_level == "proficient":
-                    proficient_count += 1
+                # Cap correct_attempts at min_attempts per concept
+                capped_correct = min(mastery.correct_attempts, min_attempts)
+                module_passed += capped_correct
 
                 emoji = get_mastery_emoji(mastery.mastery_level)
-                accuracy = (
-                    mastery.correct_attempts / mastery.total_attempts * 100
-                    if mastery.total_attempts > 0
-                    else 0
-                )
                 concept_lines.append(
-                    f"{emoji} **{concept.name}** ({accuracy:.0f}% - {mastery.total_attempts} attempts)"
+                    f"{emoji} **{concept.name}** ({capped_correct}/{min_attempts} passed)"
                 )
             else:
-                concept_lines.append(f"[ ] {concept.name} (not started)")
+                concept_lines.append(f"[ ] {concept.name} (0/{min_attempts} passed)")
 
-        # Module summary
-        progress_pct = (
-            (mastered_count + proficient_count) / total_concepts * 100
-            if total_concepts > 0
-            else 0
-        )
+        # Module summary with progress bar
+        progress_bar = create_progress_bar(module_passed, module_required)
+        progress_pct = module_passed / module_required * 100 if module_required > 0 else 0
         embed.add_field(
             name="Module Progress",
-            value=f"**{progress_pct:.1f}%** complete ({mastered_count + proficient_count}/{total_concepts})\n"
-            f"Mastered: {mastered_count} | Proficient: {proficient_count} | Started: {started_count}/{total_concepts}",
+            value=f"```\n{progress_bar}\n```\n"
+            f"**{progress_pct:.1f}%** complete ({module_passed}/{module_required} quizzes passed)",
             inline=False,
         )
 
