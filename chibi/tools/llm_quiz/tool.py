@@ -555,15 +555,11 @@ class LLMQuizTool(BaseTool):
             # Use fuzzy matching to find module by ID, name, or concept
             module_obj = self.bot.course.find_module(module_id)
             if not module_obj:
-                # Build list of available modules with names
-                module_list = "\n".join(
-                    f"• `{m.id}` - {m.name}" for m in self.bot.course.modules
-                )
-
                 await discord_message.reply(
                     f"Module `{module_id}` not found.\n\n"
-                    f"**Available modules:**\n{module_list}\n\n"
-                    f"**Tip:** Say \"llm quiz on Small World\" or use `/llm-quiz module:m02`",
+                    f"**Please use the slash command for reliable module selection:**\n"
+                    f"👉 `/llm-quiz` - then select a module from the dropdown\n\n"
+                    f"The autocomplete will show you all available modules.",
                     mention_author=False,
                 )
                 return ToolResult(
