@@ -128,6 +128,9 @@ class ContextualRetrievalConfig:
     batch_size: int = 5  # Chunks to process concurrently
     batch_delay_seconds: float = 0.5  # Delay between batches (rate limiting)
     temperature: float = 0.3  # LLM temperature for context generation
+    # Model for generating context (use "default" to use main LLM)
+    model: str = "default"  # e.g., "ollama/llama3.2" or "openrouter/meta-llama/llama-3.2-3b-instruct"
+    base_url: str = ""  # Base URL (leave empty for default based on provider prefix)
 
 
 @dataclass
@@ -263,6 +266,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
             batch_size=contextual_retrieval_data.get("batch_size", 5),
             batch_delay_seconds=contextual_retrieval_data.get("batch_delay_seconds", 0.5),
             temperature=contextual_retrieval_data.get("temperature", 0.3),
+            model=contextual_retrieval_data.get("model", "default"),
+            base_url=contextual_retrieval_data.get("base_url", ""),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

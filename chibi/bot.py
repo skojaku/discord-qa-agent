@@ -226,8 +226,20 @@ class ChibiBot(commands.Bot):
                 batch_delay_seconds=self.config.contextual_retrieval.batch_delay_seconds,
                 temperature=self.config.contextual_retrieval.temperature,
             )
+
+            # Determine which LLM to use for context generation
+            context_model = self.config.contextual_retrieval.model
+            if context_model == "default":
+                # Use the main LLM manager
+                context_llm_manager = self.llm_manager
+                logger.info("Contextual chunking using default LLM")
+            else:
+                # Create a dedicated LLM provider for context generation
+                context_llm_manager = self._create_context_llm_manager(context_model)
+                logger.info(f"Contextual chunking using dedicated model: {context_model}")
+
             contextual_service = ContextualChunkingService(
-                llm_manager=self.llm_manager,
+                llm_manager=context_llm_manager,
                 config=contextual_config,
             )
             logger.info("Contextual chunking service initialized")
@@ -425,6 +437,71 @@ class ChibiBot(commands.Bot):
                 )
             except Exception:
                 pass
+
+    def _create_context_llm_manager(self, model: str) -> LLMManager:
+        """Create a dedicated LLM manager for context generation.
+
+        Args:
+            model: Model specification (e.g., "ollama/llama3.2" or "openrouter/model-name")
+
+        Returns:
+            LLMManager configured for the specified model
+        """
+        # Parse model string to determine provider
+        if model.startswith("ollama/"):
+            model_name = model[7:]  # Remove "ollama/" prefix
+            base_url = (
+                self.config.contextual_retrieval.base_url
+                or "http://localhost:11434"
+            )
+            context_primary = OllamaProvider(
+                base_url=base_url,
+                model=model_name,
+                timeout=60,
+            )
+            # Use main fallback as backup
+            context_fallback = OpenRouterProvider(
+                api_key=self.config.openrouter_api_key,
+                base_url=self.config.llm.fallback.base_url,
+                model=self.config.llm.fallback.model,
+                timeout=self.config.llm.fallback.timeout,
+            )
+        elif model.startswith("openrouter/"):
+            model_name = model[11:]  # Remove "openrouter/" prefix
+            base_url = (
+                self.config.contextual_retrieval.base_url
+                or "https://openrouter.ai/api/v1"
+            )
+            context_primary = OpenRouterProvider(
+                api_key=self.config.openrouter_api_key,
+                base_url=base_url,
+                model=model_name,
+                timeout=90,
+            )
+            # Use main primary (Ollama) as fallback
+            context_fallback = OllamaProvider(
+                base_url=self.config.llm.primary.base_url,
+                model=self.config.llm.primary.model,
+                timeout=self.config.llm.primary.timeout,
+            )
+        else:
+            # Assume it's a raw model name, use primary provider type
+            logger.warning(
+                f"Model '{model}' has no provider prefix, assuming Ollama"
+            )
+            context_primary = OllamaProvider(
+                base_url=self.config.contextual_retrieval.base_url or "http://localhost:11434",
+                model=model,
+                timeout=60,
+            )
+            context_fallback = OpenRouterProvider(
+                api_key=self.config.openrouter_api_key,
+                base_url=self.config.llm.fallback.base_url,
+                model=self.config.llm.fallback.model,
+                timeout=self.config.llm.fallback.timeout,
+            )
+
+        return LLMManager(context_primary, context_fallback)
 
     async def close(self) -> None:
         """Clean up on shutdown."""
