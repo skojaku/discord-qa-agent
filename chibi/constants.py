@@ -60,3 +60,15 @@ ERROR_STUDENT_STATUS = "Failed to fetch student status. Please try again."
 CSV_FILENAME_PREFIX = "student_grades"
 EMBED_FIELD_CHUNK_SIZE = 15  # Max items per embed field for student lists
 DESCRIPTION_TRUNCATE_LENGTH = 100  # Max length for truncated descriptions
+
+# Attendance error messages
+ERROR_ATTENDANCE_SESSION_ACTIVE = "An attendance session is already active. Please close it first."
+ERROR_NO_ACTIVE_SESSION = "No active attendance session. Please wait for the instructor to start attendance."
+ERROR_INVALID_CODE = "Invalid or expired code. Please use the current code shown on screen."
+ERROR_ATTENDANCE_CHANNEL_NOT_CONFIGURED = "Attendance channel is not configured. Please set ATTENDANCE_CHANNEL_ID in .env file."
+ERROR_ATTENDANCE_CHANNEL_ONLY = "This command can only be used in the attendance channel."
+ERROR_ATTENDANCE_EXPORT = "Failed to export attendance records."
+ERROR_STUDENT_REGISTRATION_FAILED = "Failed to register student information."
+
+# Attendance settings
+ATTENDANCE_CSV_PREFIX = "attendance"

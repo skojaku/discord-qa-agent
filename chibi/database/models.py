@@ -12,6 +12,8 @@ class User:
     id: Optional[int]
     discord_id: str
     username: str
+    student_id: Optional[str] = None  # School/university student ID
+    student_name: Optional[str] = None  # Student's real name
     created_at: Optional[datetime] = None
     last_active: Optional[datetime] = None
 
@@ -86,3 +88,16 @@ class LLMQuizAttempt:
     reviewed_by: Optional[str] = None  # Discord user ID of reviewer
     discord_user_id: Optional[str] = None  # Discord user ID of student (for DM notifications)
     created_at: Optional[datetime] = None
+
+
+@dataclass
+class AttendanceRecord:
+    """Represents an attendance record in the database."""
+
+    id: Optional[int]
+    user_id: int
+    username: str
+    timestamp: str  # Submission timestamp
+    date_id: str  # Date only (YYYY-MM-DD)
+    session_id: str  # Unique session identifier
+    status: str = "present"  # present, excused

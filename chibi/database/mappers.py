@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from .models import User, QuizAttempt, ConceptMastery, LLMQuizAttempt, ReviewStatus
+from .models import User, QuizAttempt, ConceptMastery, LLMQuizAttempt, ReviewStatus, AttendanceRecord
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -30,6 +30,8 @@ def row_to_user(row: Any) -> User:
         id=row["id"],
         discord_id=row["discord_id"],
         username=row["username"],
+        student_id=row["student_id"] if "student_id" in row.keys() else None,
+        student_name=row["student_name"] if "student_name" in row.keys() else None,
         created_at=_parse_datetime(row["created_at"]),
         last_active=_parse_datetime(row["last_active"]),
     )
@@ -85,4 +87,17 @@ def row_to_llm_quiz_attempt(row: Any) -> LLMQuizAttempt:
         reviewed_by=row["reviewed_by"],
         discord_user_id=row["discord_user_id"],
         created_at=_parse_datetime(row["created_at"]),
+    )
+
+
+def row_to_attendance_record(row: Any) -> AttendanceRecord:
+    """Convert database row to AttendanceRecord model."""
+    return AttendanceRecord(
+        id=row["id"],
+        user_id=row["user_id"],
+        username=row["username"],
+        timestamp=row["timestamp"],
+        date_id=row["date_id"],
+        session_id=row["session_id"],
+        status=row["status"] or "present",
     )

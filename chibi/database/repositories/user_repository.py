@@ -121,3 +121,66 @@ class UserRepository(BaseRepository):
         logger.info(f"No user found. Available users: {[(r['discord_id'], r['username']) for r in all_rows]}")
 
         return None
+
+    async def register_student(
+        self,
+        discord_id: str,
+        student_id: str,
+        student_name: Optional[str] = None,
+    ) -> bool:
+        """Register or update student information for attendance.
+
+        Args:
+            discord_id: Discord user ID
+            student_id: School/university student ID
+            student_name: Optional real name
+
+        Returns:
+            True if successful
+        """
+        conn = self.connection
+        await conn.execute(
+            "UPDATE users SET student_id = ?, student_name = ? WHERE discord_id = ?",
+            (student_id, student_name, discord_id),
+        )
+        await conn.commit()
+        return True
+
+    async def get_student_info(self, discord_id: str) -> Optional[dict]:
+        """Get student registration info for a user.
+
+        Args:
+            discord_id: Discord user ID
+
+        Returns:
+            Dict with student_id and student_name if registered, None otherwise
+        """
+        conn = self.connection
+        cursor = await conn.execute(
+            "SELECT student_id, student_name FROM users WHERE discord_id = ?",
+            (discord_id,),
+        )
+        row = await cursor.fetchone()
+
+        if row and row["student_id"]:
+            return {
+                "student_id": row["student_id"],
+                "student_name": row["student_name"],
+            }
+        return None
+
+    async def search_by_student_id(self, student_id: str) -> Optional[User]:
+        """Search for a user by their student ID.
+
+        Args:
+            student_id: School/university student ID
+
+        Returns:
+            User if found, None otherwise
+        """
+        conn = self.connection
+        cursor = await conn.execute(
+            "SELECT * FROM users WHERE student_id = ?", (student_id,)
+        )
+        row = await cursor.fetchone()
+        return row_to_user(row) if row else None

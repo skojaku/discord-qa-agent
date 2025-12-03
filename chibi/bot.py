@@ -14,6 +14,7 @@ from .content.course import Course, load_course
 from .content.loader import ContentLoader
 from .database.connection import Database
 from .database.repositories import (
+    AttendanceRepository,
     LLMQuizRepository,
     MasteryRepository,
     QuizRepository,
@@ -68,6 +69,7 @@ class ChibiBot(commands.Bot):
         self.llm_quiz_repo: Optional[LLMQuizRepository] = None
         self.similarity_repo: Optional[SimilarityRepository] = None
         self.rag_repo: Optional[RAGRepository] = None
+        self.attendance_repo: Optional[AttendanceRepository] = None
 
         # Services
         self.quiz_service: Optional[QuizService] = None
@@ -125,6 +127,7 @@ class ChibiBot(commands.Bot):
         self.quiz_repo = QuizRepository(self.database)
         self.mastery_repo = MasteryRepository(self.database)
         self.llm_quiz_repo = LLMQuizRepository(self.database)
+        self.attendance_repo = AttendanceRepository(self.database)
         logger.info("Database connected")
 
         # Initialize similarity repository (ChromaDB)
@@ -270,6 +273,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.llm_quiz")
         await self.load_extension("chibi.cogs.modules")
         await self.load_extension("chibi.cogs.guidance")
+        await self.load_extension("chibi.cogs.attendance")
         logger.info("Cogs loaded")
 
         # Sync commands if configured

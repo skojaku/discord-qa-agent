@@ -108,6 +108,18 @@ class AgentConfig:
 
 
 @dataclass
+class AttendanceConfig:
+    """Attendance tracking configuration."""
+
+    # Channel ID where students submit attendance with /here command
+    attendance_channel_id: Optional[int] = None
+    # Seconds between code rotations
+    code_rotation_interval: int = 15
+    # Length of attendance codes
+    code_length: int = 4
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -119,6 +131,7 @@ class Config:
     llm_quiz: LLMQuizConfig
     similarity: SimilarityConfig
     agent: AgentConfig
+    attendance: AttendanceConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -172,10 +185,15 @@ def load_config(config_path: str = "config.yaml") -> Config:
     llm_quiz_data = data.get("llm_quiz", {})
     similarity_data = data.get("similarity", {})
     agent_data = data.get("agent", {})
+    attendance_data = data.get("attendance", {})
 
     # Load admin channel ID from environment variable
     admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
     admin_channel_id = int(admin_channel_id_str) if admin_channel_id_str else None
+
+    # Load attendance channel ID from environment variable
+    attendance_channel_id_str = os.getenv("ATTENDANCE_CHANNEL_ID", "")
+    attendance_channel_id = int(attendance_channel_id_str) if attendance_channel_id_str else None
 
     config = Config(
         discord=DiscordConfig(
@@ -220,6 +238,11 @@ def load_config(config_path: str = "config.yaml") -> Config:
             intent_confidence_threshold=agent_data.get("intent_confidence_threshold", 0.7),
             max_conversation_history=agent_data.get("max_conversation_history", 20),
             enabled=agent_data.get("enabled", True),
+        ),
+        attendance=AttendanceConfig(
+            attendance_channel_id=attendance_channel_id,
+            code_rotation_interval=attendance_data.get("code_rotation_interval", 15),
+            code_length=attendance_data.get("code_length", 4),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

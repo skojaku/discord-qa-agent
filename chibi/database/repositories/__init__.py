@@ -1,5 +1,6 @@
 """Database repositories for domain-specific operations."""
 
+from .attendance_repository import AttendanceRepository
 from .base import BaseRepository
 from .llm_quiz_repository import LLMQuizRepository
 from .mastery_repository import MasteryRepository
@@ -9,6 +10,7 @@ from .similarity_repository import SimilarQuestion, SimilarityRepository
 from .user_repository import UserRepository
 
 __all__ = [
+    "AttendanceRepository",
     "BaseRepository",
     "LLMQuizRepository",
     "MasteryRepository",

@@ -1,5 +1,6 @@
 """Business logic services."""
 
+from .attendance_session import AttendanceSessionManager
 from .chunking import TextChunk, TextChunker
 from .content_indexer import ContentIndexer
 from .embedding_service import EmbeddingService
@@ -13,6 +14,7 @@ from .search_agent import SearchAgentService, SearchContextType, SearchResult
 from .similarity_service import SimilarityCheckResult, SimilarityService
 
 __all__ = [
+    "AttendanceSessionManager",
     "ContentIndexer",
     "EmbeddingService",
     "EvaluationResult",

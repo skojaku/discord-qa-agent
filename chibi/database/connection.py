@@ -101,6 +101,23 @@ class Database:
         CREATE INDEX IF NOT EXISTS idx_concept_mastery_user ON concept_mastery(user_id);
         CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_user ON llm_quiz_attempts(user_id);
         CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_module ON llm_quiz_attempts(module_id);
+
+        -- Attendance table
+        CREATE TABLE IF NOT EXISTS attendance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            date_id TEXT NOT NULL,
+            session_id TEXT NOT NULL,
+            status TEXT DEFAULT 'present',
+            UNIQUE(user_id, session_id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_attendance_session ON attendance(session_id);
+        CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date_id);
+        CREATE INDEX IF NOT EXISTS idx_attendance_user ON attendance(user_id);
         """
 
         await self._connection.executescript(tables_schema)
@@ -142,4 +159,25 @@ class Database:
                 "ALTER TABLE llm_quiz_attempts ADD COLUMN discord_user_id TEXT"
             )
 
+        # Check if users table has student_id column (for attendance)
+        cursor = await self._connection.execute("PRAGMA table_info(users)")
+        user_columns = await cursor.fetchall()
+        user_column_names = {col["name"] for col in user_columns}
+
+        # Migration: Add student registration columns to users table
+        if "student_id" not in user_column_names:
+            await self._connection.execute(
+                "ALTER TABLE users ADD COLUMN student_id TEXT"
+            )
+        if "student_name" not in user_column_names:
+            await self._connection.execute(
+                "ALTER TABLE users ADD COLUMN student_name TEXT"
+            )
+
+        await self._connection.commit()
+
+        # Create index on student_id after migration (separate statement)
+        await self._connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id)"
+        )
         await self._connection.commit()
