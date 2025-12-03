@@ -121,6 +121,40 @@ class ConversationMemory:
 
         return "\n".join(summary_parts)
 
+    def get_recent_chunk_ids(
+        self,
+        user_id: str,
+        channel_id: str,
+        max_messages: int = 5,
+    ) -> set:
+        """Get chunk IDs from recent assistant responses.
+
+        Used to avoid retrieving the same RAG chunks in subsequent turns.
+
+        Args:
+            user_id: Discord user ID
+            channel_id: Discord channel ID
+            max_messages: Maximum messages to look back
+
+        Returns:
+            Set of chunk IDs that were recently retrieved
+        """
+        key = self._get_key(user_id, channel_id)
+        history = self._history.get(key, [])
+
+        if not history:
+            return set()
+
+        chunk_ids = set()
+        # Look at recent messages
+        for entry in history[-max_messages:]:
+            if entry.role == "assistant" and entry.metadata:
+                # Get chunk IDs stored in metadata
+                ids = entry.metadata.get("chunk_ids", [])
+                chunk_ids.update(ids)
+
+        return chunk_ids
+
     def clear_history(self, user_id: str, channel_id: str) -> None:
         """Clear conversation history for a user/channel.
 

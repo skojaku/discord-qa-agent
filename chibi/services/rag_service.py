@@ -56,6 +56,7 @@ class RAGService:
         query: str,
         source_id: Optional[str] = None,
         top_k: Optional[int] = None,
+        exclude_chunk_ids: Optional[set] = None,
     ) -> RAGResult:
         """Retrieve relevant content chunks for a query.
 
@@ -63,6 +64,7 @@ class RAGService:
             query: The user's question or search query
             source_id: Optional filter to a specific source (module)
             top_k: Override default number of results
+            exclude_chunk_ids: Optional set of chunk IDs to exclude (already retrieved)
 
         Returns:
             RAGResult with combined context and individual chunks
@@ -86,6 +88,7 @@ class RAGService:
             query_embedding=query_embedding,
             top_k=top_k,
             source_id=source_id,
+            exclude_chunk_ids=exclude_chunk_ids,
         )
 
         # Filter by minimum similarity

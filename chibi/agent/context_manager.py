@@ -34,6 +34,7 @@ class ContextSource:
     source_name: str
     content: str
     relevance_score: float = 0.0
+    chunk_id: str = ""  # Unique ID for deduplication across searches
 
 
 @dataclass
@@ -51,6 +52,11 @@ class ContextResult:
     def source_names(self) -> List[str]:
         """Get list of unique source names."""
         return list(set(s.source_name for s in self.sources))
+
+    @property
+    def chunk_ids(self) -> List[str]:
+        """Get list of chunk IDs for deduplication."""
+        return [s.chunk_id for s in self.sources if s.chunk_id]
 
 
 class ContextManagerAgent:
@@ -91,6 +97,7 @@ class ContextManagerAgent:
         module_id: Optional[str] = None,
         concept: Optional["Concept"] = None,
         top_k: Optional[int] = None,
+        exclude_chunk_ids: Optional[set] = None,
     ) -> ContextResult:
         """Retrieve context based on query and context type.
 
@@ -100,6 +107,7 @@ class ContextManagerAgent:
             module_id: Optional module to filter results
             concept: Optional concept for more targeted retrieval
             top_k: Override default number of chunks
+            exclude_chunk_ids: Optional set of chunk IDs to exclude (already retrieved)
 
         Returns:
             ContextResult with retrieved context
@@ -128,6 +136,7 @@ class ContextManagerAgent:
                 query=enhanced_query,
                 source_id=module_id,
                 top_k=top_k,
+                exclude_chunk_ids=exclude_chunk_ids,
             )
 
             if not result.chunks:
@@ -143,6 +152,7 @@ class ContextManagerAgent:
                     source_name=chunk.source_name,
                     content=chunk.text,
                     relevance_score=chunk.similarity_score,
+                    chunk_id=chunk.chunk_id,
                 )
                 for chunk in result.chunks
             ]
@@ -256,12 +266,14 @@ class ContextManagerAgent:
         self,
         question: str,
         module_id: Optional[str] = None,
+        exclude_chunk_ids: Optional[set] = None,
     ) -> ContextResult:
         """Get context for the general assistant.
 
         Args:
             question: The user's question
             module_id: Optional module to focus on
+            exclude_chunk_ids: Optional set of chunk IDs to exclude (already retrieved)
 
         Returns:
             ContextResult optimized for general Q&A
@@ -271,6 +283,7 @@ class ContextManagerAgent:
             context_type=ContextType.GENERAL_ASSISTANT,
             module_id=module_id,
             top_k=5,
+            exclude_chunk_ids=exclude_chunk_ids,
         )
 
     def _get_top_k_for_type(self, context_type: ContextType) -> int:

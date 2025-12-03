@@ -145,6 +145,7 @@ class RAGRepository:
         query_embedding: List[float],
         top_k: int = 5,
         source_id: Optional[str] = None,
+        exclude_chunk_ids: Optional[set] = None,
     ) -> List[RetrievedChunk]:
         """Search for similar content chunks.
 
@@ -152,15 +153,20 @@ class RAGRepository:
             query_embedding: The query embedding vector
             top_k: Maximum number of results
             source_id: Optional filter by source (module ID)
+            exclude_chunk_ids: Optional set of chunk IDs to exclude from results
 
         Returns:
             List of RetrievedChunk objects, sorted by similarity (highest first)
         """
         where_filter = {"source_id": source_id} if source_id else None
 
+        # Request extra results if we need to exclude some chunks
+        extra_results = len(exclude_chunk_ids) if exclude_chunk_ids else 0
+        n_results = top_k + extra_results
+
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k,
+            n_results=n_results,
             where=where_filter,
             include=["documents", "metadatas", "distances"],
         )
@@ -169,6 +175,10 @@ class RAGRepository:
 
         if results["ids"] and results["ids"][0]:
             for i, chunk_id in enumerate(results["ids"][0]):
+                # Skip excluded chunks
+                if exclude_chunk_ids and chunk_id in exclude_chunk_ids:
+                    continue
+
                 # ChromaDB returns distance, convert to similarity for cosine
                 distance = results["distances"][0][i]
                 similarity = 1 - distance
@@ -184,6 +194,10 @@ class RAGRepository:
                         similarity_score=similarity,
                     )
                 )
+
+                # Stop once we have enough results
+                if len(retrieved_chunks) >= top_k:
+                    break
 
         return retrieved_chunks
 
