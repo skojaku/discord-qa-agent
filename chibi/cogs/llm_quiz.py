@@ -495,7 +495,7 @@ class LLMQuizCog(commands.Cog):
             cog=self,
             module_id=module_obj.id,
             module_name=module_obj.name,
-            module_content=module_obj.content,
+            module_content=module_obj.get_all_content(),
         )
         await interaction.response.send_modal(modal)
 
