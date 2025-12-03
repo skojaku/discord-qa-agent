@@ -29,6 +29,7 @@ from .services import (
     ContentIndexer,
     EmbeddingService,
     GradeService,
+    GuidanceService,
     LLMQuizChallengeService,
     QuizService,
     RAGService,
@@ -71,6 +72,7 @@ class ChibiBot(commands.Bot):
         self.quiz_service: Optional[QuizService] = None
         self.grade_service: Optional[GradeService] = None
         self.llm_quiz_service: Optional[LLMQuizChallengeService] = None
+        self.guidance_service: Optional[GuidanceService] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.similarity_service: Optional[SimilarityService] = None
         self.rag_service: Optional[RAGService] = None
@@ -180,6 +182,12 @@ class ChibiBot(commands.Bot):
             config=self.config.llm_quiz,
             api_key=self.config.openrouter_api_key,
         )
+        self.guidance_service = GuidanceService(
+            mastery_repo=self.mastery_repo,
+            llm_quiz_service=self.llm_quiz_service,
+            course=self.course,
+            min_attempts=self.config.mastery.min_attempts_for_mastery,
+        )
 
         # Initialize embedding and similarity services
         self.embedding_service = EmbeddingService(
@@ -250,6 +258,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.admin")
         await self.load_extension("chibi.cogs.llm_quiz")
         await self.load_extension("chibi.cogs.modules")
+        await self.load_extension("chibi.cogs.guidance")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
@@ -298,7 +307,7 @@ class ChibiBot(commands.Bot):
         # Set activity status (only show student-facing commands)
         activity = discord.Activity(
             type=discord.ActivityType.listening,
-            name="/quiz, /status, /llm-quiz",
+            name="/quiz, /status, /guidance",
         )
         await self.change_presence(activity=activity)
 

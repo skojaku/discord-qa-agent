@@ -1,0 +1,25 @@
+name: guidance
+description: "Show personalized guidance on what students need to do to achieve full grades. Use this when users ask about how to get full grades, what they need to complete, or what requirements remain."
+trigger_keywords:
+  - guidance
+  - "full grade"
+  - "full grades"
+  - "what do i need"
+  - "how to complete"
+  - "requirements"
+  - "what's left"
+  - "what is left"
+  - "remaining"
+  - "to do"
+  - "todo"
+  - "checklist"
+  - "how can i complete"
+  - "get full marks"
+  - "achieve full"
+requires_module: false
+requires_user_input: false
+parameters:
+  module:
+    type: string
+    description: "Module ID to show guidance for (optional - shows all modules if not provided)"
+    required: false
