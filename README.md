@@ -28,6 +28,28 @@ Admin commands use prefix commands (`!command`) instead of slash commands to kee
 - **`!status <student> [module]`** - View a specific student's learning progress (supports @mentions)
 - **`!clear_similarity [module]`** - Clear LLM Quiz similarity database (for duplicate detection reset)
 
+### Attendance Tracking
+Built-in attendance system with rotating codes for classroom use.
+
+**Student Commands:**
+- **`/register <student_id> [name]`** - Link Discord account to student ID for gradebook integration
+- **`/here <code>`** - Submit attendance with the current code (attendance channel only)
+
+**Admin Commands** (admin channel only):
+- **`!open_attendance`** - Start session with rotating codes displayed in admin channel
+- **`!close_attendance`** - End session and save records to database
+- **`!export_attendance [session_id]`** - Export attendance records to CSV
+- **`!excuse <student> [date]`** - Mark a student as excused
+- **`!mark_present <student> [date]`** - Manually mark a student present
+- **`!remove_attendance <student> <date>`** - Remove an attendance record
+
+**How it works:**
+1. Admin runs `!open_attendance` - a rotating code appears in the admin channel (display on projector)
+2. Students see a notification in the attendance channel and submit with `/here <code>`
+3. Codes rotate automatically every 15 seconds to prevent code-sharing
+4. Admin runs `!close_attendance` to save all records
+5. Export to CSV includes student_id, name, Discord username, timestamp, and status
+
 ### Quiz Format
 - Free Form (open-ended questions with AI-evaluated responses)
 
@@ -88,6 +110,7 @@ Edit `.env`:
 DISCORD_TOKEN=your_discord_bot_token
 OPENROUTER_API_KEY=your_openrouter_api_key  # Optional, for fallback
 ADMIN_CHANNEL_ID=your_admin_channel_id      # Optional, restricts admin commands
+ATTENDANCE_CHANNEL_ID=your_attendance_channel_id  # Optional, for /here command
 ```
 
 ### 3. Configure the Bot
@@ -189,13 +212,20 @@ similarity:
   chromadb_path: "data/chromadb"
   similarity_threshold: 0.85  # Questions above this similarity are rejected
   embedding_model: "nomic-embed-text"
+
+# Attendance tracking settings
+attendance:
+  code_rotation_interval: 15  # Seconds between code changes
+  code_length: 4              # Length of attendance codes
 ```
 
-#### Getting the Admin Channel ID
+#### Getting Channel IDs
 
 1. Enable Developer Mode in Discord: **Settings** → **Advanced** → **Developer Mode**
-2. Right-click your admin channel and select **Copy Channel ID**
-3. Paste the ID into `.env` as `ADMIN_CHANNEL_ID`
+2. Right-click a channel and select **Copy Channel ID**
+3. Paste the ID into `.env`:
+   - `ADMIN_CHANNEL_ID` - Channel for admin commands (hidden from students)
+   - `ATTENDANCE_CHANNEL_ID` - Channel where students submit attendance with `/here`
 
 ### course.yaml
 
@@ -234,6 +264,7 @@ discord-qa-agent/
 │   │   ├── status.py      # /status command
 │   │   ├── modules.py     # /modules command
 │   │   ├── admin.py       # Admin prefix commands (!help, !status, etc.)
+│   │   ├── attendance.py  # Attendance commands (/register, /here, !open_attendance, etc.)
 │   │   └── utils.py       # Common utilities
 │   ├── agent/             # LangGraph-based agent system
 │   │   ├── graph.py       # Main agent graph
@@ -269,6 +300,7 @@ discord-qa-agent/
 │   │       ├── quiz_repository.py
 │   │       ├── mastery_repository.py
 │   │       ├── llm_quiz_repository.py
+│   │       ├── attendance_repository.py # Attendance records
 │   │       ├── rag_repository.py       # ChromaDB for RAG
 │   │       └── similarity_repository.py # ChromaDB for anti-cheat
 │   ├── services/          # Business logic
@@ -279,6 +311,7 @@ discord-qa-agent/
 │   │   ├── content_indexer.py      # RAG content indexing
 │   │   ├── similarity_service.py   # Question similarity detection
 │   │   ├── embedding_service.py    # Embedding generation
+│   │   ├── attendance_session.py   # In-memory attendance session state
 │   │   └── grade_service.py
 │   ├── learning/
 │   │   └── mastery.py
