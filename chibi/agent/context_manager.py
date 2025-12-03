@@ -385,10 +385,11 @@ class ContextManagerAgent:
                 parts.append(f"**Module: {module.name}**")
                 if module.description:
                     parts.append(module.description)
-                if module.content:
+                all_content = module.get_all_content()
+                if all_content:
                     # Truncate module content for fallback
-                    content_preview = module.content[:2000]
-                    if len(module.content) > 2000:
+                    content_preview = all_content[:2000]
+                    if len(all_content) > 2000:
                         content_preview += "..."
                     parts.append(content_preview)
 
@@ -396,7 +397,7 @@ class ContextManagerAgent:
                     ContextSource(
                         source_id=module.id,
                         source_name=module.name,
-                        content=module.content or "",
+                        content=all_content,
                         relevance_score=0.5,
                     )
                 )

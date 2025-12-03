@@ -1,7 +1,7 @@
 """Content loader for fetching module content from URLs."""
 
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 import httpx
 
@@ -18,46 +18,57 @@ class ContentLoader:
         self.max_retries = max_retries
         self._cache: Dict[str, str] = {}
 
-    async def load_module_content(self, module: Module) -> str:
-        """Load content for a single module.
+    async def load_module_content(self, module: Module) -> Dict[str, str]:
+        """Load content for a single module from all its URLs.
 
         Args:
             module: The module to load content for
 
         Returns:
-            The module content as a string
+            Dict mapping URL to content
         """
-        if not module.content_url:
-            logger.warning(f"No content URL for module {module.id}")
-            return ""
+        if not module.content_urls:
+            logger.warning(f"No content URLs for module {module.id}")
+            return {}
 
-        # Check cache
-        if module.id in self._cache:
-            return self._cache[module.id]
+        results = {}
+        for url in module.content_urls:
+            cache_key = f"{module.id}:{url}"
 
-        # Fetch from URL
-        content = await self._fetch_url(module.content_url)
-        if content:
-            self._cache[module.id] = content
-            module.content = content
+            # Check cache
+            if cache_key in self._cache:
+                results[url] = self._cache[cache_key]
+                continue
 
-        return content
+            # Fetch from URL
+            content = await self._fetch_url(url)
+            if content:
+                self._cache[cache_key] = content
+                results[url] = content
 
-    async def load_all_content(self, course: Course) -> Dict[str, str]:
+        # Store in module
+        module.contents = results
+        return results
+
+    async def load_all_content(self, course: Course) -> Dict[str, Dict[str, str]]:
         """Load content for all modules in a course.
 
         Args:
             course: The course to load content for
 
         Returns:
-            Dict mapping module_id to content
+            Dict mapping module_id to dict of URL -> content
         """
         results = {}
         for module in course.modules:
-            content = await self.load_module_content(module)
-            results[module.id] = content
-            if content:
-                logger.info(f"Loaded content for module {module.id} ({len(content)} chars)")
+            url_contents = await self.load_module_content(module)
+            results[module.id] = url_contents
+            if url_contents:
+                total_chars = sum(len(c) for c in url_contents.values())
+                logger.info(
+                    f"Loaded content for module {module.id}: "
+                    f"{len(url_contents)} URLs, {total_chars} chars total"
+                )
             else:
                 logger.warning(f"Failed to load content for module {module.id}")
 
@@ -89,16 +100,21 @@ class ContentLoader:
 
         return ""
 
-    def get_cached_content(self, module_id: str) -> Optional[str]:
+    def get_cached_content(self, module_id: str) -> Dict[str, str]:
         """Get cached content for a module.
 
         Args:
             module_id: The module ID
 
         Returns:
-            The cached content, or None if not cached
+            Dict mapping URL to content for cached entries
         """
-        return self._cache.get(module_id)
+        prefix = f"{module_id}:"
+        return {
+            key[len(prefix):]: value
+            for key, value in self._cache.items()
+            if key.startswith(prefix)
+        }
 
     def clear_cache(self) -> None:
         """Clear the content cache."""
@@ -111,6 +127,9 @@ class ContentLoader:
         Args:
             module_id: The module ID to invalidate
         """
-        if module_id in self._cache:
-            del self._cache[module_id]
-            logger.info(f"Cache invalidated for module {module_id}")
+        prefix = f"{module_id}:"
+        keys_to_delete = [key for key in self._cache if key.startswith(prefix)]
+        for key in keys_to_delete:
+            del self._cache[key]
+        if keys_to_delete:
+            logger.info(f"Cache invalidated for module {module_id}: {len(keys_to_delete)} entries")

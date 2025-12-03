@@ -7,12 +7,13 @@ course:
   description: "Fundamentals of network analysis and graph theory"
 
 # Module definitions
-# Each module has an ID, name, content URL, and concepts to master
+# Each module has an ID, name, content URLs (list), and concepts to master
 modules:
   - id: "m01"
     name: "Euler Path and Circuit"
     description: "Understanding paths that traverse every edge exactly once"
-    content_url: "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m01-concept.md"  # Replace with your actual URL
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m01-concept.md"
     concepts:
       # Main concepts for this module
       - id: "euler-path"
@@ -53,7 +54,8 @@ modules:
   - id: "m02"
     name: "Network Centrality"
     description: "Measuring node importance in networks"
-    content_url: "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m06-concept.md"  # Replace with your actual URL
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m06-concept.md"
     concepts:
       - id: "degree-centrality"
         name: "Degree Centrality"

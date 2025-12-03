@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import yaml
 
@@ -27,9 +27,9 @@ class Module:
     id: str
     name: str
     description: str = ""
-    content_url: str = ""
+    content_urls: List[str] = field(default_factory=list)
     concepts: List[Concept] = field(default_factory=list)
-    content: str = ""  # Loaded content from URL
+    contents: Dict[str, str] = field(default_factory=dict)  # URL -> content mapping
 
     def get_concept(self, concept_id: str) -> Optional[Concept]:
         """Get a concept by ID."""
@@ -41,6 +41,14 @@ class Module:
     def get_concept_names(self) -> List[str]:
         """Get all concept names."""
         return [c.name for c in self.concepts]
+
+    def get_all_content(self) -> str:
+        """Get all content from all URLs concatenated.
+
+        Returns:
+            All URL contents joined with newlines
+        """
+        return "\n\n".join(self.contents.values())
 
 
 @dataclass
@@ -143,7 +151,7 @@ def load_course(course_path: str = "course.yaml") -> Course:
             id=mod_data.get("id", ""),
             name=mod_data.get("name", ""),
             description=mod_data.get("description", ""),
-            content_url=mod_data.get("content_url", ""),
+            content_urls=mod_data.get("content_urls", []),
             concepts=concepts,
         )
         modules.append(module)

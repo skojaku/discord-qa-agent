@@ -106,7 +106,7 @@ class QuizService:
         Args:
             concept: The concept to quiz on
             module: The module containing the concept
-            context: Optional RAG-retrieved context (overrides module.content)
+            context: Optional RAG-retrieved context (overrides module content)
 
         Returns:
             Tuple of (question_text, correct_answer) or None if generation fails
@@ -114,7 +114,7 @@ class QuizService:
         quiz_format = "free-form"
 
         # Use RAG context if provided, otherwise fall back to module content
-        module_content = context if context else (module.content or "")
+        module_content = context if context else module.get_all_content()
 
         quiz_prompt = PromptTemplates.get_quiz_prompt(
             concept_name=concept.name,
