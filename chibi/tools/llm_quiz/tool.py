@@ -584,7 +584,7 @@ class LLMQuizTool(BaseTool):
                 user_name=state.user_name,
                 module_id=module_obj.id,
                 module_name=module_obj.name,
-                module_content=module_obj.content,
+                module_content=module_obj.get_all_content(),
             )
             view.original_user_id = int(state.user_id)
 
