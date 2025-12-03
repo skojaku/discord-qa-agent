@@ -1,1 +1,0 @@
-"""Chibi Bot test suite."""
