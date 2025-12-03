@@ -36,7 +36,8 @@ class Database:
 
     async def _init_schema(self) -> None:
         """Initialize database schema."""
-        schema = """
+        # Step 1: Create tables (without indexes that depend on migrated columns)
+        tables_schema = """
         -- Users table
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,6 +80,7 @@ class Database:
         );
 
         -- LLM Quiz Challenge attempts (students try to stump the AI)
+        -- Note: review columns are added via migration for existing databases
         CREATE TABLE IF NOT EXISTS llm_quiz_attempts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -89,28 +91,29 @@ class Database:
             student_wins BOOLEAN NOT NULL,
             student_answer_correctness TEXT NOT NULL,
             evaluation_explanation TEXT,
-            review_status TEXT DEFAULT 'auto_approved',
-            reviewed_at TIMESTAMP,
-            reviewed_by TEXT,
-            discord_user_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
 
-        -- Indexes for performance
+        -- Basic indexes (columns that always exist)
         CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id);
         CREATE INDEX IF NOT EXISTS idx_quiz_attempts_concept ON quiz_attempts(concept_id);
         CREATE INDEX IF NOT EXISTS idx_concept_mastery_user ON concept_mastery(user_id);
         CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_user ON llm_quiz_attempts(user_id);
         CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_module ON llm_quiz_attempts(module_id);
-        CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_review_status ON llm_quiz_attempts(review_status);
         """
 
-        await self._connection.executescript(schema)
+        await self._connection.executescript(tables_schema)
         await self._connection.commit()
 
-        # Run migrations for existing databases
+        # Step 2: Run migrations for existing databases (adds new columns)
         await self._run_migrations()
+
+        # Step 3: Create indexes on migrated columns (after columns exist)
+        await self._connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_llm_quiz_attempts_review_status ON llm_quiz_attempts(review_status)"
+        )
+        await self._connection.commit()
 
     async def _run_migrations(self) -> None:
         """Run database migrations for schema updates."""
