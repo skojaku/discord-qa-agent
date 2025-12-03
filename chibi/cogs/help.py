@@ -110,7 +110,7 @@ class HelpCog(commands.Cog):
 
         embed.set_footer(text="Need more help? Ask Chibi directly!")
 
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: "ChibiBot"):
