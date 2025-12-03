@@ -77,55 +77,6 @@ class Course:
                 return module
         return None
 
-    def find_module(self, query: str) -> Optional[Module]:
-        """Find a module by ID, name, or concept name (fuzzy matching).
-
-        Args:
-            query: Module ID, name, or partial name to search for
-
-        Returns:
-            Matching module or None
-        """
-        if not query:
-            return None
-
-        query_lower = query.lower().strip()
-
-        # 1. Exact ID match
-        for module in self.modules:
-            if module.id.lower() == query_lower:
-                return module
-
-        # 2. Exact name match (case-insensitive)
-        for module in self.modules:
-            if module.name.lower() == query_lower:
-                return module
-
-        # 3. Partial name match (query is substring of module name)
-        for module in self.modules:
-            if query_lower in module.name.lower():
-                return module
-
-        # 4. Partial name match (module name is substring of query)
-        for module in self.modules:
-            if module.name.lower() in query_lower:
-                return module
-
-        # 5. Check if query matches a concept name - return containing module
-        for module in self.modules:
-            for concept in module.concepts:
-                if query_lower in concept.name.lower() or concept.name.lower() in query_lower:
-                    return module
-
-        # 6. Word-based fuzzy matching (any word in query matches module name)
-        query_words = set(query_lower.split())
-        for module in self.modules:
-            module_words = set(module.name.lower().split())
-            if query_words & module_words:  # intersection
-                return module
-
-        return None
-
     def get_module_choices(self) -> List[tuple]:
         """Get module choices for Discord autocomplete.
 

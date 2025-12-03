@@ -552,8 +552,7 @@ class LLMQuizTool(BaseTool):
                     metadata={"response_sent": True},
                 )
 
-            # Use fuzzy matching to find module by ID, name, or concept
-            module_obj = self.bot.course.find_module(module_id)
+            module_obj = self.bot.course.get_module(module_id)
             if not module_obj:
                 await discord_message.reply(
                     f"Module `{module_id}` not found.\n\n"

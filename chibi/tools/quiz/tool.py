@@ -257,8 +257,7 @@ class QuizTool(BaseTool):
             # Get module from parameters or select randomly
             module_id = state.parameters.get("module")
             if module_id:
-                # Use fuzzy matching to find module by ID, name, or concept
-                module_obj = self.bot.course.find_module(module_id)
+                module_obj = self.bot.course.get_module(module_id)
             else:
                 module_obj = random.choice(self.bot.course.modules)
 
