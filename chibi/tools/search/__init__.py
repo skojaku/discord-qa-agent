@@ -1,0 +1,1 @@
+"""Search course content tool."""

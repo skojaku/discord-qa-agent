@@ -1,0 +1,21 @@
+name: search_course_content
+description: "Search course materials for information to answer questions about course concepts, topics, and explanations."
+trigger_keywords:
+  - search
+  - find
+  - look up
+  - what is
+  - explain
+  - how does
+  - tell me about
+requires_module: false
+requires_user_input: false
+parameters:
+  query:
+    type: string
+    description: "The search query for finding relevant course content"
+    required: true
+  module:
+    type: string
+    description: "Optional module ID to focus the search"
+    required: false

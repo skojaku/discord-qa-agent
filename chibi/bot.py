@@ -7,7 +7,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from .agent.graph import AgentGraph, create_agent_graph
+from .agent.graph import MainAgent, create_agent
+from .agent.memory import ConversationMemory
 from .agent.context_manager import ContextManagerAgent, create_context_manager
 from .config import Config, load_config
 from .content.course import Course, load_course
@@ -85,7 +86,8 @@ class ChibiBot(commands.Bot):
 
         # Agent components
         self.tool_registry: Optional[ToolRegistry] = None
-        self.agent_graph: Optional[AgentGraph] = None
+        self.main_agent: Optional[MainAgent] = None
+        self.conversation_memory: Optional[ConversationMemory] = None
         self.context_manager: Optional[ContextManagerAgent] = None
         self.search_agent: Optional[SearchAgentService] = None
 
@@ -109,8 +111,8 @@ class ChibiBot(commands.Bot):
             content: Message content to log
             metadata: Optional metadata
         """
-        if self.agent_graph and self.agent_graph.conversation_memory:
-            self.agent_graph.conversation_memory.add_message(
+        if self.conversation_memory:
+            self.conversation_memory.add_message(
                 user_id=user_id,
                 channel_id=channel_id,
                 role=role,
@@ -281,23 +283,30 @@ class ChibiBot(commands.Bot):
         await self.tool_registry.load_tools_from_directory()
         logger.info(f"Tools loaded: {', '.join(self.tool_registry.get_tool_names())}")
 
-        # Initialize agent graph (if agent is enabled)
+        # Initialize conversation memory
+        self.conversation_memory = ConversationMemory(
+            max_history=self.config.agent.max_conversation_history
+        )
+        logger.info("Conversation memory initialized")
+
+        # Initialize search agent (requires context_manager and conversation_memory)
+        if self.context_manager and self.conversation_memory:
+            self.search_agent = SearchAgentService(
+                context_manager=self.context_manager,
+                llm_manager=self.llm_manager,
+                conversation_memory=self.conversation_memory,
+            )
+            logger.info("Search agent initialized")
+
+        # Initialize main agent (if agent is enabled)
         if self.config.agent.enabled:
-            self.agent_graph = create_agent_graph(
+            self.main_agent = create_agent(
                 llm_manager=self.llm_manager,
                 tool_registry=self.tool_registry,
-                max_conversation_history=self.config.agent.max_conversation_history,
+                conversation_memory=self.conversation_memory,
+                course=self.course,
             )
-            logger.info("Agent graph initialized")
-
-            # Initialize search agent (requires context_manager and conversation_memory)
-            if self.context_manager and self.agent_graph.conversation_memory:
-                self.search_agent = SearchAgentService(
-                    context_manager=self.context_manager,
-                    llm_manager=self.llm_manager,
-                    conversation_memory=self.agent_graph.conversation_memory,
-                )
-                logger.info("Search agent initialized")
+            logger.info("Main agent initialized")
 
         # Load cogs
         await self.load_extension("chibi.cogs.quiz")
@@ -378,7 +387,7 @@ class ChibiBot(commands.Bot):
         await self.process_commands(message)
 
         # Check if agent is enabled
-        if not self.config.agent.enabled or self.agent_graph is None:
+        if not self.config.agent.enabled or self.main_agent is None:
             return
 
         # Don't process if message starts with command prefix
@@ -426,10 +435,10 @@ class ChibiBot(commands.Bot):
         )
 
         try:
-            # Invoke the agent graph with cleaned content
-            await self.agent_graph.invoke(message, cleaned_content=content)
+            # Invoke the main agent with cleaned content
+            await self.main_agent.invoke(message, cleaned_content=content)
         except Exception as e:
-            logger.error(f"Error in agent graph: {e}", exc_info=True)
+            logger.error(f"Error in main agent: {e}", exc_info=True)
             try:
                 await message.reply(
                     "I encountered an error processing your request. Please try again.",

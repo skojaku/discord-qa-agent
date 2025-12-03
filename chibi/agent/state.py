@@ -3,12 +3,10 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
-from langgraph.graph import MessagesState
-
 
 @dataclass
 class ToolResult:
-    """Result returned by a sub-agent tool.
+    """Result returned by a tool.
 
     Attributes:
         success: Whether the tool execution was successful
@@ -25,15 +23,12 @@ class ToolResult:
     error: Optional[str] = None
 
 
-class MainAgentState(TypedDict, total=False):
-    """State for the main orchestrating agent.
+class AgentState(TypedDict, total=False):
+    """State for the main ReAct agent.
 
     This state is passed through the LangGraph nodes and maintains
-    the full conversation context with the user.
+    the conversation context and ReAct loop state.
     """
-
-    # Message content
-    messages: List[Dict[str, str]]
 
     # User/Channel context
     user_id: str
@@ -44,21 +39,21 @@ class MainAgentState(TypedDict, total=False):
     # Discord interaction (for responding)
     discord_message: Any  # discord.Message object
 
-    # Intent routing
-    detected_intent: Optional[str]  # "quiz", "llm_quiz", "status", "assistant"
-    intent_confidence: float
-    extracted_params: Dict[str, Any]
+    # User's original message
+    user_message: str
+
+    # ReAct loop state
+    iteration: int
+    max_iterations: int
 
     # Tool execution
-    selected_tool: Optional[str]
-    tool_result: Optional[ToolResult]
+    pending_tool_call: Optional[Dict[str, Any]]  # {name, query, params}
+    tool_results: List[ToolResult]
+    observations: List[str]  # Tool observations for context
 
-    # Response
-    response_type: Literal["embed", "text", "modal"]
-    response_content: Optional[Any]
-
-    # Conversation history (main agent keeps this)
-    conversation_history: List[Dict[str, str]]
+    # Final response
+    final_response: Optional[str]
+    response_sent: bool
 
 
 @dataclass

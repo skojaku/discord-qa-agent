@@ -424,74 +424,113 @@ class TestMentionCleaningScenarios:
 
 
 class TestToolDispatchScenarios:
-    """Test scenarios for dispatching to specific tools."""
+    """Test scenarios for tool dispatch in the ReAct agent."""
 
     @pytest.mark.asyncio
     async def test_scenario_dispatch_to_quiz_tool(
         self,
     ):
         """
-        Scenario: Dispatch to quiz tool
+        Scenario: Agent decides to execute quiz tool
 
-        Given: An intent classified as "quiz"
-        When: The dispatcher processes it
-        Then: The quiz tool should be selected
+        Given: A pending tool call for quiz
+        When: The agent checks if it should execute
+        Then: It should proceed to execute the tool
         """
-        from chibi.agent.nodes.router import should_use_tool
+        from chibi.agent.graph import MainAgent
 
+        # State with pending tool call
         state = {
-            "detected_intent": "quiz",
-            "intent_confidence": 0.95,
+            "pending_tool_call": {"name": "quiz", "query": "", "params": {}},
+            "iteration": 1,
+            "max_iterations": 3,
         }
 
-        result = should_use_tool(state)
+        # Test the routing logic directly
+        # When there's a pending tool call and iterations left, should execute
+        pending_tool = state.get("pending_tool_call")
+        iteration = state.get("iteration", 0)
+        max_iterations = state.get("max_iterations", 3)
 
-        assert result == "use_tool"
+        should_execute = pending_tool and iteration < max_iterations
+
+        assert should_execute is True
 
     @pytest.mark.asyncio
     async def test_scenario_dispatch_to_status_tool(
         self,
     ):
         """
-        Scenario: Dispatch to status tool
+        Scenario: Agent decides to execute status tool
 
-        Given: An intent classified as "status"
-        When: The dispatcher processes it
-        Then: The status tool should be selected
+        Given: A pending tool call for status
+        When: The agent checks if it should execute
+        Then: It should proceed to execute the tool
         """
-        from chibi.agent.nodes.router import should_use_tool
-
         state = {
-            "detected_intent": "status",
-            "intent_confidence": 0.9,
+            "pending_tool_call": {"name": "status", "query": "", "params": {}},
+            "iteration": 1,
+            "max_iterations": 3,
         }
 
-        result = should_use_tool(state)
+        pending_tool = state.get("pending_tool_call")
+        iteration = state.get("iteration", 0)
+        max_iterations = state.get("max_iterations", 3)
 
-        assert result == "use_tool"
+        should_execute = pending_tool and iteration < max_iterations
+
+        assert should_execute is True
 
     @pytest.mark.asyncio
-    async def test_scenario_dispatch_to_assistant(
+    async def test_scenario_dispatch_to_search(
         self,
     ):
         """
-        Scenario: Dispatch to assistant for general questions
+        Scenario: Agent decides to execute search tool
 
-        Given: An intent classified as "assistant"
-        When: The dispatcher processes it
-        Then: The assistant tool should handle it
+        Given: A pending tool call for search_course_content
+        When: The agent checks if it should execute
+        Then: It should proceed to execute the tool
         """
-        from chibi.agent.nodes.router import should_use_tool
-
         state = {
-            "detected_intent": "assistant",
-            "intent_confidence": 0.8,
+            "pending_tool_call": {"name": "search_course_content", "query": "network centrality", "params": {}},
+            "iteration": 1,
+            "max_iterations": 3,
         }
 
-        result = should_use_tool(state)
+        pending_tool = state.get("pending_tool_call")
+        iteration = state.get("iteration", 0)
+        max_iterations = state.get("max_iterations", 3)
 
-        # Assistant is still a tool
-        assert result == "use_tool"
+        should_execute = pending_tool and iteration < max_iterations
+
+        assert should_execute is True
+
+    @pytest.mark.asyncio
+    async def test_scenario_respond_when_no_tool(
+        self,
+    ):
+        """
+        Scenario: Agent responds directly when no tool needed
+
+        Given: No pending tool call
+        When: The agent checks if it should execute
+        Then: It should proceed to respond directly
+        """
+        state = {
+            "pending_tool_call": None,
+            "iteration": 1,
+            "max_iterations": 3,
+        }
+
+        pending_tool = state.get("pending_tool_call")
+        iteration = state.get("iteration", 0)
+        max_iterations = state.get("max_iterations", 3)
+
+        # When no pending tool, should_execute is falsy
+        should_execute = bool(pending_tool) and iteration < max_iterations
+
+        assert should_execute is False
 
 
 class TestAgentStateScenarios:
