@@ -1,20 +1,13 @@
 """Help command cog for students."""
 
-import logging
 from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from .utils import defer_interaction, handle_slash_command_errors
-
 if TYPE_CHECKING:
     from ..bot import ChibiBot
-
-logger = logging.getLogger(__name__)
-
-ERROR_HELP = "Oops! Something went wrong while fetching help. Please try again!"
 
 
 class HelpCog(commands.Cog):
@@ -24,8 +17,6 @@ class HelpCog(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="help", description="Show available commands and how to use them")
-    @defer_interaction(thinking=False)
-    @handle_slash_command_errors(error_message=ERROR_HELP, context="/help")
     async def help(self, interaction: discord.Interaction):
         """Show help information for students."""
         embed = discord.Embed(
@@ -110,7 +101,7 @@ class HelpCog(commands.Cog):
 
         embed.set_footer(text="Need more help? Ask Chibi directly!")
 
-        await interaction.followup.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: "ChibiBot"):
