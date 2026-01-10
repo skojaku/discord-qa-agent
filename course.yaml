@@ -1,88 +1,353 @@
 # Course Configuration for Chibi Bot
-# This file defines your course modules, concepts, and content sources
+# Applied Soft Computing: Modeling Complex Systems with Deep Learning
 
 course:
-  name: "Introduction to Network Science"
-  code: "NETSCI101"
-  description: "Fundamentals of network analysis and graph theory"
+  name: "Applied Soft Computing: Modeling Complex Systems with Deep Learning"
+  code: "APPLSOFTCOMP"
+  description: "Master modern machine learning techniques for text, images, and graphs through hands-on applications"
 
 # Module definitions
-# Each module has an ID, name, content URLs (list), and concepts to master
 modules:
   - id: "m01"
-    name: "Euler Path and Circuit"
-    description: "Understanding paths that traverse every edge exactly once"
+    name: "The Data Scientist's Toolkit"
+    description: "Tools and principles of reproducible data science"
     content_urls:
-      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m01-concept.md"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m01-toolkit/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m01-toolkit/git-github.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m01-toolkit/data-provenance.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m01-toolkit/tidy-data.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m01-toolkit/reproduceability.qmd"
     concepts:
-      # Main concepts for this module
-      - id: "euler-path"
-        name: "Euler Path"
-        type: "theory"
-        difficulty: 3
-        description: "A path in a graph that visits every edge exactly once. Understand the formal definition and when such paths exist."
-        quiz_focus: "Existence conditions, relationship to degree, coding implementation"
-        prerequisites:
-          - "walk"
-
-      - id: "euler-circuit"
-        name: "Euler Circuit"
-        type: "theory"
-        difficulty: 3
-        description: "A closed Euler path that starts and ends at the same vertex, visiting every edge exactly once."
-        quiz_focus: "Difference from Euler path, existence conditions, relationship to degree, coding implementation"
-        prerequisites:
-          - "euler-path"
-
-      # Building-block concepts (prerequisites)
-      - id: "walk"
-        name: "Walk"
-        type: "theory"
+      - id: "version-control"
+        name: "Version Control with Git & GitHub"
+        type: "practical"
         difficulty: 2
-        description: "A sequence of nodes and edges in a graph where two consecutive nodes are connected by an edge."
-        quiz_focus: "Definition, code implementation to check if a node sequence is a walk"
+        description: "Version control tracks changes in code and data, enabling collaboration and recovery from mistakes"
+        quiz_focus: "Git commands (commit, push, pull, branch, merge), GitHub workflows, resolving merge conflicts, collaborative development practices"
         prerequisites: []
 
-      - id: "degree"
-        name: "Node Degree"
+      - id: "data-provenance"
+        name: "Data Provenance"
         type: "theory"
         difficulty: 2
-        description: "The number of edges incident to a node. In directed graphs, distinguish between in-degree and out-degree."
-        quiz_focus: "Definition, calculating degree from adjacency matrix/list"
+        description: "Data provenance is the complete history of data from collection through transformations"
+        quiz_focus: "Why provenance matters for reproducibility, documenting data sources, tracking transformations, metadata best practices"
+        prerequisites: []
+
+      - id: "tidy-data"
+        name: "Tidy Data Principles"
+        type: "theory"
+        difficulty: 2
+        description: "Tidy data principles structure datasets where each variable is a column, each observation is a row, and each value is a cell"
+        quiz_focus: "Identifying tidy vs messy data, reshaping operations (pivot, melt), benefits for analysis workflows"
+        prerequisites: []
+
+      - id: "reproducibility"
+        name: "Reproducible Environments"
+        type: "practical"
+        difficulty: 3
+        description: "Creating reproducible computational environments ensures code runs consistently across different machines and time"
+        quiz_focus: "Virtual environments, conda/pip dependency management, requirements.txt, Docker basics, environment.yml files"
         prerequisites: []
 
   - id: "m02"
-    name: "Network Centrality"
-    description: "Measuring node importance in networks"
+    name: "Visualizing Complexity"
+    description: "Principles and techniques for visualizing data from simple distributions to networks"
     content_urls:
-      - "https://raw.githubusercontent.com/skojaku/adv-net-sci/refs/heads/main/docs/tutor-references/m06-concept.md"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/principles.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/1d-data.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/2d-data.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/highd-data.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/networks.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m02-visualization/time-series.qmd"
     concepts:
-      - id: "degree-centrality"
-        name: "Degree Centrality"
+      - id: "viz-principles"
+        name: "Principles of Effective Visualization"
         type: "theory"
         difficulty: 2
-        description: "Simplest centrality measure based on node degree."
-        quiz_focus: "Definition, normalization, interpretation"
-        prerequisites:
-          - "degree"
+        description: "Core principles for creating clear, honest, and insightful data visualizations"
+        quiz_focus: "Data-ink ratio, chart junk, choosing appropriate chart types, color theory, accessibility"
+        prerequisites: []
 
-      - id: "betweenness-centrality"
-        name: "Betweenness Centrality"
-        type: "theory"
-        difficulty: 4
-        description: "Measures how often a node lies on shortest paths between other nodes."
-        quiz_focus: "Definition, calculation, interpretation, applications"
-        prerequisites:
-          - "degree-centrality"
-
-      - id: "closeness-centrality"
-        name: "Closeness Centrality"
+      - id: "dimensionality-reduction"
+        name: "Dimensionality Reduction"
         type: "theory"
         difficulty: 3
-        description: "Measures how close a node is to all other nodes in the network."
-        quiz_focus: "Definition, calculation, handling disconnected graphs"
-        prerequisites:
-          - "degree-centrality"
+        description: "Techniques like PCA, t-SNE, and UMAP for visualizing high-dimensional data in 2D/3D space"
+        quiz_focus: "When to use PCA vs t-SNE vs UMAP, interpreting reduced dimensions, perplexity parameter, preserving local vs global structure"
+        prerequisites: ["viz-principles"]
+
+      - id: "network-visualization"
+        name: "Network Visualization"
+        type: "practical"
+        difficulty: 3
+        description: "Visualizing graph structures using layout algorithms and node-link diagrams"
+        quiz_focus: "Force-directed layouts, adjacency matrices, node positioning algorithms, handling large networks"
+        prerequisites: ["viz-principles"]
+
+      - id: "time-series-viz"
+        name: "Time-Series Visualization"
+        type: "practical"
+        difficulty: 2
+        description: "Visualizing temporal patterns, trends, and seasonality in time-dependent data"
+        quiz_focus: "Line charts, log scales, small multiples, handling missing data, trend extraction"
+        prerequisites: ["viz-principles"]
+
+  - id: "m03"
+    name: "Agentic Coding"
+    description: "Leveraging AI agents for software development through prompt engineering and context management"
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m03-agentic-coding/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m03-agentic-coding/hands-on.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m03-agentic-coding/prompt-tuning.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m03-agentic-coding/agentic-ai.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m03-agentic-coding/context-engineering.qmd"
+    concepts:
+      - id: "prompt-engineering"
+        name: "Prompt Engineering"
+        type: "practical"
+        difficulty: 2
+        description: "Crafting effective prompts to guide LLM behavior for coding tasks"
+        quiz_focus: "Few-shot learning, chain-of-thought prompting, specifying output format, iteration strategies"
+        prerequisites: []
+
+      - id: "agentic-systems"
+        name: "Agentic AI Systems"
+        type: "theory"
+        difficulty: 3
+        description: "Understanding how AI agents use tools, memory, and planning to accomplish complex tasks autonomously"
+        quiz_focus: "ReAct pattern, tool use, agent loops, planning vs execution, limitations and failure modes"
+        prerequisites: ["prompt-engineering"]
+
+      - id: "context-management"
+        name: "Context Engineering"
+        type: "practical"
+        difficulty: 3
+        description: "Managing context windows effectively through chunking, retrieval, and context compression"
+        quiz_focus: "Token limits, RAG systems, semantic search, context relevance, memory management"
+        prerequisites: ["prompt-engineering"]
+
+  - id: "m04"
+    name: "Deep Learning for Text"
+    description: "Understanding LLMs, transformers, and embedding representations for natural language"
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/llm-intro.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/gpt-inference.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/tokenization.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/transformers.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/bert-gpt.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/sentence-transformers.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/word-embeddings.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/semaxis.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m04-text/word-bias.qmd"
+    concepts:
+      - id: "llm-basics"
+        name: "Large Language Models"
+        type: "theory"
+        difficulty: 2
+        description: "Understanding what LLMs are, how they generate text, and practical usage patterns"
+        quiz_focus: "What LLMs learn, pretraining vs fine-tuning, model scale, capabilities and limitations"
+        prerequisites: []
+
+      - id: "gpt-sampling"
+        name: "GPT Inference and Sampling"
+        type: "practical"
+        difficulty: 3
+        description: "Controlling text generation through temperature, top-k, top-p, and other sampling parameters"
+        quiz_focus: "Temperature effects, top-k vs top-p sampling, beam search, deterministic vs stochastic generation"
+        prerequisites: ["llm-basics"]
+
+      - id: "tokenization"
+        name: "Tokenization"
+        type: "theory"
+        difficulty: 2
+        description: "How LLMs convert text into tokens using BPE, WordPiece, and other algorithms"
+        quiz_focus: "Subword tokenization, vocabulary size, token efficiency across languages, edge cases"
+        prerequisites: ["llm-basics"]
+
+      - id: "transformers"
+        name: "Transformer Architecture"
+        type: "theory"
+        difficulty: 4
+        description: "The architecture that revolutionized NLP through self-attention mechanisms"
+        quiz_focus: "Self-attention mechanism, positional encoding, multi-head attention, feed-forward layers, layer normalization"
+        prerequisites: ["tokenization"]
+
+      - id: "bert-gpt"
+        name: "BERT vs GPT Architectures"
+        type: "theory"
+        difficulty: 3
+        description: "Understanding encoder-only (BERT), decoder-only (GPT), and their use cases"
+        quiz_focus: "Bidirectional vs unidirectional attention, masked language modeling, autoregressive generation, when to use each"
+        prerequisites: ["transformers"]
+
+      - id: "sentence-transformers"
+        name: "Sentence Transformers"
+        type: "practical"
+        difficulty: 3
+        description: "Models that produce fixed-length embeddings for semantic similarity"
+        quiz_focus: "Siamese networks, contrastive learning, cosine similarity, semantic search applications"
+        prerequisites: ["transformers"]
+
+      - id: "word-embeddings"
+        name: "Word Embeddings"
+        type: "theory"
+        difficulty: 3
+        description: "Representing words as vectors where geometric relationships capture semantic meaning"
+        quiz_focus: "Word2Vec (CBOW, Skip-gram), distributional hypothesis, analogies in vector space, limitations"
+        prerequisites: []
+
+      - id: "semantic-axes"
+        name: "Semantic Axes"
+        type: "theory"
+        difficulty: 3
+        description: "Measuring meaning as direction in embedding space along interpretable dimensions"
+        quiz_focus: "Constructing semantic axes, projecting words onto axes, measuring bias, interpreting dimensions"
+        prerequisites: ["word-embeddings"]
+
+      - id: "word-bias"
+        name: "Bias in Word Embeddings"
+        type: "theory"
+        difficulty: 3
+        description: "How embeddings reflect and amplify societal biases present in training data"
+        quiz_focus: "Measuring bias through associations, gender bias, debiasing techniques, ethical implications"
+        prerequisites: ["word-embeddings", "semantic-axes"]
+
+  - id: "m05"
+    name: "Deep Learning for Images"
+    description: "CNNs and vision architectures from pixels to state-of-the-art models"
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m05-images/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m05-images/01-what-is-an-image.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m05-images/02-the-deep-learning-revolution.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m05-images/03-using-cnn-models.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m05-images/04-cnn-innovations.qmd"
+    concepts:
+      - id: "image-representation"
+        name: "Images as Data Structures"
+        type: "theory"
+        difficulty: 2
+        description: "Understanding how images are represented as multidimensional arrays and why spatial structure matters"
+        quiz_focus: "RGB channels, pixel values, tensors, coordinate systems, spatial relationships"
+        prerequisites: []
+
+      - id: "deep-learning-revolution"
+        name: "The Deep Learning Revolution"
+        type: "theory"
+        difficulty: 2
+        description: "The historical shift from hand-crafted features to learned representations"
+        quiz_focus: "LeNet vs AlexNet, ImageNet competition, why deep learning won, feature learning vs feature engineering"
+        prerequisites: ["image-representation"]
+
+      - id: "cnn-building-blocks"
+        name: "CNN Building Blocks"
+        type: "practical"
+        difficulty: 3
+        description: "Core operations in CNNs: convolution, pooling, activation functions, and batch normalization"
+        quiz_focus: "Convolution operation, kernel size, stride, padding, max/avg pooling, ReLU activation, batch normalization"
+        prerequisites: ["image-representation"]
+
+      - id: "transfer-learning"
+        name: "Transfer Learning"
+        type: "practical"
+        difficulty: 3
+        description: "Using pre-trained models and fine-tuning for new tasks with limited data"
+        quiz_focus: "Feature extraction vs fine-tuning, freezing layers, when transfer learning helps, choosing pre-trained models"
+        prerequisites: ["cnn-building-blocks"]
+
+      - id: "cnn-architectures"
+        name: "CNN Architecture Evolution"
+        type: "theory"
+        difficulty: 4
+        description: "Understanding VGG, Inception, ResNet, and Vision Transformers as solutions to specific problems"
+        quiz_focus: "VGG simplicity, Inception's multi-scale approach, ResNet skip connections, attention in Vision Transformers"
+        prerequisites: ["cnn-building-blocks"]
+
+  - id: "m06"
+    name: "Deep Learning for Graphs"
+    description: "Extending convolution and embeddings to irregular graph structures"
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m06-graph/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m06-graph/01-from-images-to-graphs.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m06-graph/02-spectral-perspective.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m06-graph/03-spatial-networks.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m06-graph/04-graph-embeddings.qmd"
+    concepts:
+      - id: "graph-convolution-intro"
+        name: "From Images to Graphs"
+        type: "theory"
+        difficulty: 3
+        description: "Understanding how convolution principles extend from regular grids to irregular graph structures"
+        quiz_focus: "Locality, parameter sharing, hierarchical features on graphs, challenges of irregular structure"
+        prerequisites: []
+
+      - id: "spectral-graph-theory"
+        name: "Spectral Perspective"
+        type: "theory"
+        difficulty: 4
+        description: "Using graph Laplacian eigenvectors as frequency basis for defining graph convolution"
+        quiz_focus: "Graph Laplacian, eigendecomposition, spectral filters, frequency interpretation, computational cost"
+        prerequisites: ["graph-convolution-intro"]
+
+      - id: "spatial-graph-networks"
+        name: "Spatial Graph Networks"
+        type: "practical"
+        difficulty: 4
+        description: "Defining convolution as neighborhood aggregation through GCN, GraphSAGE, GAT, and GIN"
+        quiz_focus: "Message passing, GCN layer, attention mechanisms in GAT, sampling in GraphSAGE, expressive power"
+        prerequisites: ["graph-convolution-intro"]
+
+      - id: "graph-embeddings"
+        name: "Graph Embeddings"
+        type: "practical"
+        difficulty: 3
+        description: "Learning node representations through spectral methods and random walk approaches like DeepWalk"
+        quiz_focus: "Spectral embeddings, random walks on graphs, DeepWalk algorithm, node2vec, applications to clustering"
+        prerequisites: ["graph-convolution-intro"]
+
+  - id: "m07"
+    name: "Representations & Structuralism"
+    description: "Philosophical foundations of representation learning and the structuralist perspective"
+    content_urls:
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m07-representation/overview.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m07-representation/01-boundaries.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m07-representation/02-structuralism.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m07-representation/03-embeddings.qmd"
+      - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/main/docs/lecture-note/m07-representation/04-universal.qmd"
+    concepts:
+      - id: "categorical-boundaries"
+        name: "When Boundaries Blur"
+        type: "theory"
+        difficulty: 2
+        description: "Understanding how observation and language create artificial boundaries in continuous reality"
+        quiz_focus: "Continuum of categories, observer-dependent divisions, examples from age/geography/color"
+        prerequisites: []
+
+      - id: "structuralism"
+        name: "Meaning as Difference"
+        type: "theory"
+        difficulty: 3
+        description: "The structuralist insight that meaning arises from relationships rather than fixed definitions"
+        quiz_focus: "Saussurean linguistics, relational meaning, Buddhist logic, structural anthropology"
+        prerequisites: ["categorical-boundaries"]
+
+      - id: "embeddings-philosophy"
+        name: "From Categories to Coordinates"
+        type: "theory"
+        difficulty: 3
+        description: "How embeddings operationalize structuralism by mapping concepts to continuous vector spaces"
+        quiz_focus: "Word2Vec as geometry, restoring gradation, vector arithmetic, continuous vs discrete representations"
+        prerequisites: ["structuralism", "word-embeddings"]
+
+      - id: "universal-representations"
+        name: "Universal Representations"
+        type: "theory"
+        difficulty: 3
+        description: "How the embedding paradigm unifies text, images, networks, and time-series through relational structure"
+        quiz_focus: "Cross-modal embeddings, unified latent spaces, CLIP, applications across data types"
+        prerequisites: ["embeddings-philosophy"]
 
 # Available quiz formats
 quiz_formats:

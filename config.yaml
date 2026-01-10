@@ -29,7 +29,7 @@ llm:
 # Chibi persona
 persona:
   name: "Chibi"
-  description: "Time-traveling AI tutor from 22nd century"
+  description: "Your friendly AI tutor for Applied Soft Computing - helping you master deep learning for text, images, and graphs"
 
 # Mastery calculation thresholds (hybrid: LLM quality + correct ratio)
 mastery:
