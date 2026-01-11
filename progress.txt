@@ -122,3 +122,31 @@
 - ✓ Credentials directory properly ignored by git
 
 ---
+
+## 2026-01-11 - US-004
+**What was implemented:** Unit tests for Google Sheets OAuth client
+**Files changed:**
+- tests/test_google_sheets_client.py (created - 487 lines, 20 test cases)
+- uv.lock (updated with test dependencies)
+
+**Test Coverage:**
+- OAuth 2.0 authentication flow (4 tests): initialization, first-time auth, token refresh, token reuse
+- Spreadsheet CRUD operations (6 tests): create, get, write, write with auto-sheet creation, read, list
+- Error handling (3 tests): API failures, permission errors, network retries
+- Batch operations (2 tests): large datasets with batching, rate limit handling with exponential backoff
+- Additional edge cases (5 tests): missing credentials, token persistence, etc.
+
+**Learnings:**
+- **TDD approach:** Tests written BEFORE implementation exists - defines the contract
+- **pytest.importorskip:** Use at module level to skip entire module if implementation missing
+- **Mocking pattern:** Mock google.auth, gspread.authorize, and API responses
+- **Test dependencies:** Must run `uv sync --extra test` to install pytest and related tools
+- **Test structure:** Organize by feature area (OAuth, CRUD, Errors, Batch) using test classes
+- **Skip markers:** Use `@pytest.mark.skip(reason="Implementation not yet created")` on all tests
+
+**Verification:**
+- ✓ pytest --collect-only succeeds (validates structure and imports)
+- ✓ All tests properly skipped until implementation
+- ✓ Comprehensive coverage of success and failure paths
+
+---
