@@ -55,6 +55,13 @@ Set up directory structure, dependencies, and configuration:
 - Add dependencies to `pyproject.toml`: google-auth, google-auth-oauthlib, google-api-python-client, gspread
 - Add backup section to `config.yaml`
 
+**Testing Credentials:**
+- A test credentials file `google-credentials.json` is available in the project root
+- This file contains mock/test OAuth credentials for development and testing
+- **Do NOT use for production** - only for local testing and development
+- In tests, reference this file or mock the credentials entirely
+- Production OAuth flow will use `credentials/google_oauth_credentials.json` (created by admin)
+
 #### For Test Stories (US-004 to US-008)
 
 **Write tests BEFORE implementation exists:**
@@ -301,6 +308,28 @@ async def test_export_progress(backup_service, mock_sheets_client):
     assert result['spreadsheet_url']
     mock_sheets_client.create_spreadsheet.assert_called_once()
 ```
+
+**Using test credentials for manual testing:**
+```python
+# For manual testing or integration tests that need real credentials
+# Use the provided google-credentials.json file
+import json
+from pathlib import Path
+
+# Load test credentials
+test_creds_path = Path(__file__).parent.parent / "google-credentials.json"
+with open(test_creds_path) as f:
+    test_credentials = json.load(f)
+
+# Use in GoogleSheetsClient initialization
+# Note: For unit tests, always mock the Google API instead
+```
+
+**Important:**
+- Unit tests should ALWAYS mock Google API calls (no real API calls)
+- `google-credentials.json` is only for manual testing during development
+- Integration tests can use test credentials if needed, but prefer mocks
+- Never commit real OAuth credentials
 
 ### Discord Cog Pattern
 

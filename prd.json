@@ -68,7 +68,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "TDD: Write tests BEFORE implementation. Use pytest-asyncio. Mock external APIs. See tests/mocks/ for patterns."
+      "notes": "TDD: Write tests BEFORE implementation. Use pytest-asyncio. Mock external APIs (google.auth, googleapiclient, gspread). See tests/mocks/ for patterns. Note: google-credentials.json is available for manual testing but unit tests should mock APIs."
     },
     {
       "id": "US-005",
@@ -167,7 +167,7 @@
       ],
       "priority": 9,
       "passes": false,
-      "notes": "Tests already written in US-004. Use gspread library. Follow google-auth-oauthlib patterns. See chibi/llm/ for async patterns."
+      "notes": "Tests already written in US-004. Use gspread library. Follow google-auth-oauthlib patterns. See chibi/llm/ for async patterns. For manual testing: google-credentials.json is available in project root (do not use for production)."
     },
     {
       "id": "US-010",

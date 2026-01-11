@@ -50,6 +50,10 @@
 - Use `@pytest.mark.skip` for tests before implementation
 - Mock external APIs: `unittest.mock.patch()` or `unittest.mock.Mock()`
 - In-memory database for tests: `Database(":memory:")`
+- **Test Credentials**: `google-credentials.json` in project root for manual testing
+  - Use ONLY for manual testing during development
+  - Unit tests should ALWAYS mock Google API calls
+  - Never use real production credentials in tests
 
 ### Configuration
 - Main config: `config.yaml` - YAML format
