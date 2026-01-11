@@ -8,14 +8,12 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Import will fail until implementation exists, but structure should be correct
-pytest.importorskip("chibi.backup.sheets_exporter", reason="Implementation not yet created")
+from chibi.backup.sheets_exporter import SheetsExporter
 
 
 class TestSheetsExporterInitialization:
     """Test SheetsExporter initialization and configuration."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     def test_initialization_with_dependencies(self):
         """
         Test SheetsExporter initializes with required dependencies.
@@ -24,7 +22,6 @@ class TestSheetsExporterInitialization:
         When: SheetsExporter is created
         Then: Should store dependencies correctly
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         mock_db = MagicMock()
         mock_sheets_client = MagicMock()
@@ -41,7 +38,6 @@ class TestSheetsExporterInitialization:
 class TestDataExport:
     """Test full export orchestration."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_export_with_sample_data(self, test_database):
         """
@@ -52,7 +48,6 @@ class TestDataExport:
         Then: Should create spreadsheet with all data sheets
         And: Should return dict with url and summary
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Create test data in database
         async with test_database.connection.execute(
@@ -97,10 +92,10 @@ class TestDataExport:
 
         # Mock sheets client
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "test_sheet_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="test_sheet_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock()
+        mock_sheets_client.write_sheet = MagicMock()
 
         exporter = SheetsExporter(
             database=test_database,
@@ -121,7 +116,6 @@ class TestDataExport:
         # Should write 6 sheets: Metadata, Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance
         assert mock_sheets_client.write_sheet.call_count == 6
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_export_empty_database(self, test_database):
         """
@@ -132,13 +126,11 @@ class TestDataExport:
         Then: Should create spreadsheet with header rows only
         And: Summary should show 0 records
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "empty_sheet_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="empty_sheet_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock()
+        mock_sheets_client.write_sheet = MagicMock()
 
         exporter = SheetsExporter(
             database=test_database,
@@ -153,7 +145,6 @@ class TestDataExport:
         assert result["summary"]["llm_quiz_attempts"] == 0
         assert result["summary"]["attendance"] == 0
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_export_creates_correct_spreadsheet_name(self, test_database):
         """
@@ -163,13 +154,11 @@ class TestDataExport:
         When: export_to_sheets() is called
         Then: Spreadsheet name should be 'Chibi Student Progress - YYYY-MM-DD HH:MM'
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "test_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="test_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock()
+        mock_sheets_client.write_sheet = MagicMock()
 
         exporter = SheetsExporter(
             database=test_database,
@@ -191,7 +180,6 @@ class TestDataExport:
 class TestDataTransformation:
     """Test SQLite rows to Sheets format conversion."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_transform_user_rows(self, test_database):
         """
@@ -201,7 +189,6 @@ class TestDataTransformation:
         When: Data is transformed for Sheets
         Then: Should convert to list of lists with header row
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Insert test user
         async with test_database.connection.execute(
@@ -229,7 +216,6 @@ class TestDataTransformation:
         assert users_data[1][1] == "123"  # discord_id
         assert users_data[1][2] == "alice"  # username
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_transform_quiz_attempts_rows(self, test_database):
         """
@@ -239,7 +225,6 @@ class TestDataTransformation:
         When: Data is transformed for Sheets
         Then: Should include all columns with proper ordering
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Insert test user and quiz attempt
         async with test_database.connection.execute(
@@ -280,7 +265,6 @@ class TestDataTransformation:
 class TestDataTypeConversions:
     """Test data type conversions for Google Sheets compatibility."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_none_to_empty_string_conversion(self, test_database):
         """
@@ -290,7 +274,6 @@ class TestDataTypeConversions:
         When: Data is transformed
         Then: NULL should become empty string ""
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Insert user with NULL student_id
         async with test_database.connection.execute(
@@ -312,7 +295,6 @@ class TestDataTypeConversions:
         # Verify NULL became empty string
         assert users_data[1][student_id_idx] == ""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_boolean_to_true_false_conversion(self, test_database):
         """
@@ -322,7 +304,6 @@ class TestDataTypeConversions:
         When: Data is transformed
         Then: 0 should become "FALSE", 1 should become "TRUE"
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Insert user and quiz attempts with is_correct boolean
         async with test_database.connection.execute(
@@ -366,7 +347,6 @@ class TestDataTypeConversions:
         assert quiz_data[1][is_correct_idx] == "TRUE"  # First attempt
         assert quiz_data[2][is_correct_idx] == "FALSE"  # Second attempt
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_long_text_truncation_to_50k_chars(self, test_database):
         """
@@ -376,7 +356,6 @@ class TestDataTypeConversions:
         When: Data is transformed
         Then: Text should be truncated to exactly 50,000 chars
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Create very long feedback text (60k chars)
         long_text = "A" * 60000
@@ -417,7 +396,6 @@ class TestDataTypeConversions:
         assert len(feedback_value) == 50000
         assert feedback_value == "A" * 50000
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_timestamp_preserved_as_iso_string(self, test_database):
         """
@@ -427,7 +405,6 @@ class TestDataTypeConversions:
         When: Data is transformed
         Then: Timestamps should remain as ISO format strings
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         timestamp_value = "2026-01-11 15:30:45"
 
@@ -456,7 +433,6 @@ class TestDataTypeConversions:
 class TestSheetCreation:
     """Test spreadsheet and sheet creation logic."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_creates_six_sheets(self, test_database):
         """
@@ -467,13 +443,11 @@ class TestSheetCreation:
         When: export_to_sheets() is called
         Then: Should call write_sheet() 6 times with correct sheet names
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "test_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="test_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock()
+        mock_sheets_client.write_sheet = MagicMock()
 
         exporter = SheetsExporter(test_database, mock_sheets_client)
         await exporter.export_to_sheets()
@@ -493,7 +467,6 @@ class TestSheetCreation:
         for expected in expected_sheets:
             assert expected in sheet_names
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_metadata_sheet_contains_export_info(self, test_database):
         """
@@ -503,13 +476,11 @@ class TestSheetCreation:
         When: export_to_sheets() is called
         Then: Metadata sheet should have export_date, schema_version, table counts
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "test_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="test_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock()
+        mock_sheets_client.write_sheet = MagicMock()
 
         exporter = SheetsExporter(test_database, mock_sheets_client)
         await exporter.export_to_sheets()
@@ -532,7 +503,6 @@ class TestSheetCreation:
 class TestBatchProcessing:
     """Test batch operations for large datasets."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_batches_large_dataset_into_1000_row_chunks(self, test_database):
         """
@@ -543,7 +513,6 @@ class TestBatchProcessing:
         Then: Should write QuizAttempts sheet in 3 batches (1000, 1000, 500)
         Or: Should handle in single write if implementation differs
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
 
         # Insert user
         async with test_database.connection.execute(
@@ -570,10 +539,10 @@ class TestBatchProcessing:
         await test_database.connection.commit()
 
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "test_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="test_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock()
+        mock_sheets_client.write_sheet = MagicMock()
 
         exporter = SheetsExporter(test_database, mock_sheets_client)
         await exporter.export_to_sheets()
@@ -594,7 +563,6 @@ class TestBatchProcessing:
 class TestErrorHandling:
     """Test error handling in export process."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_handles_sheets_api_create_failure(self, test_database):
         """
@@ -604,10 +572,8 @@ class TestErrorHandling:
         When: export_to_sheets() is called
         Then: Should raise descriptive error
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
+        mock_sheets_client.create_spreadsheet = MagicMock(
             side_effect=Exception("API Error: Permission denied")
         )
 
@@ -618,7 +584,6 @@ class TestErrorHandling:
 
         assert "API Error" in str(exc_info.value) or "Permission" in str(exc_info.value)
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_handles_sheets_api_write_failure(self, test_database):
         """
@@ -628,13 +593,11 @@ class TestErrorHandling:
         When: export_to_sheets() is called
         Then: Should raise descriptive error
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         mock_sheets_client = MagicMock()
-        mock_sheets_client.create_spreadsheet = AsyncMock(
-            return_value={"spreadsheetId": "test_123"}
+        mock_sheets_client.create_spreadsheet = MagicMock(
+            return_value="test_123"
         )
-        mock_sheets_client.write_sheet = AsyncMock(
+        mock_sheets_client.write_sheet = MagicMock(
             side_effect=Exception("Write failed: Rate limit exceeded")
         )
 
@@ -645,7 +608,6 @@ class TestErrorHandling:
 
         assert "Write failed" in str(exc_info.value) or "Rate limit" in str(exc_info.value)
 
-    @pytest.mark.skip(reason="Implementation not yet created")
     @pytest.mark.asyncio
     async def test_handles_database_query_failure(self, test_database):
         """
@@ -655,8 +617,6 @@ class TestErrorHandling:
         When: export_to_sheets() attempts to read data
         Then: Should raise descriptive error
         """
-        from chibi.backup.sheets_exporter import SheetsExporter
-
         # Close database to cause failures
         await test_database.close()
 
