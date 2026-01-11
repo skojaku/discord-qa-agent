@@ -414,3 +414,45 @@
 
 ---
 
+
+## 2026-01-11 - US-012
+**What was implemented:** BackupService orchestration layer for coordinating backup operations
+**Files changed:**
+- chibi/backup/backup_service.py (created - 223 lines)
+- chibi/backup/__init__.py (updated - exported BackupService)
+- chibi/backup/sheets_exporter.py (updated - return format)
+- chibi/backup/sheets_importer.py (updated - return format, fixed await issues)
+- tests/test_backup_service.py (updated - removed skip markers)
+- tests/test_sheets_importer.py (updated - AsyncMock → MagicMock)
+- tests/integration/test_backup_integration.py (updated - removed skip markers, fixed mocks)
+
+**Implementation Details:**
+- **BackupService class:** Orchestrates export, import, and list operations
+  - `__init__(database, sheets_client=None, config=None)` - Initialize with dependencies
+  - `export_progress()` - Delegate to SheetsExporter, return dict with url/summary
+  - `import_progress(url, mode='replace')` - Delegate to SheetsImporter with mode
+  - `list_recent_exports(limit=10)` - Query Google Sheets API for recent exports
+- **Dependency injection:** Auto-creates GoogleSheetsClient if not provided
+- **Logging:** Comprehensive logging of all operations with counts
+- **Error handling:** Let exceptions bubble up from exporter/importer with logging
+
+**Learnings:**
+- **Service signature:** Use `(database, sheets_client=None, config=None)` to support both unit and integration tests
+- **Return format consistency:** Exporter returns `spreadsheet_url`, importer returns `summary` with counts
+- **Async vs sync methods:** GoogleSheetsClient methods are NOT async (get_spreadsheet, read_sheet, write_sheet)
+  - Fixed importer to not await these methods
+  - Fixed test mocks: Use MagicMock not AsyncMock for sync methods
+- **Integration test patterns:** Mock methods must match real signatures (sync vs async)
+- **Backward compatibility:** Importer returns multiple count formats (summary, counts, *_imported keys)
+- **Test fixture coordination:** Mock get_spreadsheet must return sheets list based on _sheets_data
+
+**Test Results:**
+- ✓ All 22 unit tests in tests/test_backup_service.py pass
+- ✓ All 7 integration tests in tests/integration/test_backup_integration.py pass
+- ✓ All 18 importer tests pass
+- ✓ All 16 exporter tests pass
+- ✓ All 16 sheets client tests pass
+- ✓ Total: 79/79 backup tests passing
+- ✓ No regressions in existing tests
+
+---

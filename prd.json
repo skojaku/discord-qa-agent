@@ -229,7 +229,7 @@
         "All existing tests pass"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Tests already written in US-007 and US-008. Follow service pattern in chibi/services/. Inject dependencies via __init__."
     },
     {
