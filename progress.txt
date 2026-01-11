@@ -1,0 +1,93 @@
+# Google Sheets Backup Feature - Progress & Learnings
+
+## Codebase Patterns
+
+### Project Structure
+- **Services:** `chibi/services/` - Business logic layer, inject dependencies via `__init__`
+- **Database:** `chibi/database/` - Async SQLite with aiosqlite, repositories pattern
+- **Cogs:** `chibi/cogs/` - Discord command handlers using discord.app_commands
+- **Tools:** `chibi/tools/` - LangGraph tools, each has `tool.py` with Tool interface
+- **Tests:** `tests/` - pytest with pytest-asyncio, mocks in `tests/mocks/`
+
+### Async Patterns
+- All service methods are async: `async def method_name(self) -> ReturnType:`
+- Database operations use async context managers
+- Discord command handlers are async
+- Use `await` for all async calls
+- pytest-asyncio mode is "auto" (see conftest.py)
+
+### Database Patterns
+- Connection: `async with self.db.connection() as conn:`
+- Transactions: `async with conn.execute("BEGIN"): ... await conn.commit()`
+- Queries: `async with conn.execute(query, params) as cursor:`
+- Schema in `chibi/database/connection.py` - see `_init_schema()` method
+- Repositories inherit from BaseRepository
+- Use parameterized queries to prevent SQL injection
+
+### Service Patterns
+- Located in `chibi/services/`
+- Inject dependencies via `__init__(self, db: Database, config: Dict, ...)`
+- Example: `QuizService(db, rag_service, llm_manager, config)`
+- Return Dict or dataclass for structured data
+- Raise custom exceptions, catch in cogs for user-friendly messages
+- Add logging: `logger = logging.getLogger(__name__)`
+
+### Discord Cog Patterns
+- Located in `chibi/cogs/`
+- Inherit from `commands.Cog`
+- Use `@app_commands.command()` for slash commands
+- Admin check: `@commands.has_permissions(administrator=True)`
+- Ephemeral messages: `await interaction.response.defer(ephemeral=True)`
+- Error handling: Catch exceptions, show user-friendly messages
+- Registration: Add to `chibi/bot.py` in setup_hook or similar
+
+### Testing Patterns
+- Test files mirror source structure: `tests/test_[module].py`
+- Fixtures in `conftest.py` - database, mock clients, etc.
+- Mocks in `tests/mocks/` - Discord objects, LLM providers
+- Use `@pytest.fixture` for reusable test setup
+- Mark async tests with `@pytest.mark.asyncio` (auto mode)
+- Use `@pytest.mark.skip` for tests before implementation
+- Mock external APIs: `unittest.mock.patch()` or `unittest.mock.Mock()`
+- In-memory database for tests: `Database(":memory:")`
+
+### Configuration
+- Main config: `config.yaml` - YAML format
+- Structure: Top-level keys (bot, database, llm, similarity, backup)
+- Access in code: `self.config.get('backup', {}).get('google_sheets', {})`
+- Environment vars: Use `.env` for secrets (Discord token, API keys)
+- Example section structure:
+  ```yaml
+  backup:
+    google_sheets:
+      enabled: true
+      credentials_file: "credentials/google_oauth_credentials.json"
+      token_file: "credentials/token.json"
+  ```
+
+### Git Patterns
+- Branch naming: `ralph/[feature-name]`
+- Commit message format: `[type]: [story-id] - [subject]`
+- Types: feat, test, fix, chore, refactor, docs
+- Always include: `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`
+- Exclude from git: `credentials/*.json`, `data/`, `.env`
+
+### Dependencies
+- Package manager: `uv` (not pip)
+- Install: `uv sync`
+- Add dependency: Edit `pyproject.toml` then run `uv sync`
+- Test imports: `python -c 'import package_name'`
+
+### Running Tests
+- All tests: `uv run pytest tests/ -v`
+- Specific file: `uv run pytest tests/test_[component].py -v`
+- With coverage: `uv run pytest tests/ --cov=chibi --cov-report=term-missing`
+- Collect only (check structure): `uv run pytest tests/ --collect-only`
+
+---
+
+## Implementation Log
+
+_Ralph will append entries here after completing each story_
+
+---
