@@ -186,3 +186,37 @@
 - ✓ No regressions in existing tests
 
 ---
+## 2026-01-11 - US-006
+**What was implemented:** Unit tests for Google Sheets to SQLite importer
+**Files changed:** tests/test_sheets_importer.py (created - 781 lines, 18 test cases)
+
+**Test Coverage:**
+- Initialization and dependency injection (1 test)
+- Schema validation (4 tests): valid schema, missing Metadata sheet, missing data sheet, invalid schema version
+- Data type conversions (4 tests): empty→None, TRUE/FALSE→1/0, numeric strings→int/float, timestamp preservation
+- Replace mode (2 tests): DELETE then INSERT, preserves foreign key relationships
+- Merge mode (1 test): INSERT OR REPLACE updates existing and inserts new records
+- Transaction rollback (2 tests): foreign key violations, preserves original data on error
+- Spreadsheet URL extraction (3 tests): full URL, short URL, plain ID
+- Full import workflow (1 test): returns summary with mode, counts, and status
+
+**Learnings:**
+- **Schema validation testing:** Test for missing sheets, invalid versions, and proper structure
+- **Reverse transformations:** Import is opposite of export (empty→None, TRUE/FALSE→1/0)
+- **Transaction testing:** Verify rollback preserves original data on any error
+- **Foreign key testing:** Ensure referential integrity maintained during import
+- **Mode testing patterns:**
+  - Replace mode: DELETE all rows from tables, then INSERT new data
+  - Merge mode: INSERT OR REPLACE for each row (updates by primary key)
+- **URL extraction:** Parse Google Sheets URLs to extract spreadsheet ID from various formats
+- **Import workflow:** Test end-to-end flow returns summary dict with counts
+- **Mock patterns:** Use side_effect for read_sheet to return different data per sheet_name
+
+**Verification:**
+- ✓ pytest --collect-only succeeds (validates structure)
+- ✓ All tests properly skipped until implementation (US-011)
+- ✓ Comprehensive coverage of all US-006 acceptance criteria
+- ✓ No regressions in existing tests
+
+---
+
