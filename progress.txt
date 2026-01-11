@@ -150,3 +150,39 @@
 - ✓ Comprehensive coverage of success and failure paths
 
 ---
+
+## 2026-01-11 - US-005
+**What was implemented:** Unit tests for SQLite to Google Sheets exporter
+**Files changed:** tests/test_sheets_exporter.py (created - 667 lines, 18 test cases)
+
+**Test Coverage:**
+- Initialization and dependency injection (1 test)
+- Full export orchestration with sample data (3 tests)
+- Data transformation: SQLite rows to list-of-lists format (2 tests)
+- Data type conversions: None→"", 0/1→TRUE/FALSE, text truncation to 50k chars (5 tests)
+- Sheet creation: 6 sheets (Metadata, Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance) (2 tests)
+- Batch processing for large datasets (1 test)
+- Error handling: API failures, database failures (3 tests)
+
+**Learnings:**
+- **Test organization:** Group tests by feature area using test classes
+- **Data transformation testing:** Test SQLite row format to Sheets list-of-lists conversion
+- **Type conversion patterns:**
+  - NULL → "" (empty string) for Google Sheets compatibility
+  - BOOLEAN (0/1) → "TRUE"/"FALSE" strings
+  - TEXT fields → truncate to 50,000 chars (Sheets cell limit)
+  - TIMESTAMP → preserve as ISO string format
+- **Export structure:** 6 sheets required: Metadata (export info), 5 data tables
+- **Batch processing:** Large datasets should be written in 1000-row batches
+- **Metadata sheet:** Must include export_date, schema_version, and table counts
+- **Mock patterns:** Mock GoogleSheetsClient with AsyncMock for async methods
+- **Database testing:** Use test_database fixture from conftest.py (in-memory SQLite)
+- **pytest.importorskip:** Place at module level to skip entire file until implementation exists
+
+**Verification:**
+- ✓ pytest --collect-only succeeds (validates structure)
+- ✓ All tests properly skipped until implementation (US-010)
+- ✓ Comprehensive coverage of all US-005 acceptance criteria
+- ✓ No regressions in existing tests
+
+---
