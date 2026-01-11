@@ -166,7 +166,7 @@
         "All existing tests pass"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Tests already written in US-004. Use gspread library. Follow google-auth-oauthlib patterns. See chibi/llm/ for async patterns. For manual testing: google-credentials.json is available in project root (do not use for production)."
     },
     {

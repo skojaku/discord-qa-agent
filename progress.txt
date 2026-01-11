@@ -289,3 +289,46 @@
 
 ---
 
+## 2026-01-11 - US-009
+**What was implemented:** Google Sheets OAuth client with full CRUD operations
+**Files changed:**
+- chibi/backup/google_sheets_client.py (created - 282 lines)
+- chibi/backup/__init__.py (updated - exported GoogleSheetsClient)
+- tests/test_google_sheets_client.py (updated - removed skip markers, fixed mocking)
+
+**Implementation Details:**
+- **OAuth 2.0 Flow:** Desktop flow with browser-based authorization using google-auth-oauthlib
+  - First-time auth: Opens browser, saves token to credentials/token.json
+  - Token refresh: Automatically refreshes expired tokens
+  - Token reuse: Reuses valid tokens without refresh
+- **Spreadsheet CRUD Operations:**
+  - `create_spreadsheet(title)` - Creates new spreadsheet, returns ID
+  - `get_spreadsheet(spreadsheet_id)` - Retrieves spreadsheet by ID
+  - `write_sheet(spreadsheet_id, sheet_name, data, batch_size=1000)` - Writes data with batching
+  - `read_sheet(spreadsheet_id, sheet_name)` - Reads data as list of lists
+  - `list_spreadsheets(query)` - Lists accessible spreadsheets with optional filtering
+- **Error Handling:**
+  - Network errors with retry logic
+  - Rate limiting with exponential backoff (sleep + retry)
+  - API errors and permission errors propagated to caller
+- **Batch Operations:** Large datasets written in 1000-row batches to respect rate limits
+- **Auto-sheet Creation:** write_sheet() creates sheet if it doesn't exist
+
+**Learnings:**
+- **OAuth Pattern:** Use InstalledAppFlow.from_client_secrets_file() for desktop OAuth flow
+- **Token Persistence:** Save Credentials.to_json() to file, load with from_authorized_user_file()
+- **gspread Integration:** Use gspread.authorize(credentials) for simplified Sheets API access
+- **Batch Writing:** Split large datasets into chunks to avoid API timeouts and rate limits
+- **Rate Limit Detection:** Check APIError for code 429, then sleep and retry
+- **Path.exists Check:** Validate credentials file exists in __init__ to fail fast
+- **Test Mocking:** Mock Path.exists at module level (chibi.backup.google_sheets_client.Path.exists)
+- **Test Credentials:** Mock to_json() must return json.dumps() string, not dict
+- **Direct gc Assignment:** In tests, set client.gc = mock_gc instead of patching authenticate()
+
+**Test Results:**
+- ✓ All 16 tests passing in tests/test_google_sheets_client.py
+- ✓ No regressions in existing tests (54 passed, 4 skipped, 38 pre-existing errors)
+- Coverage: OAuth flow (5 tests), CRUD operations (6 tests), error handling (3 tests), batch ops (2 tests)
+
+---
+
