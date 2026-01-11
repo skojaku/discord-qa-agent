@@ -9,5 +9,6 @@ This module provides functionality to:
 """
 
 from chibi.backup.google_sheets_client import GoogleSheetsClient
+from chibi.backup.sheets_exporter import SheetsExporter
 
-__all__ = ["GoogleSheetsClient"]
+__all__ = ["GoogleSheetsClient", "SheetsExporter"]
