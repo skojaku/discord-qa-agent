@@ -27,6 +27,7 @@ from .learning.mastery import MasteryCalculator, MasteryConfig
 from .llm.manager import LLMManager
 from .llm.ollama_provider import OllamaProvider
 from .llm.openrouter_provider import OpenRouterProvider
+from .backup import BackupService
 from .services import (
     ContentIndexer,
     ContextualChunkingService,
@@ -83,6 +84,7 @@ class ChibiBot(commands.Bot):
         self.similarity_service: Optional[SimilarityService] = None
         self.rag_service: Optional[RAGService] = None
         self.content_indexer: Optional[ContentIndexer] = None
+        self.backup_service: Optional[BackupService] = None
 
         # Agent components
         self.tool_registry: Optional[ToolRegistry] = None
@@ -254,6 +256,20 @@ class ChibiBot(commands.Bot):
             contextual_chunking_service=contextual_service,
             use_contextual_retrieval=self.config.contextual_retrieval.enabled,
         )
+
+        # Initialize backup service
+        self.backup_service = BackupService(
+            database=self.database,
+            config={
+                'backup': {
+                    'google_sheets': {
+                        'credentials_file': self.config.backup.credentials_file,
+                        'token_file': self.config.backup.token_file,
+                        'scopes': self.config.backup.scopes,
+                    }
+                }
+            },
+        )
         logger.info("Services initialized")
 
         # Index course content for RAG
@@ -317,6 +333,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.guidance")
         await self.load_extension("chibi.cogs.attendance")
         await self.load_extension("chibi.cogs.help")
+        await self.load_extension("chibi.cogs.backup_cog")
         logger.info("Cogs loaded")
 
         # Sync commands if configured
