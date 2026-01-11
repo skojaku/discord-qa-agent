@@ -1,0 +1,271 @@
+{
+  "branchName": "ralph/google-sheets-backup",
+  "projectName": "Discord Quiz Bot - Student Progress Backup",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create directory structure and configure gitignore",
+      "description": "Set up the backup module directory structure and ensure credentials are excluded from version control",
+      "acceptanceCriteria": [
+        "Create chibi/backup/ directory with __init__.py",
+        "Create credentials/ directory at project root",
+        "Add credentials/.gitignore with patterns: *.json, token.json",
+        "Update root .gitignore to exclude credentials/*.json",
+        "Verify git status shows credentials/ as ignored"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Foundation step. Must complete before OAuth setup."
+    },
+    {
+      "id": "US-002",
+      "title": "Add Google Sheets API dependencies",
+      "description": "Install required Python packages for Google Sheets and OAuth authentication",
+      "acceptanceCriteria": [
+        "Add google-auth ^2.27.0 to pyproject.toml dependencies",
+        "Add google-auth-oauthlib ^1.2.0 to pyproject.toml dependencies",
+        "Add google-api-python-client ^2.116.0 to pyproject.toml dependencies",
+        "Add gspread ^6.0.0 to pyproject.toml dependencies",
+        "Run uv sync successfully",
+        "Verify imports: python -c 'import gspread; import google.auth' succeeds"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Use uv package manager. Add to [project.dependencies] section in pyproject.toml."
+    },
+    {
+      "id": "US-003",
+      "title": "Add backup configuration to config.yaml",
+      "description": "Configure backup settings in the bot's config file",
+      "acceptanceCriteria": [
+        "Add backup.google_sheets section to config.yaml",
+        "Set credentials_file: credentials/google_oauth_credentials.json",
+        "Set token_file: credentials/token.json",
+        "Add OAuth scopes: spreadsheets and drive.file",
+        "Create .env.example with OAuth setup instructions",
+        "Config loads without errors on bot startup"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Follow existing config.yaml structure. See llm section for reference."
+    },
+    {
+      "id": "US-004",
+      "title": "Implement Google Sheets OAuth client",
+      "description": "Create client for Google Sheets API with OAuth 2.0 authentication flow",
+      "acceptanceCriteria": [
+        "Create chibi/backup/google_sheets_client.py",
+        "Implement OAuth 2.0 desktop flow with browser authentication",
+        "Implement token persistence to credentials/token.json",
+        "Implement automatic token refresh",
+        "Add create_spreadsheet(title: str) method returning spreadsheet ID",
+        "Add get_spreadsheet(spreadsheet_id: str) method",
+        "Add write_sheet(spreadsheet_id, sheet_name, data: List[List]) method",
+        "Add read_sheet(spreadsheet_id, sheet_name) method returning List[List]",
+        "Add list_spreadsheets(query: str) method",
+        "Add error handling for API failures and permission errors",
+        "Unit tests pass with mocked Google API"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Use gspread library. Follow google-auth-oauthlib patterns for OAuth. See existing async patterns in chibi/llm/."
+    },
+    {
+      "id": "US-005",
+      "title": "Implement SQLite to Google Sheets exporter",
+      "description": "Create exporter to read SQLite tables and write to Google Sheets",
+      "acceptanceCriteria": [
+        "Create chibi/backup/sheets_exporter.py with SheetsExporter class",
+        "Implement export_to_sheets() returning Dict with url and summary",
+        "Read all rows from users, quiz_attempts, concept_mastery, llm_quiz_attempts, attendance tables",
+        "Convert SQLite rows to list of lists format for Sheets API",
+        "Handle data type conversions: None to empty string, 0/1 to TRUE/FALSE",
+        "Truncate long text fields to 50,000 characters",
+        "Create spreadsheet named 'Chibi Student Progress - YYYY-MM-DD HH:MM'",
+        "Create 6 sheets: Metadata, Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance",
+        "Write data in batches of 1000 rows to respect rate limits",
+        "Unit tests verify data transformation correctness",
+        "All existing tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Use async/await. Follow pattern in chibi/database/repositories/. Test with in-memory database."
+    },
+    {
+      "id": "US-006",
+      "title": "Implement Google Sheets to SQLite importer",
+      "description": "Create importer to read Google Sheets and write to SQLite database",
+      "acceptanceCriteria": [
+        "Create chibi/backup/sheets_importer.py with SheetsImporter class",
+        "Implement import_from_sheets(spreadsheet_url, mode='replace') returning Dict",
+        "Extract spreadsheet ID from URL or use as-is if already an ID",
+        "Validate Metadata sheet exists and schema version matches",
+        "Validate all 5 data sheets exist with correct column headers",
+        "Convert Sheets data back to SQLite row dicts",
+        "Handle data type conversions: empty string to None, TRUE/FALSE to 1/0",
+        "Implement 'replace' mode: DELETE FROM all tables, INSERT new rows in transaction",
+        "Implement 'merge' mode: INSERT OR REPLACE for each row in transaction",
+        "Add rollback on error (atomic operation)",
+        "Unit tests verify schema validation and both import modes",
+        "All existing tests pass"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Use SQLite transactions. Test rollback behavior. See database/connection.py for transaction patterns."
+    },
+    {
+      "id": "US-007",
+      "title": "Implement backup service orchestration",
+      "description": "Create service layer to orchestrate export and import operations",
+      "acceptanceCriteria": [
+        "Create chibi/backup/backup_service.py with BackupService class",
+        "Initialize GoogleSheetsClient, SheetsExporter, SheetsImporter in __init__",
+        "Implement async export_progress() returning Dict with url and summary",
+        "Implement async import_progress(spreadsheet_url, mode) returning Dict",
+        "Implement async list_recent_exports(limit=10) returning List[Dict]",
+        "Add logging for all operations using existing logger",
+        "Add error handling with user-friendly error messages",
+        "Unit tests verify orchestration with mocked dependencies",
+        "All existing tests pass"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Follow service pattern in chibi/services/. Inject dependencies via __init__."
+    },
+    {
+      "id": "US-008",
+      "title": "Implement Discord slash commands for backup",
+      "description": "Create Discord cog with admin-only commands for backup operations",
+      "acceptanceCriteria": [
+        "Create chibi/cogs/backup_cog.py with BackupCog class",
+        "Implement /export-progress command with @commands.has_permissions(administrator=True)",
+        "Show ephemeral 'Exporting...' message, call export_progress(), show result with link",
+        "Implement /import-progress <spreadsheet_url> [mode] command with admin check",
+        "Add confirmation prompt for replace mode imports",
+        "Show ephemeral 'Importing...' message, call import_progress(), show summary",
+        "Implement /list-exports command with admin check",
+        "Format exports as embed with clickable links",
+        "Handle errors with user-friendly messages",
+        "Integration tests verify commands with mocked interactions",
+        "All existing tests pass"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Follow pattern in existing cogs. Use discord.app_commands for slash commands. See chibi/cogs/quiz_cog.py."
+    },
+    {
+      "id": "US-009",
+      "title": "Integrate BackupService and BackupCog into bot",
+      "description": "Register backup components in the main bot class",
+      "acceptanceCriteria": [
+        "Import BackupService and BackupCog in chibi/bot.py",
+        "Initialize BackupService in ChibiBot.__init__ with database and config",
+        "Register BackupCog in setup_hook or existing cog registration section",
+        "Bot starts without errors",
+        "Commands /export-progress, /import-progress, /list-exports appear in Discord",
+        "Run bot with uv run python main.py - verify no import errors"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Follow existing cog registration pattern. BackupService initialization similar to RAGService."
+    },
+    {
+      "id": "US-010",
+      "title": "Write unit tests for Google Sheets client",
+      "description": "Comprehensive unit tests for OAuth and Sheets API client",
+      "acceptanceCriteria": [
+        "Create tests/test_google_sheets_client.py",
+        "Mock google.auth and googleapiclient modules",
+        "Test OAuth flow initialization",
+        "Test token refresh logic",
+        "Test create_spreadsheet method",
+        "Test write_sheet and read_sheet methods",
+        "Test list_spreadsheets method",
+        "All tests pass: uv run pytest tests/test_google_sheets_client.py -v"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Use pytest-asyncio. Mock external APIs. See tests/mocks/ for mocking patterns."
+    },
+    {
+      "id": "US-011",
+      "title": "Write unit tests for sheets exporter",
+      "description": "Test SQLite to Sheets data transformation",
+      "acceptanceCriteria": [
+        "Create tests/test_sheets_exporter.py",
+        "Use in-memory SQLite database (:memory:) with test data",
+        "Mock GoogleSheetsClient",
+        "Test export with 2-3 users, quiz attempts, mastery records",
+        "Verify data transformation: SQLite rows to Sheets format",
+        "Verify data type conversions: None, bool, timestamps",
+        "Verify long text truncation to 50,000 chars",
+        "All tests pass: uv run pytest tests/test_sheets_exporter.py -v"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Follow conftest.py patterns for test database. See tests/conftest.py for fixtures."
+    },
+    {
+      "id": "US-012",
+      "title": "Write unit tests for sheets importer",
+      "description": "Test Sheets to SQLite data transformation and import modes",
+      "acceptanceCriteria": [
+        "Create tests/test_sheets_importer.py",
+        "Mock GoogleSheetsClient with realistic Sheets data",
+        "Test schema validation: valid and invalid schemas",
+        "Test replace mode: verify DELETE then INSERT behavior",
+        "Test merge mode: verify INSERT OR REPLACE behavior",
+        "Test transaction rollback on error",
+        "Test data type conversions: empty string to None, TRUE/FALSE to 1/0",
+        "All tests pass: uv run pytest tests/test_sheets_importer.py -v"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Test both success and failure paths. Verify atomic transactions."
+    },
+    {
+      "id": "US-013",
+      "title": "Write unit tests for backup service",
+      "description": "Test service orchestration and error handling",
+      "acceptanceCriteria": [
+        "Create tests/test_backup_service.py",
+        "Mock database, exporter, importer, and sheets client",
+        "Test export_progress orchestration",
+        "Test import_progress orchestration with both modes",
+        "Test list_recent_exports",
+        "Test error handling paths",
+        "All tests pass: uv run pytest tests/test_backup_service.py -v",
+        "Coverage >80% for chibi/backup/: uv run pytest tests/test_backup_*.py --cov=chibi/backup"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Mock all external dependencies. Test happy and error paths."
+    },
+    {
+      "id": "US-014",
+      "title": "Write integration tests for full backup cycle",
+      "description": "End-to-end test of export and import with data integrity verification",
+      "acceptanceCriteria": [
+        "Create tests/integration/test_backup_integration.py",
+        "Use in-memory SQLite with full schema",
+        "Mock Google Sheets API with realistic responses",
+        "Create fixture: 3 users, 10 quiz attempts, 5 mastery records",
+        "Test: export to Sheets, verify all data present",
+        "Test: export, clear database, import with replace, verify data restored",
+        "Test: export with 2 users, add 1 user, import with merge, verify 3 users",
+        "Verify referential integrity maintained (foreign keys)",
+        "Verify data types preserved",
+        "All tests pass: uv run pytest tests/integration/test_backup_integration.py -v"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Create tests/integration/ if it doesn't exist. Focus on data integrity."
+    }
+  ],
+  "metadata": {
+    "created": "2026-01-11",
+    "description": "Export and import student learning progress data to/from Google Sheets for cross-machine portability and data recovery. Uses OAuth authentication and admin-only access.",
+    "estimatedIterations": "15-25 total",
+    "notes": "Start with foundation stories (US-001 to US-003) to set up structure. Core implementation (US-004 to US-009) builds the functionality. Testing stories (US-010 to US-014) ensure quality. Manual E2E testing with real Google Sheets API required after Ralph completes."
+  }
+}
