@@ -8,14 +8,13 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Import will fail until implementation exists, but structure should be correct
-pytest.importorskip("chibi.backup.sheets_importer", reason="Implementation not yet created")
+from chibi.backup.sheets_importer import SheetsImporter, ValidationError, ImportError
 
 
 class TestSheetsImporterInitialization:
     """Test SheetsImporter initialization and configuration."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_initialization_with_dependencies(self):
         """
         Test SheetsImporter initializes with required dependencies.
@@ -41,7 +40,7 @@ class TestSheetsImporterInitialization:
 class TestSchemaValidation:
     """Test schema validation for Sheets data."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_valid_schema_passes_validation(self):
         """
@@ -86,7 +85,7 @@ class TestSchemaValidation:
         # Should not raise any exception
         await importer._validate_schema("test_spreadsheet_id")
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_missing_metadata_sheet_fails_validation(self):
         """
@@ -112,7 +111,7 @@ class TestSchemaValidation:
         with pytest.raises(ValidationError, match="Metadata sheet not found"):
             await importer._validate_schema("test_spreadsheet_id")
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_missing_data_sheet_fails_validation(self):
         """
@@ -144,7 +143,7 @@ class TestSchemaValidation:
         with pytest.raises(ValidationError, match="Missing required sheet"):
             await importer._validate_schema("test_spreadsheet_id")
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_invalid_schema_version_fails_validation(self):
         """
@@ -183,7 +182,7 @@ class TestSchemaValidation:
 class TestDataTypeConversions:
     """Test data type conversions from Sheets to SQLite."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_convert_empty_string_to_none(self):
         """
         Test that empty strings are converted to None for NULL columns.
@@ -213,7 +212,7 @@ class TestDataTypeConversions:
         assert converted["student_name"] is None
         assert converted["username"] == "alice"  # Non-empty preserved
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_convert_true_false_strings_to_boolean(self):
         """
         Test that TRUE/FALSE strings are converted to 1/0 for BOOLEAN columns.
@@ -248,7 +247,7 @@ class TestDataTypeConversions:
         assert converted["is_correct"] == 1  # TRUE → 1
         assert isinstance(converted["is_correct"], int)
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_convert_numeric_strings_to_integers(self):
         """
         Test that numeric strings are converted to integers for INTEGER columns.
@@ -280,7 +279,7 @@ class TestDataTypeConversions:
         assert converted["avg_quality_score"] == 85.5
         assert isinstance(converted["avg_quality_score"], float)
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_preserve_timestamp_format(self):
         """
         Test that timestamp strings are preserved as-is.
@@ -315,7 +314,7 @@ class TestDataTypeConversions:
 class TestReplaceMode:
     """Test import with replace mode (DELETE all, then INSERT)."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_replace_mode_deletes_then_inserts(self, test_database):
         """
@@ -390,7 +389,7 @@ class TestReplaceMode:
         assert result["mode"] == "replace"
         assert result["users_imported"] == 2
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_replace_mode_preserves_foreign_key_relationships(self, test_database):
         """
@@ -451,7 +450,7 @@ class TestReplaceMode:
 class TestMergeMode:
     """Test import with merge mode (INSERT OR REPLACE)."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_merge_mode_updates_existing_and_inserts_new(self, test_database):
         """
@@ -530,7 +529,7 @@ class TestMergeMode:
 class TestTransactionRollback:
     """Test transaction rollback on errors."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_rollback_on_foreign_key_violation(self, test_database):
         """
@@ -594,7 +593,7 @@ class TestTransactionRollback:
             row = await cursor.fetchone()
             assert row["count"] == 0
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_rollback_preserves_original_data(self, test_database):
         """
@@ -662,7 +661,7 @@ class TestTransactionRollback:
 class TestSpreadsheetURLExtraction:
     """Test extracting spreadsheet ID from various URL formats."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_extract_id_from_full_url(self):
         """
         Test extracting spreadsheet ID from full Google Sheets URL.
@@ -682,7 +681,7 @@ class TestSpreadsheetURLExtraction:
 
         assert spreadsheet_id == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_extract_id_from_short_url(self):
         """
         Test extracting spreadsheet ID from short URL.
@@ -702,7 +701,7 @@ class TestSpreadsheetURLExtraction:
 
         assert spreadsheet_id == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     def test_handle_plain_spreadsheet_id(self):
         """
         Test handling plain spreadsheet ID (not a URL).
@@ -726,7 +725,7 @@ class TestSpreadsheetURLExtraction:
 class TestFullImportWorkflow:
     """Test complete import workflow end-to-end."""
 
-    @pytest.mark.skip(reason="Implementation not yet created")
+    
     @pytest.mark.asyncio
     async def test_successful_import_returns_summary(self, test_database):
         """

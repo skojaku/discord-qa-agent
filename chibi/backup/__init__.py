@@ -10,5 +10,12 @@ This module provides functionality to:
 
 from chibi.backup.google_sheets_client import GoogleSheetsClient
 from chibi.backup.sheets_exporter import SheetsExporter
+from chibi.backup.sheets_importer import SheetsImporter, ValidationError, ImportError
 
-__all__ = ["GoogleSheetsClient", "SheetsExporter"]
+__all__ = [
+    "GoogleSheetsClient",
+    "SheetsExporter",
+    "SheetsImporter",
+    "ValidationError",
+    "ImportError",
+]
