@@ -250,7 +250,7 @@
         "Manual verification: commands appear in Discord when bot runs"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern in existing cogs. Use discord.app_commands for slash commands. See chibi/cogs/quiz_cog.py."
     },
     {

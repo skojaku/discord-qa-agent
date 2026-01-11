@@ -456,3 +456,40 @@
 - ✓ No regressions in existing tests
 
 ---
+
+## 2026-01-11 - US-013
+**What was implemented:** Discord slash commands for backup operations
+**Files changed:**
+- chibi/cogs/backup_cog.py (created - 375 lines)
+
+**Implementation Details:**
+- **BackupCog class:** Admin-only cog with three slash commands
+  - `/export-progress` - Export all student data to Google Sheets
+  - `/import-progress <url> [mode]` - Import from Sheets with replace/merge modes
+  - `/list-exports [limit]` - List recent exports (default 10, max 25)
+- **ImportConfirmView:** Confirmation dialog for destructive replace mode
+- **Admin checks:** All commands require administrator permissions via `@app_commands.checks.has_permissions(administrator=True)`
+- **Ephemeral messages:** All responses use ephemeral=True for privacy
+- **Rich embeds:** Success/error embeds with stats, links, and formatted data
+- **Error handling:** Global error handler for app command errors
+
+**Learnings:**
+- **Slash command pattern:** Use `@app_commands.command()` with name and description
+- **Command options:** Use `@app_commands.describe()` for parameter descriptions
+- **Choices:** Use `@app_commands.choices()` to provide dropdown options (replace/merge modes)
+- **Confirmation views:** Use discord.ui.View with buttons for destructive operations
+- **Defer patterns:** Use `interaction.response.defer(ephemeral=True, thinking=True)` for long operations
+- **Conditional defer:** For confirmation flow, send message first, then defer after confirmation
+- **Error handler signature:** `async def command_error(interaction, error)` with `@command.error` decorator
+- **Discord.InteractionResponded:** Catch this exception when error occurs after response sent
+- **Embed truncation:** Limit error messages to 1024 chars for embed field limits
+- **Cog setup:** Use `async def setup(bot)` with `await bot.add_cog(BackupCog(bot))`
+
+**Test Results:**
+- ✓ All 79 backup tests pass (unit + integration)
+- ✓ No regressions in existing tests (117 passed, 38 pre-existing errors)
+- ✓ BackupCog follows existing cog patterns (llm_quiz, admin)
+
+**Next step:** US-014 will integrate BackupService and BackupCog into bot.py
+
+---
