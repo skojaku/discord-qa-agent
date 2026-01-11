@@ -41,6 +41,15 @@ mastery:
 database:
   path: "data/chibi.db"
 
+# Backup settings (Google Sheets export/import)
+backup:
+  google_sheets:
+    credentials_file: "credentials/google_oauth_credentials.json"
+    token_file: "credentials/token.json"
+    scopes:
+      - "https://www.googleapis.com/auth/spreadsheets"
+      - "https://www.googleapis.com/auth/drive.file"
+
 # LLM Quiz Challenge settings (students try to stump the AI)
 llm_quiz:
   target_wins_per_module: 3  # Number of successful stumps required per module
