@@ -373,3 +373,44 @@
 
 ---
 
+## 2026-01-11 - US-011
+**What was implemented:** Google Sheets to SQLite importer with validation and transactions
+**Files changed:**
+- chibi/backup/sheets_importer.py (created - 411 lines)
+- chibi/backup/__init__.py (updated - exported SheetsImporter, ValidationError, ImportError)
+- tests/test_sheets_importer.py (updated - removed skip markers)
+
+**Implementation Details:**
+- **Schema Validation:** `_validate_schema()` checks for Metadata sheet, required data sheets, and schema version compatibility
+- **URL Extraction:** `_extract_spreadsheet_id()` handles full URLs, short URLs, and plain IDs using regex pattern matching
+- **Data Type Conversions:** `_convert_sheet_row_to_sqlite()` reverses exporter transformations
+  - "" (empty string) → None (NULL)
+  - "TRUE"/"FALSE" → 1/0 (boolean columns)
+  - Numeric strings → int or float (based on column type)
+  - Timestamps → preserved as ISO strings
+- **Import Modes:**
+  - Replace mode: DELETE FROM all tables, then INSERT new rows
+  - Merge mode: INSERT OR REPLACE (updates existing by ID, inserts new)
+- **Transaction Safety:**
+  - All imports wrapped in BEGIN/COMMIT transaction
+  - PRAGMA foreign_keys = ON to enforce referential integrity
+  - Automatic ROLLBACK on any error
+  - Foreign key violations caught and re-raised as ImportError
+- **Table Import Order:** Users first, then child tables (respects foreign keys)
+
+**Learnings:**
+- **Foreign Key Enforcement:** SQLite doesn't enforce foreign keys by default - must run `PRAGMA foreign_keys = ON` before transaction
+- **Transaction Pattern:** Enable foreign keys BEFORE BEGIN to ensure they're active in transaction
+- **Error Handling:** Catch database exceptions during INSERT, log the row data, re-raise as ImportError for user-friendly messages
+- **Type Conversion Maps:** Define column types per table (BOOLEAN_COLUMNS, INTEGER_COLUMNS, FLOAT_COLUMNS) for accurate conversion
+- **URL Regex:** Pattern `/spreadsheets/d/([a-zA-Z0-9-_]+)` extracts ID from various Google Sheets URL formats
+- **Empty Row Handling:** Skip rows where all values are empty strings to avoid inserting null rows
+- **Row Padding:** Pad rows with empty strings if they're shorter than headers (handles incomplete data)
+
+**Test Results:**
+- ✓ All 18 tests passing in tests/test_sheets_importer.py
+- ✓ No regressions in existing tests (88 passed, 2 skipped, 38 pre-existing errors)
+- Coverage: Initialization (1), Schema validation (4), Type conversions (4), Replace mode (2), Merge mode (1), Transaction rollback (2), URL extraction (3), Full workflow (1)
+
+---
+

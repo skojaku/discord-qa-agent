@@ -209,7 +209,7 @@
         "All existing tests pass"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Tests already written in US-006. Use SQLite transactions. See database/connection.py for transaction patterns. Database: data/chibi.db (see DATABASE_STRUCTURE.md for schema, especially data type mappings)."
     },
     {
