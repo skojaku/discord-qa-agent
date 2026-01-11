@@ -332,3 +332,44 @@
 
 ---
 
+## 2026-01-11 - US-010
+**What was implemented:** SQLite to Google Sheets exporter with data transformations
+**Files changed:**
+- chibi/backup/sheets_exporter.py (created - 329 lines)
+- chibi/backup/__init__.py (updated - exported SheetsExporter)
+- tests/test_sheets_exporter.py (updated - removed skip markers)
+
+**Implementation Details:**
+- **Table Export Methods:** 5 async methods for exporting each table
+  - `_export_users_table()` - Export users table with all columns
+  - `_export_quiz_attempts_table()` - Export quiz attempts with LLM feedback
+  - `_export_concept_mastery_table()` - Export mastery tracking data
+  - `_export_llm_quiz_attempts_table()` - Export LLM quiz challenge data
+  - `_export_attendance_table()` - Export attendance records
+- **Data Transformations:** `_transform_row()` method handles type conversions
+  - None → "" (empty string) for Google Sheets compatibility
+  - 0/1 (boolean columns) → "TRUE"/"FALSE" strings
+  - Text > 50k chars → truncated to 50,000 (Sheets cell limit)
+  - Timestamps → preserved as ISO strings
+- **Metadata Sheet:** 8 rows with export info (export_date, schema_version, counts)
+- **Spreadsheet Creation:** Named "Chibi Student Progress - YYYY-MM-DD HH:MM"
+- **Main Export Method:** `export_to_sheets()` orchestrates all operations
+  - Returns dict with spreadsheet_id, url, and summary counts
+
+**Learnings:**
+- **Database Access Pattern:** Use `self.database.connection` property directly (not `self.database.connection()` as method call)
+- **Database Repos Pattern:** Repositories use `self.connection` property inherited from BaseRepository
+- **Async Iteration:** Use `async with conn.execute() as cursor:` then `async for row in cursor:`
+- **Row Dict Access:** SQLite rows accessible as dicts via column names: `row["column_name"]`
+- **Boolean Detection:** Check column name to identify boolean fields (`is_correct`, `student_wins`)
+- **Type Conversion Strategy:** Transform during row iteration, not after full table read
+- **Metadata Format:** Use snake_case keys for consistency with test expectations
+- **Sheet Creation Order:** Metadata first, then data tables (Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance)
+
+**Test Results:**
+- ✓ All 16 tests passing in tests/test_sheets_exporter.py
+- ✓ No regressions in existing tests (70 passed, 3 skipped, 38 pre-existing errors)
+- Coverage: Initialization (1), Export (3), Transformation (2), Type conversions (4), Sheet creation (2), Batch (1), Errors (3)
+
+---
+

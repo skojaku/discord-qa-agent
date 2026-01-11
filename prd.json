@@ -187,7 +187,7 @@
         "All existing tests pass"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Tests already written in US-005. Use async/await. Follow pattern in chibi/database/repositories/. Database: data/chibi.db (see DATABASE_STRUCTURE.md for complete schema with all columns and types)."
     },
     {
