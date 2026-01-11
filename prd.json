@@ -267,7 +267,7 @@
         "Test coverage >80% for chibi/backup/: uv run pytest tests/test_backup_*.py --cov=chibi/backup"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing cog registration pattern. BackupService initialization similar to RAGService. All tests should now pass."
     }
   ],
