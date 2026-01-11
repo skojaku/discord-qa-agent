@@ -24,6 +24,7 @@ Implement the backup feature by completing user stories in priority order. This 
 - `config.yaml` - Bot configuration
 - `pyproject.toml` - Dependencies
 - `data/chibi.db` - SQLite database with student progress data
+- `DATABASE_STRUCTURE.md` - Complete database schema documentation
 
 ## Step-by-Step Workflow
 
@@ -284,12 +285,18 @@ async def export_progress(self) -> Dict[str, Any]:
 ```
 Database file: data/chibi.db (SQLite)
 
-Tables to export:
+Tables to export (5 total):
 - users (Discord profiles, student registration)
 - quiz_attempts (quiz responses with LLM feedback)
 - concept_mastery (learning progress tracking)
 - llm_quiz_attempts ("Stump the AI" challenge game)
 - attendance (class attendance records)
+
+See DATABASE_STRUCTURE.md for complete schema with:
+- All columns, types, and constraints
+- Foreign key relationships and indexes
+- Data type mappings (BOOLEAN as 0/1, TIMESTAMP as ISO string)
+- Migration details (review_status, student_id columns)
 ```
 
 **Database transactions:**

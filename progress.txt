@@ -18,13 +18,17 @@
 
 ### Database Patterns
 - **Location**: `data/chibi.db` (SQLite database with student progress)
+- **Schema Documentation**: See `DATABASE_STRUCTURE.md` for complete schema
 - **Tables to backup**: users, quiz_attempts, concept_mastery, llm_quiz_attempts, attendance
+- **Data Types**: BOOLEAN stored as 0/1, TIMESTAMP as ISO string, NULL as NULL
 - Connection: `async with self.db.connection() as conn:`
 - Transactions: `async with conn.execute("BEGIN"): ... await conn.commit()`
 - Queries: `async with conn.execute(query, params) as cursor:`
-- Schema in `chibi/database/connection.py` - see `_init_schema()` method
+- Schema defined in `chibi/database/connection.py` - see `_init_schema()` method
+- Migrations: Adds review_status, student_id columns to existing databases
 - Repositories inherit from BaseRepository
-- Use parameterized queries to prevent SQL injection
+- Always use parameterized queries to prevent SQL injection
+- For tests: Use `Database(":memory:")` for in-memory testing
 
 ### Service Patterns
 - Located in `chibi/services/`
