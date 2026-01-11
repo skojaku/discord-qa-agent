@@ -7,3 +7,7 @@ This module provides functionality to:
 - Import Google Sheets data back to SQLite
 - Manage backup operations through Discord commands
 """
+
+from chibi.backup.google_sheets_client import GoogleSheetsClient
+
+__all__ = ["GoogleSheetsClient"]
