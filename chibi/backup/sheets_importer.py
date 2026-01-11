@@ -124,7 +124,7 @@ class SheetsImporter:
             ValidationError: If schema validation fails
         """
         # Get spreadsheet to list sheets
-        spreadsheet = await self.sheets_client.get_spreadsheet(spreadsheet_id)
+        spreadsheet = self.sheets_client.get_spreadsheet(spreadsheet_id)
         sheet_names = [
             sheet["properties"]["title"] for sheet in spreadsheet.get("sheets", [])
         ]
@@ -144,7 +144,7 @@ class SheetsImporter:
                 )
 
         # Read and validate metadata
-        metadata_rows = await self.sheets_client.read_sheet(spreadsheet_id, "Metadata")
+        metadata_rows = self.sheets_client.read_sheet(spreadsheet_id, "Metadata")
 
         # Convert to dict for easier access
         metadata = {}
@@ -242,7 +242,7 @@ class SheetsImporter:
             ImportError: If import fails
         """
         # Read sheet data
-        sheet_data = await self.sheets_client.read_sheet(spreadsheet_id, sheet_name)
+        sheet_data = self.sheets_client.read_sheet(spreadsheet_id, sheet_name)
 
         if not sheet_data or len(sheet_data) < 1:
             logger.debug(f"No data in {sheet_name}, skipping")
@@ -374,8 +374,30 @@ class SheetsImporter:
             raise ImportError(f"Import failed: {e}")
 
         # Build result
+        from datetime import datetime
+        import_timestamp = datetime.now().isoformat()
+
         result = {
             "mode": mode,
+            "spreadsheet_id": spreadsheet_id,
+            "import_date": import_timestamp,
+            "schema_version": metadata.get("schema_version", "1.0"),
+            "summary": {
+                "users": users_count,
+                "quiz_attempts": quiz_attempts_count,
+                "concept_mastery": concept_mastery_count,
+                "llm_quiz_attempts": llm_quiz_attempts_count,
+                "attendance": attendance_count,
+            },
+            "status": "success",
+            "counts": {  # Keep counts for backward compatibility
+                "users": users_count,
+                "quiz_attempts": quiz_attempts_count,
+                "concept_mastery": concept_mastery_count,
+                "llm_quiz_attempts": llm_quiz_attempts_count,
+                "attendance": attendance_count,
+            },
+            # Backward compatibility keys
             "users_imported": users_count,
             "quiz_attempts_imported": quiz_attempts_count,
             "concept_mastery_imported": concept_mastery_count,

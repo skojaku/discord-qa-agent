@@ -25,7 +25,6 @@ pytest.importorskip("chibi.backup.backup_service", reason="Implementation not ye
 from chibi.backup.backup_service import BackupService
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestBackupServiceInitialization:
     """Test BackupService initialization and dependency injection."""
 
@@ -56,7 +55,6 @@ class TestBackupServiceInitialization:
         assert service.importer is not None
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestExportProgress:
     """Test export_progress() orchestration."""
 
@@ -196,7 +194,6 @@ class TestExportProgress:
         assert "Sheets API quota exceeded" in str(exc_info.value)
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestImportProgress:
     """Test import_progress() orchestration with replace and merge modes."""
 
@@ -393,7 +390,6 @@ class TestImportProgress:
         assert "Foreign key constraint failed" in str(exc_info.value)
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestListRecentExports:
     """Test list_recent_exports() spreadsheet listing."""
 
@@ -563,7 +559,6 @@ class TestListRecentExports:
         assert len(result) == 3
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestErrorHandling:
     """Test comprehensive error handling and edge cases."""
 

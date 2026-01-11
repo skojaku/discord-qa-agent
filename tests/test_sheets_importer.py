@@ -53,7 +53,7 @@ class TestSchemaValidation:
         from chibi.backup.sheets_importer import SheetsImporter
 
         mock_sheets_client = MagicMock()
-        mock_sheets_client.read_sheet = AsyncMock()
+        mock_sheets_client.read_sheet = MagicMock()
 
         # Mock Metadata sheet
         mock_sheets_client.read_sheet.return_value = [
@@ -68,7 +68,7 @@ class TestSchemaValidation:
         ]
 
         # Mock getting spreadsheet to list sheets
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -98,7 +98,7 @@ class TestSchemaValidation:
         from chibi.backup.sheets_importer import SheetsImporter, ValidationError
 
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Users"}},
                 {"properties": {"title": "QuizAttempts"}},
@@ -124,7 +124,7 @@ class TestSchemaValidation:
         from chibi.backup.sheets_importer import SheetsImporter, ValidationError
 
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -132,7 +132,7 @@ class TestSchemaValidation:
             ]
         })
 
-        mock_sheets_client.read_sheet = AsyncMock(return_value=[
+        mock_sheets_client.read_sheet = MagicMock(return_value=[
             ["Key", "Value"],
             ["schema_version", "1.0"],
         ])
@@ -156,7 +156,7 @@ class TestSchemaValidation:
         from chibi.backup.sheets_importer import SheetsImporter, ValidationError
 
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -167,7 +167,7 @@ class TestSchemaValidation:
             ]
         })
 
-        mock_sheets_client.read_sheet = AsyncMock(return_value=[
+        mock_sheets_client.read_sheet = MagicMock(return_value=[
             ["Key", "Value"],
             ["schema_version", "2.0"],  # Incompatible version
         ])
@@ -342,7 +342,7 @@ class TestReplaceMode:
 
         # Mock sheets client with new data
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -371,7 +371,7 @@ class TestReplaceMode:
                 # Empty data sheets
                 return [[]]
 
-        mock_sheets_client.read_sheet = AsyncMock(side_effect=read_sheet_side_effect)
+        mock_sheets_client.read_sheet = MagicMock(side_effect=read_sheet_side_effect)
 
         importer = SheetsImporter(database=test_database, sheets_client=mock_sheets_client)
 
@@ -403,7 +403,7 @@ class TestReplaceMode:
 
         # Mock sheets client with related data
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -433,7 +433,7 @@ class TestReplaceMode:
             else:
                 return [[]]
 
-        mock_sheets_client.read_sheet = AsyncMock(side_effect=read_sheet_side_effect)
+        mock_sheets_client.read_sheet = MagicMock(side_effect=read_sheet_side_effect)
 
         importer = SheetsImporter(database=test_database, sheets_client=mock_sheets_client)
         await importer.import_from_sheets("test_spreadsheet_id", mode="replace")
@@ -478,7 +478,7 @@ class TestMergeMode:
 
         # Mock sheets client
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -504,7 +504,7 @@ class TestMergeMode:
             else:
                 return [[]]
 
-        mock_sheets_client.read_sheet = AsyncMock(side_effect=read_sheet_side_effect)
+        mock_sheets_client.read_sheet = MagicMock(side_effect=read_sheet_side_effect)
 
         importer = SheetsImporter(database=test_database, sheets_client=mock_sheets_client)
         result = await importer.import_from_sheets("test_spreadsheet_id", mode="merge")
@@ -551,7 +551,7 @@ class TestTransactionRollback:
 
         # Mock sheets client with invalid foreign key
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -580,7 +580,7 @@ class TestTransactionRollback:
             else:
                 return [[]]
 
-        mock_sheets_client.read_sheet = AsyncMock(side_effect=read_sheet_side_effect)
+        mock_sheets_client.read_sheet = MagicMock(side_effect=read_sheet_side_effect)
 
         importer = SheetsImporter(database=test_database, sheets_client=mock_sheets_client)
 
@@ -616,7 +616,7 @@ class TestTransactionRollback:
 
         # Mock sheets client that will cause error
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -642,7 +642,7 @@ class TestTransactionRollback:
             else:
                 return [[]]
 
-        mock_sheets_client.read_sheet = AsyncMock(side_effect=read_sheet_side_effect)
+        mock_sheets_client.read_sheet = MagicMock(side_effect=read_sheet_side_effect)
 
         importer = SheetsImporter(database=test_database, sheets_client=mock_sheets_client)
 
@@ -739,7 +739,7 @@ class TestFullImportWorkflow:
 
         # Mock sheets client
         mock_sheets_client = MagicMock()
-        mock_sheets_client.get_spreadsheet = AsyncMock(return_value={
+        mock_sheets_client.get_spreadsheet = MagicMock(return_value={
             "sheets": [
                 {"properties": {"title": "Metadata"}},
                 {"properties": {"title": "Users"}},
@@ -766,7 +766,7 @@ class TestFullImportWorkflow:
             else:
                 return [[]]
 
-        mock_sheets_client.read_sheet = AsyncMock(side_effect=read_sheet_side_effect)
+        mock_sheets_client.read_sheet = MagicMock(side_effect=read_sheet_side_effect)
 
         importer = SheetsImporter(database=test_database, sheets_client=mock_sheets_client)
         result = await importer.import_from_sheets("test_spreadsheet_id", mode="replace")

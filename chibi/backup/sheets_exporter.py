@@ -95,7 +95,9 @@ class SheetsExporter:
 
         return {
             "spreadsheet_id": spreadsheet_id,
-            "url": spreadsheet_url,
+            "spreadsheet_url": spreadsheet_url,
+            "export_date": timestamp,
+            "schema_version": "1.0",
             "summary": summary,
         }
 

@@ -22,7 +22,6 @@ from chibi.backup.sheets_importer import SheetsImporter
 from chibi.database.connection import Database
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestFullBackupCycle:
     """Test complete export → clear → import workflow."""
 
@@ -158,26 +157,34 @@ class TestFullBackupCycle:
         """Mock Google Sheets client with realistic responses."""
         mock_client = MagicMock(spec=GoogleSheetsClient)
 
-        # Mock spreadsheet creation
-        mock_client.create_spreadsheet = AsyncMock(return_value={
-            "spreadsheet_id": "test_spreadsheet_123",
-            "spreadsheet_url": "https://docs.google.com/spreadsheets/d/test_spreadsheet_123",
-        })
+        # Mock spreadsheet creation (returns just the ID string)
+        mock_client.create_spreadsheet = MagicMock(return_value="test_spreadsheet_123")
 
         # Store written data for later reads
         mock_client._sheets_data = {}
 
-        async def mock_write_sheet(spreadsheet_id: str, sheet_name: str, data: List[List[Any]]):
+        def mock_write_sheet(spreadsheet_id: str, sheet_name: str, data: List[List[Any]]):
             """Store data for later retrieval."""
             mock_client._sheets_data[sheet_name] = data
             return {"updated_cells": len(data)}
 
-        async def mock_read_sheet(spreadsheet_id: str, sheet_name: str) -> List[List[Any]]:
+        def mock_read_sheet(spreadsheet_id: str, sheet_name: str) -> List[List[Any]]:
             """Retrieve previously written data."""
             return mock_client._sheets_data.get(sheet_name, [])
 
+        def mock_get_spreadsheet(spreadsheet_id: str):
+            """Mock get_spreadsheet to return sheet list."""
+            # Return structure with sheets that match what was written
+            sheets = [{"properties": {"title": name}} for name in mock_client._sheets_data.keys()]
+            return {
+                "spreadsheetId": spreadsheet_id,
+                "properties": {"title": "Test Spreadsheet"},
+                "sheets": sheets
+            }
+
         mock_client.write_sheet = mock_write_sheet
         mock_client.read_sheet = mock_read_sheet
+        mock_client.get_spreadsheet = mock_get_spreadsheet
 
         return mock_client
 
@@ -198,7 +205,7 @@ class TestFullBackupCycle:
 
         # Patch GoogleSheetsClient to return mock
         with patch("chibi.backup.backup_service.GoogleSheetsClient", return_value=mock_sheets_client):
-            service = BackupService(db, config)
+            service = BackupService(database=db, config=config)
             yield service
 
     async def test_export_to_sheets_all_data_present(self, backup_service, mock_sheets_client):
@@ -311,10 +318,14 @@ class TestFullBackupCycle:
         assert user["student_id"] == "S001"
 
     async def test_export_add_user_import_merge_all_users_present(self, backup_service, populated_database, mock_sheets_client):
-        """Test: Export with 2 users, add 1 user locally, import with merge, verify 3 users total."""
+        """Test: Export with 3 users, delete 1, add 1 new, import with merge, verify 4 users total."""
         db, original_user_ids = populated_database
 
-        # Step 1: Delete one user from database (but it's in the export)
+        # Step 1: Export first (captures all 3 original users)
+        export_result = await backup_service.export_progress()
+        spreadsheet_id = export_result["spreadsheet_id"]
+
+        # Step 2: Delete one user from database (but it's in the export)
         await db.connection.execute("DELETE FROM quiz_attempts WHERE user_id = ?", (original_user_ids[2],))
         await db.connection.execute("DELETE FROM concept_mastery WHERE user_id = ?", (original_user_ids[2],))
         await db.connection.execute("DELETE FROM llm_quiz_attempts WHERE user_id = ?", (original_user_ids[2],))
@@ -327,10 +338,6 @@ class TestFullBackupCycle:
         row = await cursor.fetchone()
         assert row[0] == 2
 
-        # Step 2: Export (will have 3 users from original data)
-        export_result = await backup_service.export_progress()
-        spreadsheet_id = export_result["spreadsheet_id"]
-
         # Step 3: Add a new local user that's NOT in the export
         cursor = await db.connection.execute(
             """INSERT INTO users (discord_id, username, student_id, student_name, created_at, last_active)
@@ -340,12 +347,12 @@ class TestFullBackupCycle:
         new_user_id = cursor.lastrowid
         await db.connection.commit()
 
-        # Verify 3 users locally (2 original + 1 new)
+        # Verify 3 users locally (2 remaining + 1 new)
         cursor = await db.connection.execute("SELECT COUNT(*) FROM users")
         row = await cursor.fetchone()
         assert row[0] == 3
 
-        # Step 4: Import with merge mode (should restore deleted user)
+        # Step 4: Import with merge mode (should restore deleted user from export)
         import_result = await backup_service.import_progress(spreadsheet_id, mode="merge")
 
         # Verify merge result
@@ -445,7 +452,6 @@ class TestFullBackupCycle:
         assert orphaned[0] == 0, "Found orphaned concept_mastery with invalid user_id"
 
 
-@pytest.mark.skip(reason="Implementation not yet created")
 class TestBackupEdgeCases:
     """Test edge cases and error scenarios in backup integration."""
 
@@ -461,21 +467,29 @@ class TestBackupEdgeCases:
     def mock_sheets_client(self):
         """Mock Google Sheets client."""
         mock_client = MagicMock(spec=GoogleSheetsClient)
-        mock_client.create_spreadsheet = AsyncMock(return_value={
-            "spreadsheet_id": "test_spreadsheet_456",
-            "spreadsheet_url": "https://docs.google.com/spreadsheets/d/test_spreadsheet_456",
-        })
+        mock_client.create_spreadsheet = MagicMock(return_value="test_spreadsheet_456")
         mock_client._sheets_data = {}
 
-        async def mock_write_sheet(spreadsheet_id: str, sheet_name: str, data: List[List[Any]]):
+        def mock_write_sheet(spreadsheet_id: str, sheet_name: str, data: List[List[Any]]):
             mock_client._sheets_data[sheet_name] = data
             return {"updated_cells": len(data)}
 
-        async def mock_read_sheet(spreadsheet_id: str, sheet_name: str) -> List[List[Any]]:
+        def mock_read_sheet(spreadsheet_id: str, sheet_name: str) -> List[List[Any]]:
             return mock_client._sheets_data.get(sheet_name, [])
+
+        def mock_get_spreadsheet(spreadsheet_id: str):
+            """Mock get_spreadsheet to return sheet list."""
+            # Return structure with sheets that match what was written
+            sheets = [{"properties": {"title": name}} for name in mock_client._sheets_data.keys()]
+            return {
+                "spreadsheetId": spreadsheet_id,
+                "properties": {"title": "Test Spreadsheet"},
+                "sheets": sheets
+            }
 
         mock_client.write_sheet = mock_write_sheet
         mock_client.read_sheet = mock_read_sheet
+        mock_client.get_spreadsheet = mock_get_spreadsheet
 
         return mock_client
 
@@ -493,7 +507,7 @@ class TestBackupEdgeCases:
         }
 
         with patch("chibi.backup.backup_service.GoogleSheetsClient", return_value=mock_sheets_client):
-            service = BackupService(empty_database, config)
+            service = BackupService(database=empty_database, config=config)
             yield service
 
     async def test_export_empty_database(self, backup_service_empty, mock_sheets_client):
