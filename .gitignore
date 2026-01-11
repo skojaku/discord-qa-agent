@@ -31,3 +31,6 @@ Thumbs.db
 # Logs
 *.log
 llm-quiz/
+
+# Credentials (OAuth tokens, API keys)
+credentials/*.json
