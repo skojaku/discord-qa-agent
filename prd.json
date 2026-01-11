@@ -15,7 +15,7 @@
         "Verify git status shows credentials/ as ignored"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation step. Must complete before OAuth setup."
     },
     {
@@ -31,7 +31,7 @@
         "Verify imports: python -c 'import gspread; import google.auth' succeeds"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Use uv package manager. Add to [project.dependencies] section in pyproject.toml."
     },
     {
@@ -47,7 +47,7 @@
         "Config loads without errors on bot startup"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing config.yaml structure. See llm section for reference."
     },
     {

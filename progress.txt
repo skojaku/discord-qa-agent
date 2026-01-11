@@ -98,6 +98,27 @@
 
 ## Implementation Log
 
-_Ralph will append entries here after completing each story_
+## 2026-01-11 - US-001, US-002, US-003 (Foundation Phase)
+**What was implemented:** Complete foundation setup for backup feature
+**Files changed:**
+- chibi/backup/__init__.py (created)
+- credentials/.gitignore (created)
+- tests/integration/ (created)
+- .gitignore (updated)
+- pyproject.toml (updated with Google Sheets dependencies)
+- config.yaml (added backup section)
+
+**Learnings:**
+- Directory structure: chibi/backup/ is the main module, credentials/ for OAuth files
+- Git ignore pattern: credentials/.gitignore must be tracked to preserve directory in repo
+- Dependencies: google-auth, google-auth-oauthlib, google-api-python-client, gspread
+- Config structure: backup.google_sheets section with credentials_file, token_file, scopes
+- OAuth scopes needed: spreadsheets and drive.file
+
+**Verification:**
+- ✓ All directories created and tracked in git
+- ✓ Python imports work: `python -c 'import gspread; import google.auth'`
+- ✓ Config loads correctly with backup section
+- ✓ Credentials directory properly ignored by git
 
 ---
