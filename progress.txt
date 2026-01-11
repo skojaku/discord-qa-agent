@@ -17,6 +17,8 @@
 - pytest-asyncio mode is "auto" (see conftest.py)
 
 ### Database Patterns
+- **Location**: `data/chibi.db` (SQLite database with student progress)
+- **Tables to backup**: users, quiz_attempts, concept_mastery, llm_quiz_attempts, attendance
 - Connection: `async with self.db.connection() as conn:`
 - Transactions: `async with conn.execute("BEGIN"): ... await conn.commit()`
 - Queries: `async with conn.execute(query, params) as cursor:`

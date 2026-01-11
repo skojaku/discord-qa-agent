@@ -188,7 +188,7 @@
       ],
       "priority": 10,
       "passes": false,
-      "notes": "Tests already written in US-005. Use async/await. Follow pattern in chibi/database/repositories/."
+      "notes": "Tests already written in US-005. Use async/await. Follow pattern in chibi/database/repositories/. Database location: data/chibi.db (configured in config.yaml)."
     },
     {
       "id": "US-011",
@@ -210,7 +210,7 @@
       ],
       "priority": 11,
       "passes": false,
-      "notes": "Tests already written in US-006. Use SQLite transactions. See database/connection.py for transaction patterns."
+      "notes": "Tests already written in US-006. Use SQLite transactions. See database/connection.py for transaction patterns. Database location: data/chibi.db (configured in config.yaml)."
     },
     {
       "id": "US-012",
