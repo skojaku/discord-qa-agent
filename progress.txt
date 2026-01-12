@@ -808,3 +808,92 @@
 - ✓ Implementation already handles batching (chibi/backup/google_sheets_client.py:171-193)
 
 ---
+
+## 2026-01-12 - MT-006
+**What was implemented:** Manual testing guide for import to clean database (replace mode)
+**Files changed:**
+- docs/manual-testing-mt006.md (created - comprehensive 19-step testing guide)
+- prd.json (will mark MT-006 as passing)
+
+**Learnings:**
+- **Import Testing Strategy:**
+  - Part 1: Prepare (identify export, record baseline)
+  - Part 2: Clean state (backup, delete DB, restart bot, verify empty)
+  - Part 3: Execute (run command, confirm, wait for completion)
+  - Part 4: Verify data (counts, types, foreign keys)
+  - Part 5: Verify functionality (bot commands work)
+  - Part 6: Cleanup (keep or restore original)
+
+- **Replace Mode Behavior:**
+  - Deletes ALL existing data from each table (DELETE FROM)
+  - Inserts new rows from spreadsheet
+  - Maintains table structure and foreign key constraints
+  - Uses DELETE + INSERT pattern (not TRUNCATE)
+  - Resets data but preserves schema
+  - IDs from export are preserved in import
+
+- **Database Cleanup for Testing:**
+  - Delete entire database file (rm data/chibi.db)
+  - Restart bot to trigger schema initialization
+  - Verify empty state: tables exist but COUNT(*) = 0
+  - Critical for simulating clean server or disaster recovery
+  
+- **Foreign Key Verification:**
+  - Check relationships with JOIN queries (users → quiz_attempts)
+  - Verify no orphaned records (child records without parent)
+  - Test constraint enforcement (try DELETE parent with children)
+  - Should see "FOREIGN KEY constraint failed" error when trying to delete parent
+
+- **Data Type Verification After Import:**
+  - Booleans: Check 0/1 values (not "TRUE"/"FALSE" strings)
+  - NULLs: Check IS NULL query results
+  - Timestamps: Verify ISO format preserved
+  - Query patterns for each type documented in guide
+
+- **Import Performance Expectations:**
+  - Typical datasets: 10-30 seconds
+  - No errors or rollback operations
+  - Transaction commits successfully
+  - Single atomic operation (all or nothing)
+
+- **Bot Restart Requirement:**
+  - After database deletion, bot restart creates empty schema
+  - Schema initialization occurs on first connection
+  - Location: chibi/database/connection.py:_init_schema()
+  - Restart also clears caches
+
+- **Confirmation Flow for Destructive Operations:**
+  - Replace mode requires user confirmation (destructive)
+  - Bot shows current database counts before confirmation
+  - User must click [Confirm] button to proceed
+  - [Cancel] button aborts operation
+  - Pattern: defer → show confirmation → wait for interaction → execute
+
+- **Transaction Safety Verification:**
+  - All imports wrapped in single transaction
+  - ROLLBACK on any error (no partial imports)
+  - Foreign keys enforced during import (PRAGMA foreign_keys = ON)
+  - Database unchanged if import fails
+  - Check logs for "Import completed successfully" vs "Rolling back transaction"
+
+- **Testing Bot Functionality Post-Import:**
+  - Test /status command with restored data
+  - Test /modules command
+  - Verify discord_id matching (test data vs real users)
+  - Query specific user data to check completeness
+  - Essential validation that restoration was successful
+
+- **Troubleshooting Guide Completeness:**
+  - 7 common issues documented with solutions
+  - Each issue has: symptoms, causes, solutions, code reference
+  - Issues cover: access denied, schema validation, count mismatches, foreign keys, rollback, restart failures, bot commands
+  - Code references help developers debug (file:line notation)
+
+**Verification:**
+- ✓ Created 19-step testing guide with 6 parts
+- ✓ All 47 backup tests passing (7 integration + 22 service + 18 importer)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-006
+- ✓ Implementation complete in chibi/backup/sheets_importer.py:296-322
+
+---
