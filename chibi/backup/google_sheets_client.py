@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 import gspread
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from gspread.exceptions import APIError, SpreadsheetNotFound
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleSheetsClient:
-    """Client for Google Sheets API with OAuth 2.0 authentication."""
+    """Client for Google Sheets API with OAuth 2.0 and service account authentication."""
 
     def __init__(
         self,
@@ -31,9 +32,12 @@ class GoogleSheetsClient:
         """
         Initialize Google Sheets client.
 
+        Supports both OAuth 2.0 user credentials and service account credentials.
+        The credential type is automatically detected from the JSON file.
+
         Args:
-            credentials_file: Path to OAuth credentials JSON file
-            token_file: Path to store/retrieve access token
+            credentials_file: Path to OAuth or service account credentials JSON file
+            token_file: Path to store/retrieve access token (OAuth only)
             scopes: OAuth scopes (defaults to spreadsheets and drive.file)
 
         Raises:
@@ -55,15 +59,60 @@ class GoogleSheetsClient:
         self.credentials: Optional[Credentials] = None
         self.gc: Optional[gspread.Client] = None
 
+    def _detect_credential_type(self) -> str:
+        """
+        Detect credential type from JSON file.
+
+        Returns:
+            'service_account' or 'oauth'
+
+        Raises:
+            ValueError: If credential type cannot be determined
+        """
+        try:
+            with open(self.credentials_file, "r") as f:
+                cred_data = json.load(f)
+                cred_type = cred_data.get("type", "")
+
+                if cred_type == "service_account":
+                    return "service_account"
+                elif "installed" in cred_data or "web" in cred_data:
+                    return "oauth"
+                else:
+                    raise ValueError(
+                        f"Unknown credential type in {self.credentials_file}. "
+                        "Expected 'type': 'service_account' or OAuth client config."
+                    )
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Invalid JSON in credentials file {self.credentials_file}: {e}"
+            )
+
     def authenticate(self) -> None:
         """
-        Authenticate with Google using OAuth 2.0.
+        Authenticate with Google using OAuth 2.0 or service account.
 
-        Handles three scenarios:
+        For OAuth (user credentials):
         1. Valid token exists: Reuse it
         2. Expired token: Refresh it
         3. No token: Run OAuth flow and save token
+
+        For service account:
+        - Authenticates directly using credentials file (no browser flow)
         """
+        # Detect credential type
+        cred_type = self._detect_credential_type()
+
+        if cred_type == "service_account":
+            # Service account authentication (no browser/token required)
+            logger.info("Authenticating with service account")
+            self.credentials = ServiceAccountCredentials.from_service_account_file(
+                self.credentials_file, scopes=self.scopes
+            )
+            self._authorize_gspread()
+            return
+
+        # OAuth user credentials authentication
         # Try to load existing token
         token_path = Path(self.token_file)
         if token_path.exists():
@@ -73,7 +122,7 @@ class GoogleSheetsClient:
 
         # Check if credentials are valid
         if self.credentials and self.credentials.valid:
-            logger.info("Using existing valid token")
+            logger.info("Using existing valid OAuth token")
             self._authorize_gspread()
             return
 
@@ -83,7 +132,7 @@ class GoogleSheetsClient:
             and self.credentials.expired
             and self.credentials.refresh_token
         ):
-            logger.info("Refreshing expired token")
+            logger.info("Refreshing expired OAuth token")
             self.credentials.refresh(Request())
             self._save_token()
             self._authorize_gspread()

@@ -1,280 +1,474 @@
 {
-  "branchName": "ralph/google-sheets-backup",
-  "projectName": "Discord Quiz Bot - Student Progress Backup",
-  "userStories": [
+  "testSuiteName": "Manual E2E Testing - Google Sheets Backup",
+  "description": "Manual testing scenarios using real Google Sheets API credentials to verify backup feature functionality",
+  "testEnvironment": {
+    "credentials": "google-credentials.json (service account)",
+    "database": "data/chibi.db (test database with sample data)",
+    "discordServer": "Test server with admin permissions required"
+  },
+  "testScenarios": [
     {
-      "id": "US-001",
-      "title": "Create directory structure and configure gitignore",
-      "description": "Set up the backup module directory structure and ensure credentials are excluded from version control",
+      "id": "MT-000",
+      "title": "Add service account support to GoogleSheetsClient",
+      "description": "Current implementation only supports OAuth user credentials. Must add service account support to use google-credential.json",
       "acceptanceCriteria": [
-        "Create chibi/backup/ directory with __init__.py",
-        "Create credentials/ directory at project root",
-        "Create tests/integration/ directory if it doesn't exist",
-        "Add credentials/.gitignore with patterns: *.json, token.json",
-        "Update root .gitignore to exclude credentials/*.json",
-        "Verify git status shows credentials/ as ignored"
+        "Update chibi/backup/google_sheets_client.py to detect credential type from JSON",
+        "Add import for google.oauth2.service_account.Credentials",
+        "Implement _detect_credential_type() method to check 'type' field in JSON",
+        "Update authenticate() method to handle 'service_account' type",
+        "Service account authentication should not require browser/token.json",
+        "All existing unit tests continue to pass",
+        "Add new unit test for service account authentication"
       ],
+      "implementationDetails": {
+        "files": [
+          {
+            "path": "chibi/backup/google_sheets_client.py",
+            "changes": [
+              "Import: from google.oauth2.service_account import Credentials as ServiceAccountCredentials",
+              "Add method: _detect_credential_type() -> str (returns 'service_account' or 'oauth')",
+              "Update authenticate(): Check credential type, use ServiceAccountCredentials.from_service_account_file() for service accounts",
+              "Update docstrings to mention both OAuth and service account support"
+            ]
+          },
+          {
+            "path": "config.yaml",
+            "changes": [
+              "Update backup.google_sheets.credentials_file from 'credentials/google_oauth_credentials.json' to 'google-credential.json' (actual file location)"
+            ]
+          }
+        ]
+      },
+      "passes": true,
+      "priority": 0,
+      "category": "prerequisite",
+      "notes": "COMPLETED: Service account support added to GoogleSheetsClient. Added _detect_credential_type() method and updated authenticate() to handle both OAuth and service account credentials. All 17 unit tests pass including new test_service_account_authentication."
+    },
+    {
+      "id": "MT-001",
+      "title": "Verify credentials and configuration",
+      "description": "Validate that Google credentials file exists and bot configuration is correct",
+      "preconditions": [
+        "google-credentials.json exists in project root",
+        "config.yaml has backup.google_sheets section",
+        "Bot can start without errors"
+      ],
+      "steps": [
+        "Check google-credentials.json file exists",
+        "Verify file contains valid service account JSON",
+        "Confirm project_id is 'chibi-learning-progress'",
+        "Check client_email is 'quiz-bot@chibi-learning-progress.iam.gserviceaccount.com'",
+        "Verify config.yaml has backup.google_sheets.credentials_file pointing to correct path",
+        "Start bot with 'uv run python main.py'",
+        "Verify bot loads without errors",
+        "Confirm backup cog is loaded (check logs or /help command)"
+      ],
+      "expectedOutcome": [
+        "google-credentials.json file exists and is valid JSON",
+        "All required fields present in credentials",
+        "config.yaml properly configured",
+        "Bot starts successfully",
+        "Backup commands available: /export-progress, /import-progress, /list-exports"
+      ],
+      "passes": false,
       "priority": 1,
-      "passes": true,
-      "notes": "Foundation step. Must complete before OAuth setup."
+      "category": "setup"
     },
     {
-      "id": "US-002",
-      "title": "Add Google Sheets API dependencies",
-      "description": "Install required Python packages for Google Sheets and OAuth authentication",
-      "acceptanceCriteria": [
-        "Add google-auth ^2.27.0 to pyproject.toml dependencies",
-        "Add google-auth-oauthlib ^1.2.0 to pyproject.toml dependencies",
-        "Add google-api-python-client ^2.116.0 to pyproject.toml dependencies",
-        "Add gspread ^6.0.0 to pyproject.toml dependencies",
-        "Run uv sync successfully",
-        "Verify imports: python -c 'import gspread; import google.auth' succeeds"
+      "id": "MT-002",
+      "title": "Test OAuth authentication with service account",
+      "description": "Verify service account can authenticate with Google Sheets API",
+      "preconditions": [
+        "MT-001 passed",
+        "Bot is running",
+        "Google Sheets API and Drive API enabled in Google Cloud Console"
       ],
+      "steps": [
+        "In Discord, run /export-progress as admin",
+        "Observe bot response",
+        "Check if authentication succeeds",
+        "If error occurs, check error message for auth issues",
+        "Verify no browser OAuth flow is triggered (service account should authenticate silently)"
+      ],
+      "expectedOutcome": [
+        "No authentication errors",
+        "Service account authenticates silently (no browser popup)",
+        "Bot can access Google Sheets API",
+        "Export command proceeds (may fail on empty DB, that's ok for this test)"
+      ],
+      "passes": false,
+      "priority": 1,
+      "category": "setup"
+    },
+    {
+      "id": "MT-003",
+      "title": "Basic export with sample data",
+      "description": "Export student progress data to Google Sheets with real API",
+      "preconditions": [
+        "MT-002 passed",
+        "Database has at least 1 user with quiz attempts",
+        "Bot is running with admin permissions"
+      ],
+      "steps": [
+        "Create test data if needed: Take 2-3 quizzes via /quiz in Discord",
+        "Verify data exists: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM quiz_attempts;'",
+        "In Discord, run /export-progress as admin",
+        "Wait for bot response (should take 5-30 seconds)",
+        "Click the Google Sheets link in bot response",
+        "Open spreadsheet in browser",
+        "Verify 6 sheets exist: Metadata, Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance",
+        "Check Metadata sheet has export_date, schema_version, and table counts",
+        "Check Users sheet has user data with correct columns",
+        "Check QuizAttempts sheet has quiz data",
+        "Verify data types: TRUE/FALSE for booleans, empty cells for NULL",
+        "Compare row counts in Metadata with actual sheet row counts"
+      ],
+      "expectedOutcome": [
+        "Export completes without errors",
+        "Spreadsheet created in Google Drive",
+        "Spreadsheet named 'Chibi Student Progress - YYYY-MM-DD HH:MM'",
+        "All 6 sheets present with correct names",
+        "Metadata sheet has accurate counts",
+        "Data properly formatted (TRUE/FALSE, empty cells, timestamps)",
+        "Row counts match database counts"
+      ],
+      "passes": false,
       "priority": 2,
-      "passes": true,
-      "notes": "Use uv package manager. Add to [project.dependencies] section in pyproject.toml."
+      "category": "export"
     },
     {
-      "id": "US-003",
-      "title": "Add backup configuration to config.yaml",
-      "description": "Configure backup settings in the bot's config file",
-      "acceptanceCriteria": [
-        "Add backup.google_sheets section to config.yaml",
-        "Set credentials_file: credentials/google_oauth_credentials.json",
-        "Set token_file: credentials/token.json",
-        "Add OAuth scopes: spreadsheets and drive.file",
-        "Create .env.example with OAuth setup instructions",
-        "Config loads without errors on bot startup"
+      "id": "MT-004",
+      "title": "Export with empty database",
+      "description": "Test export behavior when database has no user data",
+      "preconditions": [
+        "MT-003 passed",
+        "Clean test database or ability to restore empty state"
       ],
+      "steps": [
+        "Backup current database: cp data/chibi.db data/chibi.db.backup",
+        "Clear user data: sqlite3 data/chibi.db 'DELETE FROM quiz_attempts; DELETE FROM concept_mastery; DELETE FROM users;'",
+        "Restart bot to ensure clean state",
+        "Run /export-progress in Discord",
+        "Verify export succeeds",
+        "Open exported spreadsheet",
+        "Check Metadata sheet shows 0 counts",
+        "Check data sheets have header row but no data rows",
+        "Restore database: cp data/chibi.db.backup data/chibi.db"
+      ],
+      "expectedOutcome": [
+        "Export succeeds even with empty database",
+        "Spreadsheet created with all 6 sheets",
+        "Metadata shows 0 for all table counts",
+        "Data sheets have headers but no data rows",
+        "No errors or crashes"
+      ],
+      "passes": false,
+      "priority": 2,
+      "category": "export"
+    },
+    {
+      "id": "MT-005",
+      "title": "Export with large dataset",
+      "description": "Test export with many records to verify batching works",
+      "preconditions": [
+        "MT-003 passed",
+        "Database has or can generate 10+ users with 50+ quiz attempts"
+      ],
+      "steps": [
+        "If needed, populate database with test data (multiple users, many quiz attempts)",
+        "Run /export-progress in Discord",
+        "Observe export time (should complete within 60 seconds)",
+        "Open exported spreadsheet",
+        "Verify all data exported (compare row counts)",
+        "Check no data truncation or corruption",
+        "Verify batching worked (no API timeout errors)"
+      ],
+      "expectedOutcome": [
+        "Export completes within reasonable time (< 60 seconds)",
+        "All records exported successfully",
+        "No data loss or truncation",
+        "No API rate limit errors",
+        "Batch operations handled correctly (1000 rows per batch)"
+      ],
+      "passes": false,
+      "priority": 2,
+      "category": "export"
+    },
+    {
+      "id": "MT-006",
+      "title": "Import to clean database (replace mode)",
+      "description": "Import data from Google Sheets to empty database using replace mode",
+      "preconditions": [
+        "MT-003 passed",
+        "Have exported spreadsheet URL from MT-003"
+      ],
+      "steps": [
+        "Backup current database: cp data/chibi.db data/chibi.db.backup",
+        "Note current database counts: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM quiz_attempts;'",
+        "Delete database: rm data/chibi.db",
+        "Restart bot (creates empty schema)",
+        "Verify database is empty: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM users;'",
+        "Run /import-progress <spreadsheet_url> mode:replace in Discord",
+        "Confirm import when prompted",
+        "Wait for import to complete",
+        "Check bot response shows success with row counts",
+        "Query database: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM quiz_attempts;'",
+        "Verify counts match exported data",
+        "Test bot functionality: /status command should show restored user data",
+        "Verify foreign keys intact: sqlite3 data/chibi.db 'SELECT u.username, COUNT(q.id) FROM users u LEFT JOIN quiz_attempts q ON u.id=q.user_id GROUP BY u.id;'"
+      ],
+      "expectedOutcome": [
+        "Import completes without errors",
+        "All data restored to database",
+        "Row counts match exported spreadsheet",
+        "Foreign key relationships maintained",
+        "Bot commands work with restored data",
+        "No data corruption or type errors"
+      ],
+      "passes": false,
       "priority": 3,
-      "passes": true,
-      "notes": "Follow existing config.yaml structure. See llm section for reference."
+      "category": "import"
     },
     {
-      "id": "US-004",
-      "title": "Write unit tests for Google Sheets client",
-      "description": "Create comprehensive unit tests for OAuth and Sheets API client before implementation",
-      "acceptanceCriteria": [
-        "Create tests/test_google_sheets_client.py",
-        "Mock google.auth and googleapiclient modules",
-        "Write test for OAuth flow initialization",
-        "Write test for token refresh logic",
-        "Write test for create_spreadsheet method",
-        "Write test for write_sheet method",
-        "Write test for read_sheet method",
-        "Write test for list_spreadsheets method",
-        "Tests are skipped or xfail initially (implementation doesn't exist yet)",
-        "File structure and imports are correct"
+      "id": "MT-007",
+      "title": "Import to existing database (merge mode)",
+      "description": "Import data with merge mode to combine with existing data",
+      "preconditions": [
+        "MT-006 passed",
+        "Have exported spreadsheet from MT-003",
+        "Database has some existing data"
       ],
+      "steps": [
+        "Ensure database has existing data (from MT-006 import or fresh data)",
+        "Count current records: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM users;'",
+        "Manually add 1 new user via Discord (/quiz as different user)",
+        "Count records again (should be +1)",
+        "Run /import-progress <spreadsheet_url> mode:merge in Discord",
+        "Confirm merge operation",
+        "Wait for import to complete",
+        "Query final counts: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM users;'",
+        "Verify: original records + new user + imported records (no duplicates)",
+        "Check for duplicate data: sqlite3 data/chibi.db 'SELECT discord_id, COUNT(*) FROM users GROUP BY discord_id HAVING COUNT(*) > 1;'",
+        "Verify existing user data wasn't overwritten (check specific user)"
+      ],
+      "expectedOutcome": [
+        "Merge completes without errors",
+        "Existing records updated if IDs match",
+        "New records inserted",
+        "No duplicate records created",
+        "Data integrity maintained",
+        "Foreign key relationships valid"
+      ],
+      "passes": false,
+      "priority": 3,
+      "category": "import"
+    },
+    {
+      "id": "MT-008",
+      "title": "Import with schema validation",
+      "description": "Test import rejects invalid schemas gracefully",
+      "preconditions": [
+        "MT-003 passed",
+        "Ability to modify exported spreadsheet"
+      ],
+      "steps": [
+        "Export data to create test spreadsheet",
+        "Open spreadsheet in browser",
+        "Delete the 'Metadata' sheet",
+        "Run /import-progress with modified spreadsheet URL",
+        "Observe error message",
+        "Verify error mentions missing Metadata sheet",
+        "Restore Metadata sheet",
+        "Delete 'Users' sheet",
+        "Run /import-progress again",
+        "Verify error mentions missing Users sheet",
+        "Verify database unchanged after failed imports"
+      ],
+      "expectedOutcome": [
+        "Import rejects spreadsheet with missing Metadata sheet",
+        "Import rejects spreadsheet with missing data sheets",
+        "Error messages are clear and informative",
+        "Database not modified when validation fails",
+        "Transaction rollback works correctly"
+      ],
+      "passes": false,
+      "priority": 3,
+      "category": "import"
+    },
+    {
+      "id": "MT-009",
+      "title": "Import error handling and rollback",
+      "description": "Verify transaction rollback on import errors",
+      "preconditions": [
+        "MT-006 passed",
+        "Ability to create invalid data in spreadsheet"
+      ],
+      "steps": [
+        "Backup database: cp data/chibi.db data/chibi.db.backup",
+        "Export data to create test spreadsheet",
+        "Note current database state and counts",
+        "Open exported spreadsheet",
+        "In Users sheet, add invalid data (e.g., duplicate discord_id)",
+        "Save spreadsheet",
+        "Run /import-progress with modified URL",
+        "Observe import fails with error",
+        "Query database to verify it's unchanged",
+        "Compare counts before/after: should be identical",
+        "Restore database: cp data/chibi.db.backup data/chibi.db"
+      ],
+      "expectedOutcome": [
+        "Import detects invalid data",
+        "Transaction rolls back on error",
+        "Database unchanged after failed import",
+        "Error message describes the issue",
+        "No partial data imported"
+      ],
+      "passes": false,
+      "priority": 3,
+      "category": "import"
+    },
+    {
+      "id": "MT-010",
+      "title": "List recent exports",
+      "description": "Test listing recent exports from Google Drive",
+      "preconditions": [
+        "MT-003 passed",
+        "At least 2 exports exist in Google Drive"
+      ],
+      "steps": [
+        "Create 2-3 exports via /export-progress",
+        "Wait a few seconds between exports",
+        "Run /list-exports in Discord",
+        "Verify bot returns list of exports",
+        "Check exports are sorted by date (newest first)",
+        "Verify each export shows: title, creation date, row counts",
+        "Click a link to verify it opens the correct spreadsheet",
+        "Run /list-exports limit:5 to test limit parameter",
+        "Verify only 5 most recent shown"
+      ],
+      "expectedOutcome": [
+        "List command returns recent exports",
+        "Exports sorted by date (newest first)",
+        "Each export has: title, date, counts",
+        "Links work and open correct spreadsheets",
+        "Limit parameter works correctly",
+        "Default limit is 10"
+      ],
+      "passes": false,
+      "priority": 3,
+      "category": "list"
+    },
+    {
+      "id": "MT-011",
+      "title": "Cross-machine data transfer",
+      "description": "Verify data can be transferred between different bot instances",
+      "preconditions": [
+        "MT-003 and MT-006 passed",
+        "Access to second machine or ability to simulate (use different database file)"
+      ],
+      "steps": [
+        "On Machine A: Export data via /export-progress",
+        "Copy spreadsheet URL",
+        "On Machine A: Backup database: cp data/chibi.db data/chibi_machine_a.db",
+        "Simulate Machine B: mv data/chibi.db data/chibi_machine_b.db && touch data/chibi.db",
+        "Restart bot (creates empty schema in new chibi.db)",
+        "On 'Machine B': Run /import-progress with URL from Machine A",
+        "Verify import succeeds",
+        "Compare databases: sqlite3 data/chibi.db 'SELECT COUNT(*) FROM users;' vs original",
+        "Verify data integrity and functionality",
+        "Test bot commands work with imported data",
+        "Restore: mv data/chibi_machine_a.db data/chibi.db"
+      ],
+      "expectedOutcome": [
+        "Data successfully transferred between 'machines'",
+        "All student progress preserved",
+        "Bot functions correctly with imported data",
+        "No data loss during transfer",
+        "Use case: moving bot to new server works"
+      ],
+      "passes": false,
       "priority": 4,
-      "passes": true,
-      "notes": "TDD: Write tests BEFORE implementation. Use pytest-asyncio. Mock external APIs (google.auth, googleapiclient, gspread). See tests/mocks/ for patterns. Note: google-credentials.json is available for manual testing but unit tests should mock APIs."
+      "category": "integration"
     },
     {
-      "id": "US-005",
-      "title": "Write unit tests for sheets exporter",
-      "description": "Create unit tests for SQLite to Sheets data transformation before implementation",
-      "acceptanceCriteria": [
-        "Create tests/test_sheets_exporter.py",
-        "Set up in-memory SQLite database (:memory:) fixture with test data",
-        "Mock GoogleSheetsClient",
-        "Write test for export with 2-3 users, quiz attempts, mastery records",
-        "Write test for data transformation: SQLite rows to Sheets format",
-        "Write test for data type conversions: None to empty, 0/1 to TRUE/FALSE",
-        "Write test for long text truncation to 50,000 chars",
-        "Tests are skipped or xfail initially (implementation doesn't exist yet)",
-        "File structure and imports are correct"
+      "id": "MT-012",
+      "title": "Data type preservation",
+      "description": "Verify all data types correctly preserved through export/import cycle",
+      "preconditions": [
+        "MT-003 and MT-006 passed",
+        "Database has diverse data types (NULL, boolean, timestamps, long text)"
       ],
-      "priority": 5,
-      "passes": true,
-      "notes": "TDD: Write tests BEFORE implementation. Follow conftest.py patterns. See tests/conftest.py for fixtures."
+      "steps": [
+        "Create data with diverse types: NULL values, TRUE/FALSE, timestamps, long text (if possible)",
+        "Export data via /export-progress",
+        "Open spreadsheet and verify transformations: NULL→empty, 0/1→TRUE/FALSE",
+        "Import data back via /import-progress mode:replace",
+        "Query database to check conversions: empty→NULL, TRUE/FALSE→1/0",
+        "Verify specific examples:",
+        "  - sqlite3 data/chibi.db \"SELECT is_correct FROM quiz_attempts LIMIT 5;\" (should be 0 or 1)",
+        "  - Check NULL handling: sqlite3 data/chibi.db \"SELECT student_id FROM users WHERE student_id IS NULL;\"",
+        "  - Check timestamps: sqlite3 data/chibi.db \"SELECT created_at FROM users LIMIT 3;\" (ISO format)",
+        "Verify long text fields (question, llm_feedback) preserved"
+      ],
+      "expectedOutcome": [
+        "Boolean values: 0/1 → TRUE/FALSE → 0/1 (preserved)",
+        "NULL values: NULL → empty → NULL (preserved)",
+        "Timestamps: ISO format preserved",
+        "Long text: Preserved (up to 50k chars)",
+        "No data corruption or type errors",
+        "All conversions reversible"
+      ],
+      "passes": false,
+      "priority": 4,
+      "category": "integrity"
     },
     {
-      "id": "US-006",
-      "title": "Write unit tests for sheets importer",
-      "description": "Create unit tests for Sheets to SQLite data transformation before implementation",
-      "acceptanceCriteria": [
-        "Create tests/test_sheets_importer.py",
-        "Mock GoogleSheetsClient with realistic Sheets data",
-        "Write test for schema validation: valid and invalid schemas",
-        "Write test for replace mode: verify DELETE then INSERT behavior",
-        "Write test for merge mode: verify INSERT OR REPLACE behavior",
-        "Write test for transaction rollback on error",
-        "Write test for data type conversions: empty to None, TRUE/FALSE to 1/0",
-        "Tests are skipped or xfail initially (implementation doesn't exist yet)",
-        "File structure and imports are correct"
+      "id": "MT-013",
+      "title": "Referential integrity verification",
+      "description": "Verify foreign key relationships maintained through export/import",
+      "preconditions": [
+        "MT-006 passed",
+        "Database has users with related quiz_attempts and concept_mastery records"
       ],
-      "priority": 6,
-      "passes": true,
-      "notes": "TDD: Write tests BEFORE implementation. Test both success and failure paths. Verify atomic transactions."
-    },
-    {
-      "id": "US-007",
-      "title": "Write unit tests for backup service",
-      "description": "Create unit tests for service orchestration before implementation",
-      "acceptanceCriteria": [
-        "Create tests/test_backup_service.py",
-        "Mock database, exporter, importer, and sheets client",
-        "Write test for export_progress orchestration",
-        "Write test for import_progress orchestration with replace mode",
-        "Write test for import_progress orchestration with merge mode",
-        "Write test for list_recent_exports",
-        "Write test for error handling paths",
-        "Tests are skipped or xfail initially (implementation doesn't exist yet)",
-        "File structure and imports are correct"
+      "steps": [
+        "Query current foreign key relationships:",
+        "  sqlite3 data/chibi.db \"SELECT u.id, u.username, COUNT(q.id) as quiz_count FROM users u LEFT JOIN quiz_attempts q ON u.id=q.user_id GROUP BY u.id;\"",
+        "Note user IDs and their quiz counts",
+        "Export via /export-progress",
+        "Clear database and import via /import-progress mode:replace",
+        "Query relationships again (same query as step 1)",
+        "Compare results: should be identical",
+        "Verify no orphaned records:",
+        "  sqlite3 data/chibi.db \"SELECT COUNT(*) FROM quiz_attempts WHERE user_id NOT IN (SELECT id FROM users);\" (should be 0)",
+        "Test cascade: Try to delete a user and verify foreign key constraint works:",
+        "  sqlite3 data/chibi.db \"DELETE FROM users WHERE id=1;\" (should fail if quiz_attempts exist)"
       ],
-      "priority": 7,
-      "passes": true,
-      "notes": "TDD: Write tests BEFORE implementation. Mock all external dependencies. Test happy and error paths."
-    },
-    {
-      "id": "US-008",
-      "title": "Write integration tests for full backup cycle",
-      "description": "Create end-to-end integration tests before implementation",
-      "acceptanceCriteria": [
-        "Create tests/integration/test_backup_integration.py",
-        "Set up in-memory SQLite with full schema",
-        "Mock Google Sheets API with realistic responses",
-        "Create fixture: 3 users, 10 quiz attempts, 5 mastery records",
-        "Write test: export to Sheets, verify all data present",
-        "Write test: export, clear database, import with replace, verify data restored",
-        "Write test: export with 2 users, add 1 user, import with merge, verify 3 users",
-        "Write test: verify referential integrity maintained (foreign keys)",
-        "Tests are skipped or xfail initially (implementation doesn't exist yet)",
-        "File structure and imports are correct"
+      "expectedOutcome": [
+        "All foreign key relationships preserved",
+        "No orphaned records after import",
+        "User → quiz_attempts relationships intact",
+        "User → concept_mastery relationships intact",
+        "User → attendance relationships intact",
+        "Foreign key constraints enforced"
       ],
-      "priority": 8,
-      "passes": true,
-      "notes": "TDD: Write tests BEFORE implementation. Focus on data integrity and end-to-end flows."
-    },
-    {
-      "id": "US-009",
-      "title": "Implement Google Sheets OAuth client",
-      "description": "Create client for Google Sheets API with OAuth 2.0 authentication flow",
-      "acceptanceCriteria": [
-        "Create chibi/backup/google_sheets_client.py",
-        "Implement OAuth 2.0 desktop flow with browser authentication",
-        "Implement token persistence to credentials/token.json",
-        "Implement automatic token refresh",
-        "Add create_spreadsheet(title: str) method returning spreadsheet ID",
-        "Add get_spreadsheet(spreadsheet_id: str) method",
-        "Add write_sheet(spreadsheet_id, sheet_name, data: List[List]) method",
-        "Add read_sheet(spreadsheet_id, sheet_name) method returning List[List]",
-        "Add list_spreadsheets(query: str) method",
-        "Add error handling for API failures and permission errors",
-        "All tests in tests/test_google_sheets_client.py pass",
-        "All existing tests pass"
-      ],
-      "priority": 9,
-      "passes": true,
-      "notes": "Tests already written in US-004. Use gspread library. Follow google-auth-oauthlib patterns. See chibi/llm/ for async patterns. For manual testing: google-credentials.json is available in project root (do not use for production)."
-    },
-    {
-      "id": "US-010",
-      "title": "Implement SQLite to Google Sheets exporter",
-      "description": "Create exporter to read SQLite tables and write to Google Sheets",
-      "acceptanceCriteria": [
-        "Create chibi/backup/sheets_exporter.py with SheetsExporter class",
-        "Implement export_to_sheets() returning Dict with url and summary",
-        "Read all rows from users, quiz_attempts, concept_mastery, llm_quiz_attempts, attendance tables",
-        "Convert SQLite rows to list of lists format for Sheets API",
-        "Handle data type conversions: None to empty string, 0/1 to TRUE/FALSE",
-        "Truncate long text fields to 50,000 characters",
-        "Create spreadsheet named 'Chibi Student Progress - YYYY-MM-DD HH:MM'",
-        "Create 6 sheets: Metadata, Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance",
-        "Write data in batches of 1000 rows to respect rate limits",
-        "All tests in tests/test_sheets_exporter.py pass",
-        "All existing tests pass"
-      ],
-      "priority": 10,
-      "passes": true,
-      "notes": "Tests already written in US-005. Use async/await. Follow pattern in chibi/database/repositories/. Database: data/chibi.db (see DATABASE_STRUCTURE.md for complete schema with all columns and types)."
-    },
-    {
-      "id": "US-011",
-      "title": "Implement Google Sheets to SQLite importer",
-      "description": "Create importer to read Google Sheets and write to SQLite database",
-      "acceptanceCriteria": [
-        "Create chibi/backup/sheets_importer.py with SheetsImporter class",
-        "Implement import_from_sheets(spreadsheet_url, mode='replace') returning Dict",
-        "Extract spreadsheet ID from URL or use as-is if already an ID",
-        "Validate Metadata sheet exists and schema version matches",
-        "Validate all 5 data sheets exist with correct column headers",
-        "Convert Sheets data back to SQLite row dicts",
-        "Handle data type conversions: empty string to None, TRUE/FALSE to 1/0",
-        "Implement 'replace' mode: DELETE FROM all tables, INSERT new rows in transaction",
-        "Implement 'merge' mode: INSERT OR REPLACE for each row in transaction",
-        "Add rollback on error (atomic operation)",
-        "All tests in tests/test_sheets_importer.py pass",
-        "All existing tests pass"
-      ],
-      "priority": 11,
-      "passes": true,
-      "notes": "Tests already written in US-006. Use SQLite transactions. See database/connection.py for transaction patterns. Database: data/chibi.db (see DATABASE_STRUCTURE.md for schema, especially data type mappings)."
-    },
-    {
-      "id": "US-012",
-      "title": "Implement backup service orchestration",
-      "description": "Create service layer to orchestrate export and import operations",
-      "acceptanceCriteria": [
-        "Create chibi/backup/backup_service.py with BackupService class",
-        "Initialize GoogleSheetsClient, SheetsExporter, SheetsImporter in __init__",
-        "Implement async export_progress() returning Dict with url and summary",
-        "Implement async import_progress(spreadsheet_url, mode) returning Dict",
-        "Implement async list_recent_exports(limit=10) returning List[Dict]",
-        "Add logging for all operations using existing logger",
-        "Add error handling with user-friendly error messages",
-        "All tests in tests/test_backup_service.py pass",
-        "All integration tests in tests/integration/test_backup_integration.py pass",
-        "All existing tests pass"
-      ],
-      "priority": 12,
-      "passes": true,
-      "notes": "Tests already written in US-007 and US-008. Follow service pattern in chibi/services/. Inject dependencies via __init__."
-    },
-    {
-      "id": "US-013",
-      "title": "Implement Discord slash commands for backup",
-      "description": "Create Discord cog with admin-only commands for backup operations",
-      "acceptanceCriteria": [
-        "Create chibi/cogs/backup_cog.py with BackupCog class",
-        "Implement /export-progress command with @commands.has_permissions(administrator=True)",
-        "Show ephemeral 'Exporting...' message, call export_progress(), show result with link",
-        "Implement /import-progress <spreadsheet_url> [mode] command with admin check",
-        "Add confirmation prompt for replace mode imports",
-        "Show ephemeral 'Importing...' message, call import_progress(), show summary",
-        "Implement /list-exports command with admin check",
-        "Format exports as embed with clickable links",
-        "Handle errors with user-friendly messages",
-        "All existing tests pass",
-        "Manual verification: commands appear in Discord when bot runs"
-      ],
-      "priority": 13,
-      "passes": true,
-      "notes": "Follow pattern in existing cogs. Use discord.app_commands for slash commands. See chibi/cogs/quiz_cog.py."
-    },
-    {
-      "id": "US-014",
-      "title": "Integrate BackupService and BackupCog into bot",
-      "description": "Register backup components in the main bot class",
-      "acceptanceCriteria": [
-        "Import BackupService and BackupCog in chibi/bot.py",
-        "Initialize BackupService in ChibiBot.__init__ with database and config",
-        "Register BackupCog in setup_hook or existing cog registration section",
-        "Bot starts without errors: uv run python main.py",
-        "Commands /export-progress, /import-progress, /list-exports appear in Discord",
-        "All existing tests pass",
-        "Test coverage >80% for chibi/backup/: uv run pytest tests/test_backup_*.py --cov=chibi/backup"
-      ],
-      "priority": 14,
-      "passes": true,
-      "notes": "Follow existing cog registration pattern. BackupService initialization similar to RAGService. All tests should now pass."
+      "passes": false,
+      "priority": 4,
+      "category": "integrity"
     }
   ],
   "metadata": {
     "created": "2026-01-11",
-    "description": "Export and import student learning progress data to/from Google Sheets using TDD approach. Tests written first, then implementation verified against tests.",
-    "estimatedIterations": "15-25 total",
-    "notes": "TDD workflow: (1) Foundation setup (US-001 to US-003), (2) Write ALL tests first (US-004 to US-008), (3) Implement components with tests verifying (US-009 to US-014). Each implementation story has 'All tests pass' as acceptance criteria."
+    "testType": "Manual End-to-End Testing",
+    "credentials": "Service Account (google-credentials.json)",
+    "environment": "Test Discord server with real Google Sheets API",
+    "estimatedDuration": "2-4 hours for complete test suite",
+    "notes": [
+      "Use test database, not production",
+      "Service account credentials required",
+      "Google Sheets API and Drive API must be enabled",
+      "Backup database before destructive tests",
+      "Document all issues in manual-testing-log.md",
+      "Delete test spreadsheets after testing to avoid quota issues"
+    ]
   }
 }

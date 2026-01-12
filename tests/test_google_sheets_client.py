@@ -59,8 +59,9 @@ class TestOAuthFlow:
 
     @patch("gspread.authorize")
     @patch("google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file")
+    @patch("builtins.open", new_callable=mock_open)
     @patch("chibi.backup.google_sheets_client.Path.exists")
-    def test_oauth_flow_first_time_auth(self, mock_exists, mock_flow, mock_authorize):
+    def test_oauth_flow_first_time_auth(self, mock_exists, mock_file_open, mock_flow, mock_authorize):
         """
         Test OAuth flow for first-time authentication (no token file).
 
@@ -69,6 +70,15 @@ class TestOAuthFlow:
         Then: Should initiate browser-based OAuth flow
         And: Should save token to token.json
         """
+        # Mock OAuth credentials file (not service account)
+        oauth_json = json.dumps({
+            "installed": {
+                "client_id": "test-client-id",
+                "client_secret": "test-secret"
+            }
+        })
+        mock_file_open.return_value.read.return_value = oauth_json
+
         # Mock OAuth flow
         mock_flow_instance = MagicMock()
         mock_credentials = MagicMock()
@@ -95,8 +105,9 @@ class TestOAuthFlow:
     @patch("gspread.authorize")
     @patch("google.auth.transport.requests.Request")
     @patch("google.oauth2.credentials.Credentials.from_authorized_user_file")
+    @patch("builtins.open", new_callable=mock_open)
     @patch("chibi.backup.google_sheets_client.Path.exists", return_value=True)
-    def test_oauth_token_refresh(self, mock_exists, mock_from_file, mock_request, mock_authorize):
+    def test_oauth_token_refresh(self, mock_exists, mock_file_open, mock_from_file, mock_request, mock_authorize):
         """
         Test automatic token refresh when expired.
 
@@ -105,6 +116,15 @@ class TestOAuthFlow:
         Then: Should automatically refresh the token
         And: Should save refreshed token to token.json
         """
+        # Mock OAuth credentials file (not service account)
+        oauth_json = json.dumps({
+            "installed": {
+                "client_id": "test-client-id",
+                "client_secret": "test-secret"
+            }
+        })
+        mock_file_open.return_value.read.return_value = oauth_json
+
         # Mock expired credentials
         mock_credentials = MagicMock()
         mock_credentials.valid = False
@@ -132,8 +152,9 @@ class TestOAuthFlow:
 
     @patch("gspread.authorize")
     @patch("google.oauth2.credentials.Credentials.from_authorized_user_file")
+    @patch("builtins.open", new_callable=mock_open)
     @patch("chibi.backup.google_sheets_client.Path.exists", return_value=True)
-    def test_oauth_valid_token_reuse(self, mock_exists, mock_from_file, mock_authorize):
+    def test_oauth_valid_token_reuse(self, mock_exists, mock_file_open, mock_from_file, mock_authorize):
         """
         Test reusing valid token without refresh.
 
@@ -141,6 +162,15 @@ class TestOAuthFlow:
         When: Client authenticates
         Then: Should reuse existing token without refresh
         """
+        # Mock OAuth credentials file (not service account)
+        oauth_json = json.dumps({
+            "installed": {
+                "client_id": "test-client-id",
+                "client_secret": "test-secret"
+            }
+        })
+        mock_file_open.return_value.read.return_value = oauth_json
+
         # Mock valid credentials
         mock_credentials = MagicMock()
         mock_credentials.valid = True
@@ -156,6 +186,50 @@ class TestOAuthFlow:
 
         # Should not refresh or run OAuth flow
         mock_credentials.refresh.assert_not_called()
+
+    @patch("gspread.authorize")
+    @patch("google.oauth2.service_account.Credentials.from_service_account_file")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("chibi.backup.google_sheets_client.Path.exists", return_value=True)
+    def test_service_account_authentication(self, mock_exists, mock_file_open, mock_from_file, mock_authorize):
+        """
+        Test service account authentication (no browser OAuth flow).
+
+        Given: A service account credentials file exists
+        When: Client authenticates
+        Then: Should authenticate directly without browser flow or token file
+        """
+        # Mock service account credentials file
+        service_account_json = json.dumps({
+            "type": "service_account",
+            "project_id": "test-project",
+            "private_key_id": "key-id",
+            "private_key": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+            "client_email": "test@test-project.iam.gserviceaccount.com",
+            "client_id": "123456",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+        })
+        mock_file_open.return_value.read.return_value = service_account_json
+
+        # Mock service account credentials
+        mock_credentials = MagicMock()
+        mock_from_file.return_value = mock_credentials
+
+        # Mock gspread
+        mock_gc = MagicMock()
+        mock_authorize.return_value = mock_gc
+
+        client = GoogleSheetsClient(credentials_file="service-account.json")
+        client.authenticate()
+
+        # Verify service account authentication was used
+        mock_from_file.assert_called_once()
+        mock_authorize.assert_called_once_with(mock_credentials)
+
+        # Verify OAuth flow was NOT triggered (no browser)
+        assert client.gc is not None
 
 
 class TestSpreadsheetOperations:
