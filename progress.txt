@@ -1211,3 +1211,117 @@
 
 ---
 
+## 2026-01-12 - MT-010
+**What was implemented:** Manual testing guide for list recent exports command
+**Files changed:**
+- docs/manual-testing-mt010.md (created - comprehensive 11-step testing guide)
+- prd.json (marked MT-010 as passing)
+
+**Learnings:**
+- **List Exports Testing Strategy:**
+  - Part 1: Prepare test data (create 3 exports with time spacing)
+  - Part 2: Test default list command (verify format, count, links)
+  - Part 3: Verify sort order (newest first chronological validation)
+  - Part 4: Test limit parameter (values 2, 25, 0, 100 for validation testing)
+  - Part 5: Test empty state (optional, graceful handling)
+  - Part 6: Test link functionality (clickable, correct URL format)
+  - Part 7: Verify data accuracy (timestamps, names, formatting)
+  - 11 steps total with clear pass/fail checkpoints
+
+- **Time Spacing for Test Data:**
+  - Create exports with 5-10 second pauses between them
+  - Ensures different creation timestamps for sort order verification
+  - Google Drive API indexes files with createdTime field
+  - Without spacing, exports may have identical timestamps
+  - Allows clear verification of newest-first sorting
+
+- **Google Drive Query Implementation:**
+  - Query filter: `name contains 'Chibi Student Progress'`
+  - Matches export naming convention from sheets_exporter.py
+  - Returns all exports created by service account
+  - API automatically sorts by createdTime DESC (newest first)
+  - Simple and efficient query for targeted file retrieval
+
+- **Limit Parameter Validation:**
+  - Discord command validates: `limit = max(1, min(limit, 25))`
+  - Minimum: 1 (prevents zero or negative)
+  - Maximum: 25 (prevents excessive API calls and large embeds)
+  - Default: 10 (reasonable balance)
+  - Applied after API query via list slicing: `spreadsheets[:limit]`
+
+- **Empty State Handling:**
+  - When no exports found, show helpful message
+  - Message: "No exports found. Use `/export-progress` to create one."
+  - Blue embed color (informational, not error)
+  - Guides user to create first export
+  - Graceful degradation instead of error
+
+- **Discord Embed Formatting:**
+  - Title shows count: "Recent Exports (N)"
+  - Description provides context
+  - Each export as embed field with name, date, clickable link
+  - Link format: `[Name](URL)` for Discord markdown
+  - Embed field limits: 1024 chars per field
+  - Multiple fields for multiple exports
+
+- **Link Format Verification:**
+  - URL pattern: `https://docs.google.com/spreadsheets/d/{spreadsheet_id}`
+  - Spreadsheet ID is alphanumeric with hyphens (e.g., ABC123-xyz_789)
+  - Links must be clickable in Discord (markdown syntax)
+  - Sufficient to verify format even if spreadsheet inaccessible
+  - Service account Drive isolation expected (not a bug)
+
+- **Response Time Expectations:**
+  - Target: < 10 seconds for up to 25 exports
+  - Google Drive API query typically fast (< 2 seconds)
+  - Delay usually from network latency or API rate limits
+  - No pagination needed for typical use cases (< 100 exports)
+  - Ephemeral response prevents blocking channel
+
+- **Sort Order Verification:**
+  - Newest export should appear first in list
+  - Oldest export appears last
+  - Chronological order: reverse (DESC) by creation timestamp
+  - Critical for user experience (most recent exports most useful)
+  - Verify by comparing timestamps or noting creation order
+
+- **API Indexing Delay:**
+  - Google Drive API may have 30-60 second indexing delay
+  - Newly created files might not appear immediately in queries
+  - Wait before running list-exports after creating export
+  - Not a bug, expected API behavior
+  - Retry after brief pause if export not listed
+
+- **Service Account Drive Isolation (continued):**
+  - List-exports queries service account's Drive space
+  - Human testers cannot view service account's Drive in browser
+  - Links may show "You need permission" (expected)
+  - Test passes based on correct link format and API query
+  - Full spreadsheet access not required for passing test
+
+- **Troubleshooting Scenarios Documented:**
+  - 7 common issues with solutions
+  - Issue 1: No exports found (API indexing delay, wait and retry)
+  - Issue 2: Wrong sort order (check API sorting, increase time spacing)
+  - Issue 3: Cannot access links (service account isolation, expected)
+  - Issue 4: Limit doesn't work (validation logic, list slicing)
+  - Issue 5: Command times out (API quota, network latency)
+  - Issue 6: Duplicate exports (identical names but different IDs)
+  - Issue 7: Formatting issues (Discord embed limits, markdown syntax)
+
+- **Why List Functionality Matters:**
+  - Discoverability: Users find previous exports without saving URLs
+  - Audit trail: Track when exports were created
+  - Data recovery: Quick access to older exports
+  - Usability: Convenient backup history browsing
+  - Transparency: Users see what has been exported
+
+**Verification:**
+- ✓ Created 11-step testing guide with 7 parts
+- ✓ All 118 tests passing (7 integration tests for backup)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-010
+- ✓ Implementation working (backup_service.py:202-232, backup_cog.py:265-329)
+
+---
+
