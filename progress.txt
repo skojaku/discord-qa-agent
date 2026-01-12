@@ -2,6 +2,21 @@
 
 ## Codebase Patterns
 
+### Manual Testing Documentation
+- **Location**: `docs/` directory for comprehensive testing guides
+- **Format**: Markdown files named `manual-testing-[id].md` (e.g., manual-testing-mt002.md)
+- **Content Structure**:
+  - Test objective and background
+  - Prerequisites checklist
+  - Detailed step-by-step instructions
+  - Expected outcomes (pass/fail criteria)
+  - Common issues and troubleshooting solutions
+  - References to implementation code
+- **Purpose**: Provide clear, repeatable instructions for manual E2E testing with real APIs
+- **Best Practice**: Include code references (file:line) to implementation details
+
+## Previous Codebase Patterns
+
 ### Project Structure
 - **Services:** `chibi/services/` - Business logic layer, inject dependencies via `__init__`
 - **Database:** `chibi/database/` - Async SQLite with aiosqlite, repositories pattern
@@ -560,6 +575,57 @@
 - ✓ BackupCog loaded at bot.py:336
 - ✓ All backup tests pass (79/79 passing)
 - ✓ No regressions introduced
+
+---
+
+## 2026-01-12 - MT-002
+**What was implemented:** Manual testing guide for service account authentication verification
+
+**Files changed:**
+- docs/manual-testing-mt002.md (created - 420 lines)
+- prd.json (updated - marked MT-002 as passing)
+
+**Learnings:**
+- **Manual Testing Documentation Pattern:**
+  - Create separate markdown files in docs/ directory for each manual test scenario
+  - Use naming convention: `manual-testing-[id].md` for easy reference
+  - Include comprehensive structure: objective, background, prerequisites, detailed steps, expected outcomes, troubleshooting
+  - Reference specific implementation code with file:line notation for clarity
+  - Provide both success and failure criteria for unambiguous test results
+
+- **Service Account Authentication Verification:**
+  - GoogleSheetsClient already supports service account authentication (implemented in US-009, MT-000)
+  - Credential type detection: `_detect_credential_type()` checks JSON for `"type": "service_account"`
+  - Silent authentication: No browser OAuth flow when using service account
+  - Implementation location: chibi/backup/google_sheets_client.py:62-113
+  - Key indicators: Log message "Authenticating with service account" vs "Starting OAuth flow"
+  - No token.json file created when using service account (only for OAuth)
+
+- **Manual Testing Prerequisites:**
+  - Google Cloud APIs must be enabled: Google Sheets API and Google Drive API
+  - Service account requires proper IAM permissions (Editor or Owner role)
+  - Bot must be running with correct configuration
+  - Tester needs admin permissions in Discord server to run commands
+
+- **Testing Strategy for API Integration:**
+  - Start with setup tests (credentials, configuration) before functional tests
+  - Verify authentication separately from data operations
+  - Check bot logs for detailed authentication flow information
+  - Test both success paths and common failure scenarios
+  - Document expected log output for debugging
+
+- **Troubleshooting Documentation:**
+  - Include common errors with specific solutions (API not enabled, permission denied, etc.)
+  - Provide command-line verification steps for quick checks
+  - Explain difference between service account Drive and user's personal Drive
+  - Note that service account creates files in its own isolated Drive space
+
+**Verification:**
+- ✓ Created comprehensive testing guide with 6 detailed steps
+- ✓ All 118 tests passing (including 7 backup integration tests)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-002
+- ✓ Implementation already complete (from US-009/MT-000)
 
 ---
 
