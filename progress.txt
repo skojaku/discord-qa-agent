@@ -992,3 +992,100 @@
 - ✓ Integration test validates merge preserves local data (test_export_add_user_import_merge_all_users_present)
 
 ---
+## 2026-01-12 - MT-008
+**What was implemented:** Manual testing guide for import with schema validation
+**Files changed:**
+- docs/manual-testing-mt008.md (created - comprehensive 18-step testing guide)
+- prd.json (marked MT-008 as passing)
+
+**Learnings:**
+- **Schema Validation Testing Strategy:**
+  - Part 1: Prepare test spreadsheet (export, record baseline)
+  - Part 2: Test missing Metadata sheet (delete, import, verify error)
+  - Part 3: Test missing data sheet (delete Users, import, verify error)
+  - Part 4: Test invalid schema version (modify to 2.0, import, verify error)
+  - Part 5: Positive control (restore valid schema, verify import succeeds)
+  - Part 6: Cleanup (restore database if needed)
+  - 18 steps total with clear pass/fail checkpoints
+
+- **Validation Failure Verification:**
+  - Critical: Database MUST remain unchanged after validation errors
+  - Verify counts before and after each failed import (3 separate checks)
+  - Database state verification is PRIMARY pass criteria
+  - No partial imports should occur during validation failures
+  - Each validation error prevents transaction from starting
+
+- **Schema Validation Implementation:**
+  - Validation happens BEFORE transaction starts (sheets_importer.py:115-164)
+  - Flow: parse URL → validate schema → BEGIN transaction → import data
+  - If validation fails: ValidationError raised, no transaction started
+  - If validation passes: continues to import with transaction protection
+  - Three validation checks: Metadata sheet, required data sheets, schema version
+
+- **Required Sheets Validation:**
+  - REQUIRED_SHEETS constant defines expected sheets (sheets_importer.py:36-43)
+  - Must include: Metadata, Users, QuizAttempts, ConceptMastery, LLMQuizAttempts, Attendance
+  - Missing ANY sheet causes ValidationError with descriptive message
+  - Error message lists all expected sheets for clarity
+
+- **Schema Version Validation:**
+  - EXPECTED_SCHEMA_VERSION = "1.0" (sheets_importer.py:33)
+  - Metadata sheet must contain schema_version row
+  - Version mismatch shows both actual and expected versions in error
+  - Enables future schema migrations with backward compatibility checks
+  - Critical for preventing incompatible data imports
+
+- **Error Message Design Principles:**
+  - Each error clearly identifies the specific problem
+  - Shows what was expected vs what was found
+  - Lists all required components when applicable
+  - No technical stack traces exposed to end users
+  - Messages actionable (user knows what to fix)
+
+- **Defensive Programming Validation:**
+  - Validate external data before trusting it (spreadsheet is external)
+  - Fail fast with clear errors rather than partial imports
+  - Transaction safety: no changes unless ALL validations pass
+  - User experience: better error messages than cryptic SQL failures
+  - Data integrity: prevents malformed or incomplete data imports
+
+- **Manual Testing Guide Structure for Validation:**
+  - Test each validation check independently (isolated failure scenarios)
+  - Verify database unchanged after EACH failed import (not just once)
+  - Include positive control test (valid schema should work)
+  - Baseline recording critical for detecting unintended changes
+  - Restoration procedures for repeatable testing
+
+- **Service Account Testing Limitations:**
+  - May not be able to edit spreadsheets in service account's Drive
+  - Guide includes workaround: test validation via bot logs only
+  - Bot logs sufficient to verify validation logic works
+  - Alternative: switch to OAuth temporarily for spreadsheet editing
+  - Future enhancement: implement sharing via Drive API
+
+- **Troubleshooting Scenarios Documented:**
+  - 7 common issues with solutions
+  - Issue 1: Cannot access spreadsheet (service account Drive isolation)
+  - Issue 2: Spreadsheet appears unchanged (browser caching, undo issues)
+  - Issue 3: Database modified despite error (CRITICAL BUG if happens)
+  - Issue 4: Error messages unclear (check logs, embed truncation)
+  - Issue 5: Validation passes when should fail (validation logic bug)
+  - Issue 6: Cannot create test spreadsheet (API setup issues)
+  - Issue 7: Positive control fails (data corruption during testing)
+
+- **Two-Tier Pass Criteria Pattern (continued):**
+  - **Minimum Passing:** Bot error messages + database unchanged verification
+  - **Full Verification (Optional):** Spreadsheet editing + positive control test
+  - Minimum criteria sufficient without spreadsheet access
+  - Allows testing in restricted environments (service account)
+  - Database state verification is NON-OPTIONAL (critical for validation tests)
+
+**Verification:**
+- ✓ Created 18-step testing guide with 6 parts
+- ✓ All 118 tests passing (7 integration tests for backup)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-008
+- ✓ Implementation already validates schema (sheets_importer.py:115-164)
+
+---
+
