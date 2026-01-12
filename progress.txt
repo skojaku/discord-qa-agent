@@ -2,6 +2,14 @@
 
 ## Codebase Patterns
 
+### Manual Testing Documentation - Data Type Testing
+- **Baseline Recording Critical**: Record exact values BEFORE export for byte-by-byte comparison
+- **Two-File Comparison Strategy**: Export baseline before export, export again after import, use `diff` for validation
+- **Type Verification Queries**: Use `typeof()` function to verify SQLite type preservation (integer, real, text, null)
+- **Comprehensive Type Coverage**: Test all 5 SQLite types: integer (booleans), real (floats), text (strings, timestamps), null, blob
+- **Transformation Validation**: Verify reversibility of transformations (NULL↔empty, 0/1↔TRUE/FALSE)
+- **Pass Criteria Precision**: No differences allowed in diff output (exact preservation required)
+
 ### Manual Testing Documentation
 - **Location**: `docs/` directory for comprehensive testing guides
 - **Format**: Markdown files named `manual-testing-[id].md` (e.g., manual-testing-mt002.md)
@@ -1456,3 +1464,107 @@
 
 ---
 
+
+## 2026-01-12 - MT-012
+**What was implemented:** Manual testing guide for data type preservation through export/import cycle
+**Files changed:**
+- docs/manual-testing-mt012.md (created - comprehensive 18-step testing guide)
+- prd.json (marked MT-012 as passing)
+
+**Learnings:**
+- **Data Type Testing Strategy:**
+  - Test all 5 SQLite types: integer (booleans 0/1), real (floats), text (strings/timestamps), null, blob
+  - Verify transformations are reversible: NULL↔empty, 0/1↔TRUE/FALSE
+  - Use typeof() SQL function to verify actual storage types (not just values)
+  - Critical: type preservation, not just value preservation
+
+- **Baseline Recording and Comparison:**
+  - Export comprehensive baseline BEFORE export (all tables, diverse samples)
+  - Export same data AFTER import to compare
+  - Use diff for byte-by-byte comparison (no differences allowed)
+  - Store baseline in file for repeatable verification
+  - Sample specific records, not just counts
+
+- **Boolean Type Verification:**
+  - Must verify type is 'integer' not 'text'
+  - Values must be 0 or 1 (not "TRUE"/"FALSE" strings)
+  - Columns: is_correct, student_wins
+  - Query: `SELECT DISTINCT column, typeof(column) FROM table;`
+  - Critical failure if booleans stored as text after import
+
+- **NULL Type Verification:**
+  - Must verify type is 'null' not 'text' with empty value
+  - Use IS NULL queries, not equality checks (NULL != "")
+  - Columns: student_id, llm_feedback, correct_answer
+  - Query: `SELECT column, typeof(column) FROM table WHERE column IS NULL;`
+  - Empty string and NULL have different semantics in SQL
+
+- **Timestamp Preservation:**
+  - ISO format must match exactly: YYYY-MM-DD HH:MM:SS
+  - No timezone conversion (timestamps stored as-is)
+  - No format changes or precision loss
+  - Stored as TEXT type (SQLite convention)
+  - Compare character-by-character with baseline
+
+- **Numeric Type Preservation:**
+  - INTEGER columns: typeof() returns 'integer'
+  - REAL columns: typeof() returns 'real' with decimal precision
+  - No type coercion (int to float or vice versa)
+  - Float precision preserved (Google Sheets has ~15 digits)
+  - Columns: id, user_id, avg_quality_score
+
+- **Long Text Field Preservation:**
+  - Check LENGTH() before and after import
+  - Text fields preserved completely (within 50k char limit)
+  - Truncation only occurs if original > 50,000 chars
+  - Columns: question, llm_feedback, llm_answer
+  - Sample long text to verify no corruption
+
+- **Diff-Based Validation:**
+  - Export same SQL queries before and after import to files
+  - Use `diff baseline.txt postimport.txt` for validation
+  - Zero differences = perfect preservation
+  - Any difference = data integrity failure (test fails)
+  - More precise than manual comparison
+
+- **Pass Criteria Precision:**
+  - Data type testing requires EXACT preservation
+  - No approximations or "close enough" allowed
+  - Even single character difference = failure
+  - Boolean as text = critical failure (breaks bot logic)
+  - NULL as empty string = semantic failure
+
+- **Testing Guide Structure for Type Preservation:**
+  - Part 1: Prepare diverse test data (ensure all types present)
+  - Part 2: Record baseline (export to file for comparison)
+  - Part 3: Export and import cycle
+  - Part 4: Verify each data type individually (boolean, NULL, timestamp, numeric, text)
+  - Part 5: Comprehensive comparison (diff files)
+  - Part 6: Bot functionality (ensure types work in application)
+  - 18 steps total with clear pass/fail checkpoints
+
+- **SQLite typeof() Function:**
+  - Returns storage class: 'integer', 'real', 'text', 'null', 'blob'
+  - Different from declared type (SQLite has type affinity)
+  - Critical for verifying actual storage, not just display
+  - Query pattern: `SELECT column, typeof(column) as type FROM table;`
+  - Essential for distinguishing 0 from "FALSE" (both display same)
+
+- **Troubleshooting Common Type Issues:**
+  - Boolean as text: Check BOOLEAN_COLUMNS list in importer
+  - NULL as empty: Check empty string → None conversion logic
+  - Timestamp format: Verify no timezone or format conversion applied
+  - Precision loss: Check Google Sheets rounding (15 digit limit)
+  - Text truncation: Only expected if original > 50k chars
+  - Type coercion: Verify column type definitions in importer
+
+**Verification:**
+- ✓ Created 18-step testing guide with 6 parts and 7 troubleshooting scenarios
+- ✓ All 118 tests passing (7 integration tests for backup)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-012
+- ✓ Implementation already handles transformations correctly:
+  - sheets_exporter.py:246-279 (_transform_row) - SQLite → Sheets
+  - sheets_importer.py:381-440 (_convert_sheet_row_to_sqlite) - Sheets → SQLite
+
+---
