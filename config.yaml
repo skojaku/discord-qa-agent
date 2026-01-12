@@ -44,7 +44,7 @@ database:
 # Backup settings (Google Sheets export/import)
 backup:
   google_sheets:
-    credentials_file: "credentials/google_oauth_credentials.json"
+    credentials_file: "google-credential.json"
     token_file: "credentials/token.json"
     scopes:
       - "https://www.googleapis.com/auth/spreadsheets"

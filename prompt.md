@@ -437,4 +437,4 @@ You are autonomous. Trust your judgment. Follow the patterns in `progress.txt`. 
 
 ---
 
-Now, read `progress.txt` and `prd.json`, then start with the highest priority incomplete story.
+Now, read `progress.txt` and `prd.json`, then start with the highest priority incomplete story. Then Implement exactly **ONE story** at a time and complete with <promise>COMPLETE</promise> when all stories are done. DO NOT show <promise>COMPLETE</promise> if there are remaining stories. 
