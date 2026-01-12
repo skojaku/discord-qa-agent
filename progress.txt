@@ -1568,3 +1568,134 @@
   - sheets_importer.py:381-440 (_convert_sheet_row_to_sqlite) - Sheets → SQLite
 
 ---
+
+## 2026-01-12 - MT-013
+**What was implemented:** Manual testing guide for referential integrity verification through export/import cycle
+**Files changed:**
+- docs/manual-testing-mt013.md (created - comprehensive 21-step testing guide)
+- prd.json (marked MT-013 as passing)
+
+**Learnings:**
+- **Foreign Key Relationship Testing Strategy:**
+  - Test all 4 relationships: users → quiz_attempts, concept_mastery, llm_quiz_attempts, attendance
+  - Verify no orphaned records (child without parent) after import
+  - Verify relationship counts preserved exactly
+  - Verify foreign key constraints actively enforced (DELETE fails)
+  - Use PRAGMA foreign_key_check for comprehensive validation
+
+- **Orphaned Record Detection:**
+  - Query pattern: `SELECT COUNT(*) FROM child_table WHERE user_id NOT IN (SELECT id FROM users);`
+  - Expected: 0 (zero orphaned records)
+  - Non-zero indicates data corruption or import order violation
+  - Critical failure if any orphaned records found
+  - Test all 4 child tables independently
+
+- **Relationship Count Verification:**
+  - Use LEFT JOIN to count related records per user
+  - Query pattern: `SELECT u.id, COUNT(c.id) FROM users u LEFT JOIN child_table c ON u.id = c.user_id GROUP BY u.id;`
+  - Compare counts before and after import (must match exactly)
+  - Export comprehensive baseline to file for diff comparison
+  - Any count mismatch = data loss or corruption
+
+- **Foreign Key Constraint Enforcement Testing:**
+  - Test DELETE parent with children: `DELETE FROM users WHERE id = 1;`
+  - Should fail with "FOREIGN KEY constraint failed"
+  - If DELETE succeeds, constraints not enforced (critical bug)
+  - PRAGMA foreign_keys must be ON during import
+  - Per-connection setting, not persisted in database
+
+- **PRAGMA foreign_key_check:**
+  - SQLite built-in integrity check: `PRAGMA foreign_key_check;`
+  - Returns rows if violations found (table, rowid, parent, fkid)
+  - Empty result = all foreign keys valid
+  - Comprehensive scan of all relationships
+  - More thorough than manual queries
+
+- **Import Order Critical:**
+  - Parent tables MUST be imported before child tables
+  - Correct order: Users first, then quiz_attempts, concept_mastery, etc.
+  - Foreign keys checked on INSERT (child fails if parent missing)
+  - Import would rollback if order violated
+  - Implementation: sheets_importer.py:350-364
+
+- **Foreign Key Enforcement in SQLite:**
+  - SQLite disables foreign keys by default (backward compatibility)
+  - Must enable per connection: `PRAGMA foreign_keys = ON;`
+  - Enable BEFORE BEGIN transaction
+  - Location: sheets_importer.py:344
+  - Critical for referential integrity
+
+- **Baseline Recording for Relationships:**
+  - Record ALL relationships before export (not just counts)
+  - Export to file for automated diff comparison
+  - Include specific user IDs and counts
+  - Sample specific relationships for detailed verification
+  - Query pattern: subqueries for each child table count per user
+
+- **Diff-Based Relationship Validation:**
+  - Export same queries before and after import to files
+  - Use diff for comparison (zero differences required)
+  - More reliable than manual comparison
+  - Catches subtle relationship changes
+  - Baseline file structure:
+    - User summary with all child counts
+    - Sample records from each child table
+    - Specific user_id references to verify
+
+- **Testing DELETE Constraint Behavior:**
+  - Chibi schema has no ON DELETE CASCADE
+  - DELETE user with children should fail
+  - Protects against accidental data loss
+  - Test with user ID 1 (typically has related records)
+  - Restore from backup if accidentally deleted
+
+- **Referential Integrity vs Data Integrity:**
+  - Referential integrity: relationships valid (no orphaned records)
+  - Data integrity: values correct (tested in MT-012)
+  - Both required for complete data preservation
+  - Referential integrity focuses on relationships, not values
+  - Complementary tests with different validation methods
+
+- **Transaction Safety for Foreign Keys:**
+  - PRAGMA foreign_keys ON before transaction
+  - Foreign key violations trigger ROLLBACK
+  - All operations in single transaction (all or nothing)
+  - No partial imports if constraint violated
+  - Protection against relationship corruption
+
+- **Troubleshooting Orphaned Records:**
+  - Identify specific orphaned records: query with WHERE user_id NOT IN
+  - Check if Users sheet missing records (incomplete export)
+  - Verify import order in code (parent first)
+  - Check logs for silent import errors
+  - Critical bug if orphaned records after successful import
+
+- **Testing Guide Structure for Referential Integrity:**
+  - Part 1: Record baseline relationships (all 4 child tables)
+  - Part 2: Export database
+  - Part 3: Clear and import
+  - Part 4: Verify no orphaned records (4 queries)
+  - Part 5: Verify relationship counts match baseline
+  - Part 6: Verify constraint enforcement (DELETE test, PRAGMA checks)
+  - Part 7: Verify specific user relationships
+  - Part 8: Cleanup
+  - 21 steps total with clear pass/fail checkpoints
+
+- **Why Import Order Matters:**
+  - SQLite checks foreign keys on INSERT (immediate validation)
+  - Child INSERT fails if parent doesn't exist yet
+  - Error: "FOREIGN KEY constraint failed"
+  - Transaction rolls back on first error
+  - Parent-first order guarantees all references valid
+
+**Verification:**
+- ✓ Created 21-step testing guide with 8 parts and 8 troubleshooting scenarios
+- ✓ All 118 tests passing (7 integration tests for backup)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-013
+- ✓ Implementation already handles foreign keys correctly:
+  - sheets_importer.py:344 (PRAGMA foreign_keys = ON)
+  - sheets_importer.py:350-364 (import order: Users first)
+  - sheets_importer.py:347-374 (transaction safety with ROLLBACK)
+
+---
