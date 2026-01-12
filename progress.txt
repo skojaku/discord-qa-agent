@@ -897,3 +897,98 @@
 - ✓ Implementation complete in chibi/backup/sheets_importer.py:296-322
 
 ---
+
+## 2026-01-12 - MT-007
+**What was implemented:** Manual testing guide for import to existing database (merge mode)
+**Files changed:**
+- docs/manual-testing-mt007.md (created - comprehensive 16-step testing guide)
+- prd.json (marked MT-007 as passing)
+
+**Learnings:**
+- **Merge Mode Testing Strategy:**
+  - Part 1: Prepare initial state (verify existing data, record baseline)
+  - Part 2: Add unique test data (new user to verify preservation)
+  - Part 3: Execute merge import (run command, confirm, verify logs)
+  - Part 4: Verify merge results (counts, duplicates, foreign keys)
+  - Part 5: Verify functionality (bot commands work post-merge)
+  - 16 steps total with clear pass/fail checkpoints
+
+- **Merge Mode Behavior (INSERT OR REPLACE):**
+  - Updates existing records when PRIMARY KEY (id) matches
+  - Inserts new records that do not exist in database
+  - Preserves local-only data not present in export
+  - No DELETE operations (unlike replace mode)
+  - Slower than replace mode but non-destructive
+  - Implementation: chibi/backup/sheets_importer.py:324-357
+
+- **Test Data Preservation Verification:**
+  - Add a test user BEFORE merge (merge_test_user with discord_id 999999999999999999)
+  - Test user should survive merge (not deleted)
+  - Critical validation that merge is non-destructive
+  - Query for specific user after merge to confirm preservation
+  - Alternative: Use different Discord account to add real user
+
+- **Duplicate Detection Patterns:**
+  - Query: `SELECT discord_id, COUNT(*) FROM users GROUP BY discord_id HAVING COUNT(*) > 1`
+  - Expected result: Empty (no duplicates)
+  - If duplicates found: Bug in merge logic (should use ID as primary key)
+  - Merge mode should NEVER create duplicate records
+
+- **Baseline Recording for Merge Tests:**
+  - Record counts BEFORE adding test data (BASELINE_*)
+  - Record counts AFTER adding test data (PREMERGE_*)
+  - Record counts AFTER merge (POSTMERGE_*)
+  - Compare to verify: POSTMERGE >= PREMERGE (preserves local data)
+  - Mathematical validation: POSTMERGE = max(PREMERGE, export_count)
+
+- **Foreign Key Preservation in Merge:**
+  - Use JOIN queries to verify relationships maintained
+  - Check for orphaned records: `WHERE user_id NOT IN (SELECT id FROM users)`
+  - Import order matters: Users before quiz_attempts (parent before child)
+  - INSERT OR REPLACE updates all columns including foreign keys
+  - Test DELETE parent with children to verify constraint enforcement
+
+- **Count Logic for Merge Mode:**
+  - If export has users already in DB: POSTMERGE = PREMERGE (updates in place)
+  - If export has NEW users: POSTMERGE = PREMERGE + new_users_from_export
+  - If local has users NOT in export: POSTMERGE > export_count (preserves local)
+  - Example: 3 baseline + 1 test user + 0 new from export = 4 final
+
+- **Updated Record Verification:**
+  - Query specific record by ID: `SELECT * FROM users WHERE id = 1`
+  - Should have exactly 1 row (not duplicated)
+  - Data should match export (timestamps, usernames preserved)
+  - INSERT OR REPLACE updates ALL columns from export
+
+- **Merge Mode Performance Expectations:**
+  - Slower than replace mode (row-by-row INSERT OR REPLACE vs bulk DELETE + INSERT)
+  - Still completes in reasonable time (10-30 seconds for typical datasets)
+  - No transaction rollback needed if partial success acceptable
+  - Safe for production use (non-destructive)
+
+- **Troubleshooting Scenarios Documented:**
+  - 7 common issues with solutions
+  - Issue 1: Duplicate users created (bug in primary key logic)
+  - Issue 2: Test user deleted (merge mode running as replace mode)
+  - Issue 3: Count logic doesn't match (export has different data than expected)
+  - Issue 4: Foreign keys broken (import order issue)
+  - Issue 5: Bot commands show wrong data (caching, needs restart)
+  - Issue 6: Updated records show old timestamps (expected behavior)
+  - Issue 7: Merge mode runs slowly (expected for large datasets)
+
+- **Testing Guide Structure Refinement:**
+  - 4 main parts for merge testing (vs 6 for replace mode)
+  - Merge tests focus on preservation and updates (not complete restoration)
+  - Pass criteria emphasize no data loss (local data preserved)
+  - Verification steps validate non-destructive behavior
+  - Bot functionality testing ensures merge doesn't break existing features
+
+**Verification:**
+- ✓ Created 16-step testing guide with 4 parts
+- ✓ All 118 tests passing (7 integration tests for backup including merge mode)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-007
+- ✓ Implementation already complete (chibi/backup/sheets_importer.py:324-357)
+- ✓ Integration test validates merge preserves local data (test_export_add_user_import_merge_all_users_present)
+
+---
