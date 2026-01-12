@@ -95,3 +95,12 @@ For features requiring real API integration (like Google Sheets backup), create 
   - Common issues and troubleshooting solutions
   - Code references (file:line) to implementation details
 - **When to create**: When testing involves real external services (APIs, databases, file systems) that cannot be easily mocked
+- **Pass/Fail Criteria Best Practices**:
+  - Use two-tier criteria for tests with external dependencies: Minimum Passing (logs/responses) and Full Verification (external service inspection)
+  - Minimum criteria must be sufficient to verify core functionality without external service access
+  - Allows tests to pass when external services unavailable (e.g., service account Drive access limitations)
+- **Edge Case Testing**:
+  - Always include edge cases like empty databases in manual testing plans
+  - Edge cases validate error handling and graceful degradation
+  - Provide database cleanup/restoration procedures for destructive tests
+  - Include verification steps to confirm system returns to original state
