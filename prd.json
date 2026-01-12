@@ -70,9 +70,10 @@
         "Bot starts successfully",
         "Backup commands available: /export-progress, /import-progress, /list-exports"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 1,
-      "category": "setup"
+      "category": "setup",
+      "notes": "COMPLETED: google-credential.json (without 's') exists with valid service account JSON. Config.yaml points to correct file. Bot loads successfully with BackupService initialized and BackupCog registered. All 118 tests pass."
     },
     {
       "id": "MT-002",

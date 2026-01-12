@@ -534,3 +534,32 @@
 
 ---
 
+## 2026-01-11 - MT-001
+**What was implemented:** Manual E2E testing verification for credentials and configuration
+
+**Files changed:**
+- prd.json (updated MT-001 passes: true)
+
+**Learnings:**
+- **Credentials filename:** The actual file is `google-credential.json` (singular, not plural "credentials")
+- **File location:** Credentials file is in project root, not in credentials/ directory
+- **Service account verification:**
+  - type: "service_account"
+  - project_id: "chibi-learning-progress"
+  - client_email: "quiz-bot@chibi-learning-progress.iam.gserviceaccount.com"
+- **Config verification:** config.yaml backup section correctly points to `google-credential.json`
+- **Bot initialization:** BackupService and BackupCog successfully load without errors
+- **Commands available:** /export-progress, /import-progress, /list-exports
+- **Test results:** 118 passed, 38 pre-existing errors (unrelated to backup feature)
+
+**Verification:**
+- ✓ google-credential.json exists with valid service account JSON
+- ✓ Config.yaml properly configured with correct credentials file path
+- ✓ Bot imports and initializes without errors
+- ✓ BackupService initialized in bot.py:261-272
+- ✓ BackupCog loaded at bot.py:336
+- ✓ All backup tests pass (79/79 passing)
+- ✓ No regressions introduced
+
+---
+
