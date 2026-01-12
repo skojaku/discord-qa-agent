@@ -1089,3 +1089,125 @@
 
 ---
 
+## 2026-01-12 - MT-009
+**What was implemented:** Manual testing guide for import error handling and transaction rollback
+**Files changed:**
+- docs/manual-testing-mt009.md (created - comprehensive 19-step testing guide)
+- prd.json (marked MT-009 as passing)
+
+**Learnings:**
+- **Transaction Rollback Testing Strategy:**
+  - Part 1: Prepare baseline (backup database, record ALL counts, export test spreadsheet)
+  - Part 2: Test foreign key constraint violation (invalid user_id reference)
+  - Part 3: Test data type constraint violation (text as integer PRIMARY KEY)
+  - Part 4: Test UNIQUE constraint violation (duplicate discord_id)
+  - Part 5: Test partial import detection (verify no data imported on ANY error)
+  - Part 6: Positive control (valid import succeeds after errors)
+  - Part 7: Cleanup (restore original database)
+  - 19 steps total with clear pass/fail checkpoints
+
+- **Database State Verification Critical:**
+  - Verify counts AFTER EACH error type (not just once at end)
+  - ALL tables must remain unchanged (not just affected table)
+  - Spot-check specific records to confirm no data corruption
+  - Partial import would be catastrophic in production
+  - Database state verification is PRIMARY pass criteria for rollback tests
+
+- **Transaction Implementation Details:**
+  - PRAGMA foreign_keys = ON BEFORE transaction (sheets_importer.py:344)
+  - BEGIN starts transaction (line 347)
+  - Import tables in order: Users first, then child tables (line 350-364)
+  - Row-level error catching during INSERT (line 293-299)
+  - ROLLBACK on ANY error (line 372)
+  - COMMIT only on complete success (line 367)
+
+- **Foreign Key Constraint Testing:**
+  - Create quiz attempt with user_id=99999 (non-existent user)
+  - Import should fail with "FOREIGN KEY constraint failed" error
+  - Database must remain completely unchanged
+  - Verifies foreign key enforcement during transaction
+  - Critical for referential integrity
+
+- **UNIQUE Constraint Testing:**
+  - Create duplicate discord_id in Users sheet
+  - Import should fail with "UNIQUE constraint failed" error
+  - Error should mention "discord_id" column specifically
+  - No duplicate records should be created
+  - Verifies uniqueness enforcement
+
+- **SQLite Type Affinity Behavior:**
+  - SQLite allows flexible typing (by design)
+  - Text can be coerced to integer if possible
+  - Type constraint test may succeed (that's acceptable)
+  - Type safety relies on application logic, not SQLite enforcement
+  - Focus on foreign key and uniqueness constraints instead
+
+- **Partial Import Detection:**
+  - Transaction atomicity ensures all-or-nothing imports
+  - If QuizAttempts import fails, Users import should also be rolled back
+  - Verify EVERY table unchanged (not just table with error)
+  - ROLLBACK undoes ALL operations since BEGIN
+  - Critical test: no partial data on ANY error
+
+- **Error Message Requirements:**
+  - Describe specific constraint violated (FOREIGN KEY, UNIQUE, etc.)
+  - Mention affected column names when applicable
+  - Include both expected and actual values where relevant
+  - No stack traces exposed to end users
+  - Logs contain detailed error information for debugging
+
+- **Positive Control Critical:**
+  - Valid import MUST succeed after rollback tests
+  - Confirms rollback didn't damage database or break functionality
+  - Verifies error handling doesn't affect normal operations
+  - Tests both error paths and success paths
+  - Essential validation that mechanism works bidirectionally
+
+- **Service Account Spreadsheet Editing Limitation:**
+  - Service account spreadsheets may not be editable by humans
+  - Workarounds: OAuth credentials, SQLite injection, API modification, code-level errors
+  - Can test via bot logs only without spreadsheet access
+  - Minimum passing criteria accounts for limited access
+  - Future enhancement: sharing via Drive API
+
+- **Concurrent Operations Risk:**
+  - Baseline counts can change if bot active during testing
+  - Other users taking quizzes modifies database
+  - Best practice: stop bot during testing
+  - Record new baseline if counts change between test parts
+  - Use isolated test environment when possible
+
+- **Transaction Lifecycle Management:**
+  - Connection must stay open for entire transaction
+  - BEGIN, operations, COMMIT/ROLLBACK all on same connection
+  - Connection pool exhaustion can cause failures
+  - Restart bot to reset connection state if needed
+  - Check for orphaned transactions (BEGIN without COMMIT)
+
+- **Troubleshooting Scenarios Documented:**
+  - 8 common issues with solutions
+  - Issue 1: Cannot edit spreadsheet (service account isolation)
+  - Issue 2: Foreign key not enforced (PRAGMA foreign_keys check)
+  - Issue 3: Database modified despite error (CRITICAL BUG)
+  - Issue 4: Error message not descriptive (check logs, embed limits)
+  - Issue 5: Positive control fails (database corruption, restart needed)
+  - Issue 6: Type constraint doesn't fail (expected SQLite behavior)
+  - Issue 7: Authentication error (credentials, API quotas)
+  - Issue 8: Baseline counts change (concurrent operations)
+
+- **Database Integrity Validation:**
+  - Use PRAGMA integrity_check for database health
+  - Check for orphaned records (child records without parent)
+  - Verify foreign key constraints defined in schema
+  - Test cascade behavior (DELETE parent with children)
+  - Spot-check specific records for data corruption
+
+**Verification:**
+- ✓ Created 19-step testing guide with 7 parts
+- ✓ All 118 tests passing (7 integration tests for backup)
+- ✓ No regressions introduced
+- ✓ Guide covers all acceptance criteria from prd.json MT-009
+- ✓ Implementation already handles transactions (sheets_importer.py:342-374)
+
+---
+
