@@ -29,6 +29,55 @@ Admin commands use prefix commands (`!command`) instead of slash commands to kee
 - **`!status <student> [module]`** - View a specific student's learning progress (supports @mentions)
 - **`!clear_similarity [module]`** - Clear LLM Quiz similarity database (for duplicate detection reset)
 
+### Google Sheets Backup & Export
+Export and import student progress data to/from Google Sheets for backup, grading, or cross-machine transfer.
+
+**Admin Commands** (slash commands):
+- **`/export-progress`** - Export all student data to a new Google Sheets spreadsheet
+- **`/import-progress <url> [mode]`** - Import data from a Google Sheets backup
+- **`/list-exports [limit]`** - List recent exports with clickable links
+
+**What Gets Exported:**
+- User profiles (Discord ID, student ID, name)
+- Quiz attempts and responses with LLM evaluations
+- Concept mastery tracking
+- LLM Quiz Challenge attempts
+- Attendance records
+
+**Setup** (One-Time):
+
+1. **Create Google Cloud Service Account:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project (or use existing)
+   - Enable **Google Sheets API** and **Google Drive API**
+   - Create Service Account credentials:
+     - Navigate to: **APIs & Services** → **Credentials**
+     - Click: **Create Credentials** → **Service Account**
+     - Download the JSON credentials file
+   - Save the file as `google-credential.json` in the bot's root directory
+
+2. **Verify Configuration:**
+   The bot is already configured in `config.yaml`:
+   ```yaml
+   backup:
+     google_sheets:
+       credentials_file: "google-credential.json"
+       scopes:
+         - "https://www.googleapis.com/auth/spreadsheets"
+         - "https://www.googleapis.com/auth/drive.file"
+   ```
+
+3. **Test the Setup:**
+   Run `/export-progress` in Discord. The bot will respond with a Google Sheets link and summary of exported records.
+
+**Import Modes:**
+- **Replace:** Deletes all existing data before importing (requires confirmation)
+- **Merge:** Updates existing records and adds new ones
+
+**Note:** Service accounts create spreadsheets in their own Google Drive. Use `/list-exports` to access the files, or share the spreadsheet with specific users for direct access.
+
+For detailed testing instructions, see `docs/manual-testing-mt002.md` through `mt013.md`.
+
 ### Attendance Tracking
 Built-in attendance system with rotating codes for classroom use.
 
