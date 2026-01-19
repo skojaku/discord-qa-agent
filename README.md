@@ -2,6 +2,9 @@
 
 Chibi is an AI-powered Discord bot that helps students learn course material through quizzes and natural conversation. It uses Ollama (local) or OpenRouter (cloud) for LLM capabilities, RAG (Retrieval-Augmented Generation) for context-aware responses, and tracks student progress with a mastery system.
 
+> **🚀 New to Discord bots? Start here:** [Complete Setup Guide for Beginners](SETUP_GUIDE.md)
+> This step-by-step guide walks you through everything from creating a Discord bot to setting up Google Sheets integration, with no prior knowledge required.
+
 ## Features
 
 ### Natural Language Interface
@@ -224,6 +227,10 @@ This solves the "context conundrum" where traditional RAG chunks lose important 
 - Enables follow-up questions like "what was my answer?" or "how can I improve?"
 
 ## Setup
+
+> **👋 First time setting up?** Check out the [Complete Setup Guide for Beginners](SETUP_GUIDE.md) for detailed instructions with screenshots and troubleshooting tips.
+
+The following is a quick setup reference for users familiar with Discord bots and Google Cloud:
 
 ### 1. Clone Required Repository
 
