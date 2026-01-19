@@ -2,7 +2,73 @@
 
 Chibi is an AI-powered Discord bot that helps students learn course material through interactive quizzes, natural conversation, and progress tracking. Built with RAG (Retrieval-Augmented Generation), LangGraph agents, and a hybrid mastery system.
 
-> **🚀 New to Discord bots?** Start with our [Complete Setup Guide](SETUP_GUIDE.md) - a step-by-step walkthrough with no prior knowledge required.
+---
+
+## 🚀 Quick Setup (Recommended)
+
+**The fastest way to set up Chibi is with AI assistance!** Use an AI coding assistant to guide you through the setup step-by-step:
+
+### Using Claude Code (VS Code) - Recommended
+
+1. Open this project in VS Code
+2. Install [Claude Code extension](https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-code)
+3. Open Claude Code panel and paste:
+
+```
+I want to set up the Chibi Discord bot. Please read SETUP_GUIDE.md and guide me
+through the setup process step-by-step. Ask me to confirm completion of each step
+before moving to the next one. Help me troubleshoot any errors that occur.
+
+Please help me with:
+1. Creating Discord bot and getting token
+2. Setting up Google Cloud OAuth credentials
+3. Finding Discord channel IDs
+4. Configuring environment files
+5. Installing dependencies with uv
+6. Running the bot for the first time
+```
+
+### Using Command Line AI (Gemini CLI, Aider, etc.)
+
+```bash
+Please read SETUP_GUIDE.md and guide me through setting up the Chibi Discord bot
+step-by-step. Wait for me to confirm each step before proceeding. Help me with
+Discord setup, Google Cloud OAuth, environment configuration, and first run.
+```
+
+### Using Web AI (ChatGPT, Claude.ai, Gemini, etc.)
+
+1. Go to your AI assistant's website
+2. Start a new conversation
+3. Copy and paste this prompt:
+
+```
+I need help setting up a Discord bot called Chibi. I'll paste the setup guide below.
+Please guide me through the setup interactively, one step at a time. After each step,
+ask me to confirm completion before moving to the next one. If I encounter errors,
+help me troubleshoot.
+
+The setup includes:
+- Creating a Discord bot application
+- Setting up Google Cloud OAuth for Sheets export
+- Configuring environment files (.env, config.yaml)
+- Installing dependencies
+- Running the bot
+
+[Then paste the entire SETUP_GUIDE.md content here]
+
+Let's start with Part 1: Discord Bot Setup. What should I do first?
+```
+
+**Why use AI?** Interactive guidance, instant troubleshooting, explanations adapted to your experience level, and help with errors as they occur.
+
+**AI Assistant Tips:**
+- **Best for beginners**: Claude Code or Claude.ai (can read files directly and execute commands)
+- **Works with any AI**: ChatGPT, Gemini, Copilot - just paste SETUP_GUIDE.md
+- **Pro tip**: Copy error messages directly to the AI for instant troubleshooting
+- **Stay interactive**: Let the AI confirm each step before moving forward
+
+**Prefer manual setup?** Continue reading below or see [SETUP_GUIDE.md](SETUP_GUIDE.md).
 
 ---
 
@@ -20,7 +86,7 @@ Chibi is an AI-powered Discord bot that helps students learn course material thr
 
 ---
 
-## Quick Start
+## Manual Installation
 
 ### Prerequisites
 

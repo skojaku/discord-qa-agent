@@ -4,6 +4,24 @@
 
 This guide will walk you through setting up Chibi, an AI-powered Discord quiz bot with Google Sheets integration, from scratch. No prior knowledge of Discord bots or Google Cloud required!
 
+---
+
+## 🤖 Recommended: Use an AI Assistant to Guide You
+
+**The easiest way to complete this setup is with an AI assistant!** Instead of following this guide manually, you can have an AI like Claude Code, GitHub Copilot, or ChatGPT guide you through each step interactively.
+
+3. Open Claude Code/Gemini CLI, or something similar and paste this prompt:
+
+```
+I want to set up the Chibi Discord bot. Please read SETUP_GUIDE.md and guide me
+through the setup process step-by-step. Ask me to confirm completion of each step
+before moving to the next one. Help me troubleshoot any errors that occur.
+```
+
+You can do it by running the CLI tools on terminal or using VS Code.
+
+---
+
 ## 📋 Table of Contents
 
 1. [What You'll Need](#what-youll-need)
