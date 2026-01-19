@@ -134,6 +134,19 @@ class ContextualRetrievalConfig:
 
 
 @dataclass
+class BackupConfig:
+    """Configuration for backup operations."""
+
+    credentials_file: str = "credentials/google_oauth_credentials.json"
+    token_file: str = "credentials/token.json"
+    folder_name: str = "Chibi Bot Exports"
+    scopes: list[str] = field(default_factory=lambda: [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file"
+    ])
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -147,6 +160,7 @@ class Config:
     agent: AgentConfig
     attendance: AttendanceConfig
     contextual_retrieval: ContextualRetrievalConfig
+    backup: BackupConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -199,6 +213,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     database_data = data.get("database", {})
     llm_quiz_data = data.get("llm_quiz", {})
     similarity_data = data.get("similarity", {})
+    backup_data = data.get("backup", {}).get("google_sheets", {})
     agent_data = data.get("agent", {})
     attendance_data = data.get("attendance", {})
     contextual_retrieval_data = data.get("contextual_retrieval", {})
@@ -276,6 +291,14 @@ def load_config(config_path: str = "config.yaml") -> Config:
             temperature=contextual_retrieval_data.get("temperature", 0.3),
             model=contextual_retrieval_data.get("model", "default"),
             base_url=contextual_retrieval_data.get("base_url", ""),
+        ),
+        backup=BackupConfig(
+            credentials_file=backup_data.get("credentials_file", "credentials/google_oauth_credentials.json"),
+            token_file=backup_data.get("token_file", "credentials/token.json"),
+            scopes=backup_data.get("scopes", [
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive.file"
+            ]),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

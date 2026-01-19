@@ -31,3 +31,14 @@ Thumbs.db
 # Logs
 *.log
 llm-quiz/
+
+# Credentials (OAuth tokens, API keys)
+credentials/*.json
+google-credential.json
+
+# Testing
+.coverage
+.pytest_cache/
+
+# Temporary files
+manual-testing-prompt.md

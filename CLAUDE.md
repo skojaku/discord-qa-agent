@@ -76,8 +76,31 @@ Chibi is a Discord quiz bot that uses LangGraph for natural language routing, Ch
 
 ## Testing Approach
 
+### Automated Tests
 Tests use scenario-based patterns with extensive mocking:
 - `tests/mocks/discord_mocks.py`: Mock Discord objects (User, Channel, Interaction)
 - `tests/mocks/llm_mocks.py`: Mock LLM providers with configurable responses
 - `tests/conftest.py`: Shared fixtures including in-memory SQLite database
 - All tests are async using pytest-asyncio with `asyncio_mode = "auto"`
+
+### Manual Testing Documentation
+For features requiring real API integration (like Google Sheets backup), create comprehensive manual testing guides:
+- **Location**: `docs/manual-testing-[id].md` (e.g., `docs/manual-testing-mt002.md`)
+- **Purpose**: Provide step-by-step instructions for E2E testing with real external APIs
+- **Structure**:
+  - Test objective and background
+  - Prerequisites checklist
+  - Detailed step-by-step instructions with expected outputs
+  - Pass/fail criteria
+  - Common issues and troubleshooting solutions
+  - Code references (file:line) to implementation details
+- **When to create**: When testing involves real external services (APIs, databases, file systems) that cannot be easily mocked
+- **Pass/Fail Criteria Best Practices**:
+  - Use two-tier criteria for tests with external dependencies: Minimum Passing (logs/responses) and Full Verification (external service inspection)
+  - Minimum criteria must be sufficient to verify core functionality without external service access
+  - Allows tests to pass when external services unavailable (e.g., service account Drive access limitations)
+- **Edge Case Testing**:
+  - Always include edge cases like empty databases in manual testing plans
+  - Edge cases validate error handling and graceful degradation
+  - Provide database cleanup/restoration procedures for destructive tests
+  - Include verification steps to confirm system returns to original state

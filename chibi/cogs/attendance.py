@@ -1,7 +1,17 @@
 """Attendance tracking cog with admin prefix commands and student slash commands.
 
-Admin commands use prefix commands (!command) to keep them hidden from students.
-Student commands use slash commands for discoverability.
+DEPRECATED ADMIN COMMANDS: Admin prefix commands (!) are deprecated in favor of slash commands (/).
+Please use the new `/admin-*` attendance slash commands instead:
+- !open_attendance → /admin-open-attendance
+- !close_attendance → /admin-close-attendance
+- !export_attendance → /admin-export-attendance
+- !excuse → /admin-excuse
+- !mark_present → /admin-mark-present
+- !remove_attendance → /admin-remove-attendance
+
+Student slash commands (/register, /here) remain unchanged.
+Prefix commands are kept temporarily for backwards compatibility but will be removed
+in a future version.
 """
 
 import asyncio
@@ -110,7 +120,8 @@ class AttendanceCog(commands.Cog):
 
     def __init__(self, bot: "ChibiBot"):
         self.bot = bot
-        self.session_manager = AttendanceSessionManager()
+        # Use shared session manager from bot instance
+        self.session_manager = bot.attendance_session_manager
         self.rotation_task: Optional[asyncio.Task] = None
 
     # ==================== Student Slash Commands ====================
