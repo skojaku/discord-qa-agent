@@ -123,6 +123,7 @@ class AttendanceCog(commands.Cog):
         # Use shared session manager from bot instance
         self.session_manager = bot.attendance_session_manager
         self.rotation_task: Optional[asyncio.Task] = None
+        self.auto_close_task: Optional[asyncio.Task] = None
 
     # ==================== Student Slash Commands ====================
 
@@ -302,12 +303,16 @@ class AttendanceCog(commands.Cog):
             # Start code rotation task
             self.rotation_task = asyncio.create_task(self._rotate_code_loop())
 
+            # Start auto-close task (10 minutes)
+            self.auto_close_task = asyncio.create_task(self._auto_close_loop())
+
             # Confirm to admin
             await ctx.send(
                 f"Attendance session started!\n"
                 f"Current code: `{initial_code}`\n"
                 f"Code displayed in this channel (show on projector)\n"
-                f"Students notified in <#{attendance_channel_id}>"
+                f"Students notified in <#{attendance_channel_id}>\n"
+                f"⏰ Session will automatically close in 10 minutes"
             )
 
         except SessionAlreadyActiveError:
@@ -330,6 +335,14 @@ class AttendanceCog(commands.Cog):
                 self.rotation_task.cancel()
                 try:
                     await self.rotation_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Cancel auto-close task if it exists
+            if self.auto_close_task:
+                self.auto_close_task.cancel()
+                try:
+                    await self.auto_close_task
                 except asyncio.CancelledError:
                     pass
 
@@ -775,6 +788,103 @@ class AttendanceCog(commands.Cog):
             logger.info("Code rotation task cancelled")
         except Exception as e:
             logger.error(f"Error in code rotation loop: {e}", exc_info=True)
+
+    async def _auto_close_loop(self):
+        """Background task to automatically close attendance after 10 minutes."""
+        try:
+            # Wait for 10 minutes (600 seconds)
+            await asyncio.sleep(600)
+
+            # Check if session is still active
+            if not self.session_manager.is_active:
+                logger.info("Session already closed, skipping auto-close")
+                return
+
+            logger.info("Auto-closing attendance session after 10 minutes")
+
+            # Cancel rotation task
+            if self.rotation_task:
+                self.rotation_task.cancel()
+                try:
+                    await self.rotation_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Get session data
+            records, session_id = self.session_manager.end_session()
+
+            # Save to database
+            saved_count = await self.bot.attendance_repo.save_attendance_records(
+                records, session_id
+            )
+
+            # Update the admin channel message to show it's closed
+            try:
+                admin_channel = self.bot.get_channel(
+                    self.session_manager.channel_id
+                    or self.bot.config.discord.admin_channel_id
+                )
+                if admin_channel and self.session_manager.message_id:
+                    admin_message = await admin_channel.fetch_message(
+                        self.session_manager.message_id
+                    )
+
+                    admin_embed = discord.Embed(
+                        title="Attendance Session Auto-Closed",
+                        description="This attendance session has automatically ended after 10 minutes.",
+                        color=discord.Color.orange(),
+                    )
+                    admin_embed.add_field(
+                        name="Total Submissions",
+                        value=f"{saved_count} student(s)",
+                        inline=False,
+                    )
+                    admin_embed.set_footer(text=f"Session ID: {session_id}")
+
+                    await admin_message.edit(embed=admin_embed)
+            except Exception as e:
+                logger.warning(f"Could not update admin message: {e}")
+
+            # Update the attendance channel message to show it's closed
+            try:
+                attendance_channel = self.bot.get_channel(
+                    self.session_manager.attendance_channel_id
+                    or self.bot.config.attendance.attendance_channel_id
+                )
+                attendance_msg_id = self.session_manager.attendance_message_id
+                if attendance_channel and attendance_msg_id:
+                    attendance_message = await attendance_channel.fetch_message(
+                        attendance_msg_id
+                    )
+
+                    student_embed = discord.Embed(
+                        title="Attendance is Now Closed",
+                        description="This attendance session has automatically ended after 10 minutes.",
+                        color=discord.Color.orange(),
+                    )
+                    student_embed.add_field(
+                        name="Total Submissions",
+                        value=f"{saved_count} student(s)",
+                        inline=False,
+                    )
+                    student_embed.set_footer(text=f"Session ID: {session_id}")
+
+                    await attendance_message.edit(embed=student_embed)
+            except Exception as e:
+                logger.warning(f"Could not update attendance channel message: {e}")
+
+            # Reset session manager
+            self.session_manager.reset()
+
+            logger.info(
+                f"Attendance auto-closed successfully. "
+                f"Saved {saved_count} records, session_id: {session_id}"
+            )
+
+        except asyncio.CancelledError:
+            logger.info("Auto-close task cancelled (manual close)")
+        except Exception as e:
+            logger.error(f"Error in auto-close loop: {e}", exc_info=True)
 
 
 async def setup(bot: "ChibiBot"):
