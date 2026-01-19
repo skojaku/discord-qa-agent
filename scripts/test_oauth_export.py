@@ -73,7 +73,11 @@ def main():
             print("✓ Test file deleted")
 
     except Exception as e:
+        import traceback
         print(f"❌ FAILED: {e}\n")
+        print("Full error details:")
+        traceback.print_exc()
+        print()
 
         if "quota" in str(e).lower():
             print("Your personal Google Drive might be full.")

@@ -30,7 +30,7 @@ Admin commands use prefix commands (`!command`) instead of slash commands to kee
 - **`!clear_similarity [module]`** - Clear LLM Quiz similarity database (for duplicate detection reset)
 
 ### Google Sheets Backup & Export
-Export and import student progress data to/from Google Sheets for backup, grading, or cross-machine transfer.
+Export and import student progress data to/from Google Sheets for backup, grading, or cross-machine transfer. Exports are saved to **your personal Google Drive**.
 
 **Admin Commands** (slash commands):
 - **`/export-progress`** - Export all student data to a new Google Sheets spreadsheet
@@ -46,53 +46,46 @@ Export and import student progress data to/from Google Sheets for backup, gradin
 
 **Setup** (One-Time):
 
-1. **Create Google Cloud Service Account:**
+1. **Enable Google APIs:**
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project (or use existing)
-   - Enable **Google Sheets API** and **Google Drive API**
-   - Create Service Account credentials:
-     - Navigate to: **APIs & Services** → **Credentials**
-     - Click: **Create Credentials** → **Service Account**
-     - Download the JSON credentials file
-   - Save the file as `google-credential.json` in the bot's root directory
+   - Enable **Google Sheets API**: https://console.cloud.google.com/apis/library/sheets.googleapis.com
+   - Enable **Google Drive API**: https://console.cloud.google.com/apis/library/drive.googleapis.com
 
-2. **Verify Configuration:**
-   The bot is already configured in `config.yaml`:
-   ```yaml
-   backup:
-     google_sheets:
-       credentials_file: "google-credential.json"
-       scopes:
-         - "https://www.googleapis.com/auth/spreadsheets"
-         - "https://www.googleapis.com/auth/drive.file"
-   ```
+2. **Create OAuth Credentials:**
+   - Navigate to: **APIs & Services** → **Credentials**
+   - Click: **Create Credentials** → **OAuth client ID**
+   - If prompted to configure consent screen:
+     - Choose **External** (allows any Google account)
+     - Fill in app name: `Chibi Bot`
+     - Add your email for support and developer contact
+     - Save and continue through all steps
+   - Select application type: **Desktop app**
+   - Name: `Chibi Bot` (or any name)
+   - Click: **Create**
+   - Download the JSON credentials file
+   - Save it as: `credentials/google_oauth_credentials.json`
 
 3. **Test the Setup:**
-   Run `/export-progress` in Discord. The bot will respond with a Google Sheets link and summary of exported records.
+   ```bash
+   python scripts/test_oauth_export.py
+   ```
+   A browser window will open for one-time authorization. Sign in with your Google account and grant permissions. After this, the bot will use your Google Drive for all exports.
+
+4. **Use in Discord:**
+   Run `/export-progress` in Discord. The bot will create a spreadsheet in your Google Drive and reply with the link.
 
 **Import Modes:**
 - **Replace:** Deletes all existing data before importing (requires confirmation)
 - **Merge:** Updates existing records and adds new ones
 
-**Note:** Service accounts create spreadsheets in their own Google Drive. Use `/list-exports` to access the files, or share the spreadsheet with specific users for direct access.
-
 **Troubleshooting:**
 
-*Storage Quota Exceeded:* Service accounts have limited Drive storage (typically 15 GB). If you get a quota error:
-```bash
-# Preview what would be deleted
-python scripts/cleanup_old_exports.py --dry-run
+*API Not Enabled:* Enable both APIs at the links above. Wait 1-2 minutes after enabling for changes to propagate.
 
-# Keep only the 5 most recent exports
-python scripts/cleanup_old_exports.py --keep 5
+*Browser Authorization Fails:* Delete `credentials/token.json` and run the test script again.
 
-# Delete all exports (use with caution!)
-python scripts/cleanup_old_exports.py --delete-all
-```
-
-*API Not Enabled:* Enable both Google Sheets API and Google Drive API in [Google Cloud Console](https://console.cloud.google.com/apis/).
-
-*Permission Denied:* Verify your service account has proper IAM permissions in the Google Cloud project.
+*Permission Denied:* Ensure you granted all requested permissions during the OAuth flow.
 
 For detailed testing instructions, see `docs/manual-testing-mt002.md` through `mt013.md`.
 
