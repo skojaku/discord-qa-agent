@@ -222,8 +222,8 @@ class BackupService:
 
         try:
             # Query for spreadsheets with "Chibi Student Progress" in name
-            query = "name contains 'Chibi Student Progress'"
-            spreadsheets = await self.sheets_client.list_spreadsheets(query=query)
+            query = "Chibi Student Progress"
+            spreadsheets = self.sheets_client.list_spreadsheets(query=query)
 
             # Return up to limit results (sheets_client should handle sorting)
             result = spreadsheets[:limit] if spreadsheets else []
