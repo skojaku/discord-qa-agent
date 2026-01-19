@@ -39,8 +39,9 @@ cd discord-qa-agent
 # Clone required dependency
 git clone https://github.com/skojaku/llm-quiz.git
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies with uv
+uv pip install -r requirements.txt
+# Or use: uv sync
 
 # Configure environment
 cp .env.example .env
@@ -51,7 +52,7 @@ cp .env.example .env
 # Edit course.yaml for your course structure
 
 # Run the bot
-python main.py
+uv run python main.py
 ```
 
 **Detailed Setup:** See [SETUP_GUIDE.md](SETUP_GUIDE.md) for complete instructions including Ollama setup, channel configuration, and Google Sheets integration.

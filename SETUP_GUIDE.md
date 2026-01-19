@@ -104,11 +104,36 @@ A Discord bot is a program that can automatically respond to messages, manage ch
    - You should see a confirmation that the bot joined your server!
 
 3. **Find Your Server and Channel IDs**
-   - In Discord, go to **User Settings** → **Advanced**
-   - Enable **"Developer Mode"**
-   - Right-click on your server name → **"Copy Server ID"** (save this)
-   - Right-click on the channel where you want admin commands → **"Copy Channel ID"** (save this for ADMIN_CHANNEL_ID)
-   - Right-click on the channel where you want attendance → **"Copy Channel ID"** (save this for ATTENDANCE_CHANNEL_ID)
+
+   **First, enable Developer Mode in Discord:**
+   - Open Discord (desktop app or browser)
+   - Click the ⚙️ gear icon (User Settings) at the bottom left
+   - Scroll down to **"Advanced"** in the left sidebar
+   - Toggle on **"Developer Mode"**
+   - Close the settings
+
+   **Now you can copy IDs by right-clicking:**
+
+   **Server ID** (optional, not needed for bot):
+   - Right-click on your server name in the left sidebar
+   - Click **"Copy Server ID"** at the bottom
+   - Paste it somewhere safe (e.g., a notepad)
+
+   **Admin Channel ID** (where attendance codes are displayed):
+   - Right-click on the channel you want for admin commands
+   - Click **"Copy Channel ID"**
+   - Save this - you'll use it as `ADMIN_CHANNEL_ID` in `.env`
+   - **Tip**: Create a private channel called `#admin-bot` for this
+
+   **Attendance Channel ID** (where students submit `/here` codes):
+   - Right-click on the channel where students should submit attendance
+   - Click **"Copy Channel ID"**
+   - Save this - you'll use it as `ATTENDANCE_CHANNEL_ID` in `.env`
+   - **Tip**: Use a public channel like `#attendance` or `#general`
+
+   **What do these IDs look like?**
+   - Channel IDs are long numbers like: `123456789012345678`
+   - If you see something like that, you did it right!
 
 ---
 
@@ -245,10 +270,12 @@ Google Cloud is Google's platform for running applications and storing data. We'
 **What are dependencies?** These are other pieces of software that the bot needs to run.
 
 ```bash
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 This will take 2-5 minutes. You'll see a lot of text scroll by - this is normal!
+
+**Note:** We're using `uv` instead of plain `pip` because it's much faster and handles dependencies better.
 
 ### Step 3.4: Set Up Credentials
 
@@ -263,14 +290,18 @@ This will take 2-5 minutes. You'll see a lot of text scroll by - this is normal!
      cp .env.example .env
      ```
    - Open `.env` in your text editor
-   - Fill in the values:
+   - Fill in the values (use the IDs you copied in Part 1, Step 3):
      ```
      DISCORD_TOKEN=paste_your_bot_token_here
-     ADMIN_CHANNEL_ID=paste_admin_channel_id_here
-     ATTENDANCE_CHANNEL_ID=paste_attendance_channel_id_here
+     ADMIN_CHANNEL_ID=123456789012345678  # Replace with your admin channel ID
+     ATTENDANCE_CHANNEL_ID=987654321098765432  # Replace with your attendance channel ID
      OPENROUTER_API_KEY=  # Optional - leave blank for now
      NL_ROUTING_CHANNELS=  # Optional - leave blank for now
      ```
+   - **Important**:
+     - `DISCORD_TOKEN` - The bot token you copied in Part 1
+     - `ADMIN_CHANNEL_ID` - Where attendance codes appear (admins only)
+     - `ATTENDANCE_CHANNEL_ID` - Where students submit `/here` commands
    - Save the file
 
 ### Step 3.5: Configure the Bot
@@ -334,7 +365,7 @@ This will take 2-5 minutes. You'll see a lot of text scroll by - this is normal!
 
 2. **Run the Bot**
    ```bash
-   python main.py
+   uv run python main.py
    ```
 
 3. **Watch the Logs**
@@ -459,7 +490,7 @@ In your admin channel (or any channel if you have admin permissions):
 **Error: "ModuleNotFoundError: No module named 'discord'"**
 - **Solution**: Install dependencies again:
   ```bash
-  pip install -r requirements.txt
+  uv pip install -r requirements.txt
   ```
 
 **Error: "discord.errors.LoginFailure: Improper token has been passed"**
@@ -470,7 +501,7 @@ In your admin channel (or any channel if you have admin permissions):
 - **Solution**: Make sure you're running the bot from the project directory:
   ```bash
   cd discord-qa-agent
-  python main.py
+  uv run python main.py
   ```
 
 ### Bot is Online but Doesn't Respond
