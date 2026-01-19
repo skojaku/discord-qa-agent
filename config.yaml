@@ -43,12 +43,11 @@ database:
 
 # Backup settings (Google Sheets export/import)
 backup:
-  google_sheets:
-    credentials_file: "google-credential.json"
-    token_file: "credentials/token.json"
-    scopes:
-      - "https://www.googleapis.com/auth/spreadsheets"
-      - "https://www.googleapis.com/auth/drive.file"
+  credentials_file: "credentials/google_oauth_credentials.json"
+  token_file: "credentials/token.json"
+  scopes:
+    - "https://www.googleapis.com/auth/spreadsheets"
+    - "https://www.googleapis.com/auth/drive.file"
 
 # LLM Quiz Challenge settings (students try to stump the AI)
 llm_quiz:

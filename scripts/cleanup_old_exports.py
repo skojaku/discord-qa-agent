@@ -45,7 +45,13 @@ def main():
 
     # Load config
     config = load_config()
-    credentials_file = config.backup.google_sheets.credentials_file
+    credentials_file = config.backup.credentials_file
+
+    # Verify credentials file exists
+    if not Path(credentials_file).exists():
+        print(f"Error: Credentials file not found: {credentials_file}")
+        print("Please ensure the credentials file exists.")
+        sys.exit(1)
 
     # Initialize Google Sheets client
     print(f"Authenticating with {credentials_file}...")
