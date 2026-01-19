@@ -139,6 +139,7 @@ class BackupConfig:
 
     credentials_file: str = "credentials/google_oauth_credentials.json"
     token_file: str = "credentials/token.json"
+    folder_name: str = "Chibi Bot Exports"
     scopes: list[str] = field(default_factory=lambda: [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive.file"

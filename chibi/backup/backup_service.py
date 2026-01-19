@@ -63,9 +63,12 @@ class BackupService:
         self.database = database
         self.config = config or {}
 
+        # Get backup configuration
+        backup_config = self.config.get('backup', {}).get('google_sheets', {})
+        self.folder_name = backup_config.get('folder_name')
+
         # Initialize or use provided sheets client
         if sheets_client is None:
-            backup_config = self.config.get('backup', {}).get('google_sheets', {})
             self.sheets_client = GoogleSheetsClient(
                 credentials_file=backup_config.get('credentials_file', 'credentials/google_oauth_credentials.json'),
                 token_file=backup_config.get('token_file', 'credentials/token.json'),
@@ -116,6 +119,20 @@ class BackupService:
         try:
             # Delegate to exporter
             result = await self.exporter.export_to_sheets()
+
+            # Move to configured folder if specified
+            if self.folder_name:
+                try:
+                    logger.info(f"Moving spreadsheet to folder: {self.folder_name}")
+                    folder_id = self.sheets_client.find_or_create_folder(self.folder_name)
+                    self.sheets_client.move_spreadsheet_to_folder(
+                        result['spreadsheet_id'],
+                        folder_id
+                    )
+                    logger.info(f"Spreadsheet moved to folder '{self.folder_name}'")
+                except Exception as e:
+                    logger.warning(f"Failed to move spreadsheet to folder: {e}")
+                    # Don't fail the export if folder operation fails
 
             logger.info(
                 f"Export completed successfully. "

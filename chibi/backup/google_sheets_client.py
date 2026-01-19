@@ -345,6 +345,102 @@ class GoogleSheetsClient:
             logger.error(f"Failed to delete spreadsheet {spreadsheet_id}: {e}")
             raise
 
+    def find_or_create_folder(self, folder_name: str) -> str:
+        """
+        Find an existing folder by name or create it if it doesn't exist.
+
+        Args:
+            folder_name: Name of the folder to find or create
+
+        Returns:
+            Folder ID
+
+        Raises:
+            APIError: If folder operations fail
+        """
+        if not self.gc:
+            self.authenticate()
+
+        try:
+            # Search for existing folder
+            # Use Drive API v3 to search for folders
+            from googleapiclient.discovery import build
+
+            drive_service = build('drive', 'v3', credentials=self.credentials)
+
+            # Query for folders with the specified name
+            query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+            results = drive_service.files().list(
+                q=query,
+                spaces='drive',
+                fields='files(id, name)'
+            ).execute()
+
+            folders = results.get('files', [])
+
+            if folders:
+                folder_id = folders[0]['id']
+                logger.info(f"Found existing folder '{folder_name}' with ID: {folder_id}")
+                return folder_id
+
+            # Create new folder if not found
+            file_metadata = {
+                'name': folder_name,
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+            folder = drive_service.files().create(
+                body=file_metadata,
+                fields='id'
+            ).execute()
+
+            folder_id = folder.get('id')
+            logger.info(f"Created new folder '{folder_name}' with ID: {folder_id}")
+            return folder_id
+
+        except Exception as e:
+            logger.error(f"Failed to find or create folder '{folder_name}': {e}")
+            raise
+
+    def move_spreadsheet_to_folder(self, spreadsheet_id: str, folder_id: str) -> None:
+        """
+        Move a spreadsheet into a specific folder.
+
+        Args:
+            spreadsheet_id: The spreadsheet ID to move
+            folder_id: The destination folder ID
+
+        Raises:
+            APIError: If move operation fails
+        """
+        if not self.gc:
+            self.authenticate()
+
+        try:
+            from googleapiclient.discovery import build
+
+            drive_service = build('drive', 'v3', credentials=self.credentials)
+
+            # Retrieve the existing parents to remove
+            file = drive_service.files().get(
+                fileId=spreadsheet_id,
+                fields='parents'
+            ).execute()
+            previous_parents = ",".join(file.get('parents', []))
+
+            # Move the file to the new folder
+            drive_service.files().update(
+                fileId=spreadsheet_id,
+                addParents=folder_id,
+                removeParents=previous_parents,
+                fields='id, parents'
+            ).execute()
+
+            logger.info(f"Moved spreadsheet {spreadsheet_id} to folder {folder_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to move spreadsheet {spreadsheet_id} to folder {folder_id}: {e}")
+            raise
+
     @staticmethod
     def _is_rate_limit_error(error: APIError) -> bool:
         """

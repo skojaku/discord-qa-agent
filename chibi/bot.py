@@ -266,6 +266,7 @@ class ChibiBot(commands.Bot):
                         'credentials_file': self.config.backup.credentials_file,
                         'token_file': self.config.backup.token_file,
                         'scopes': self.config.backup.scopes,
+                        'folder_name': self.config.backup.folder_name,
                     }
                 }
             },

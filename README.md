@@ -75,6 +75,21 @@ Export and import student progress data to/from Google Sheets for backup, gradin
 4. **Use in Discord:**
    Run `/export-progress` in Discord. The bot will create a spreadsheet in your Google Drive and reply with the link.
 
+**Configuration:**
+
+You can customize where exports are saved in `config.yaml`:
+```yaml
+backup:
+  credentials_file: "credentials/google_oauth_credentials.json"
+  token_file: "credentials/token.json"
+  folder_name: "Chibi Bot Exports"  # Google Drive folder name (creates if doesn't exist)
+  scopes:
+    - "https://www.googleapis.com/auth/spreadsheets"
+    - "https://www.googleapis.com/auth/drive.file"
+```
+
+The `folder_name` setting organizes all exports into a specific Google Drive folder. If the folder doesn't exist, it will be created automatically. Leave this empty or remove it to save exports to your Drive root.
+
 **Import Modes:**
 - **Replace:** Deletes all existing data before importing (requires confirmation)
 - **Merge:** Updates existing records and adds new ones

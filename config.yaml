@@ -45,6 +45,7 @@ database:
 backup:
   credentials_file: "credentials/google_oauth_credentials.json"
   token_file: "credentials/token.json"
+  folder_name: "Chibi Bot Exports"  # Google Drive folder name for exports (creates if doesn't exist)
   scopes:
     - "https://www.googleapis.com/auth/spreadsheets"
     - "https://www.googleapis.com/auth/drive.file"
