@@ -41,6 +41,7 @@ from .services import (
     SearchAgentService,
     SimilarityService,
 )
+from .services.attendance_session import AttendanceSessionManager
 from .tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,9 @@ class ChibiBot(commands.Bot):
         self.rag_service: Optional[RAGService] = None
         self.content_indexer: Optional[ContentIndexer] = None
         self.backup_service: Optional[BackupService] = None
+
+        # Attendance session manager (shared between cogs)
+        self.attendance_session_manager: Optional[AttendanceSessionManager] = None
 
         # Agent components
         self.tool_registry: Optional[ToolRegistry] = None
@@ -135,6 +139,10 @@ class ChibiBot(commands.Bot):
         self.llm_quiz_repo = LLMQuizRepository(self.database)
         self.attendance_repo = AttendanceRepository(self.database)
         logger.info("Database connected")
+
+        # Initialize attendance session manager (shared between attendance cogs)
+        self.attendance_session_manager = AttendanceSessionManager()
+        logger.info("Attendance session manager initialized")
 
         # Initialize similarity repository (ChromaDB)
         self.similarity_repo = SimilarityRepository(self.config.similarity)
@@ -329,10 +337,12 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.quiz")
         await self.load_extension("chibi.cogs.status")
         await self.load_extension("chibi.cogs.admin")
+        await self.load_extension("chibi.cogs.admin_slash")
         await self.load_extension("chibi.cogs.llm_quiz")
         await self.load_extension("chibi.cogs.modules")
         await self.load_extension("chibi.cogs.guidance")
         await self.load_extension("chibi.cogs.attendance")
+        await self.load_extension("chibi.cogs.attendance_slash")
         await self.load_extension("chibi.cogs.help")
         await self.load_extension("chibi.cogs.backup_cog")
         logger.info("Cogs loaded")

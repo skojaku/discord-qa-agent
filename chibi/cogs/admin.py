@@ -1,7 +1,17 @@
 """Admin commands cog for instructor/admin functionality.
 
-Admin commands use prefix commands (!command) instead of slash commands
-to keep them hidden from students. They only work in the configured admin channel.
+DEPRECATED: These prefix commands (!) are deprecated in favor of slash commands (/).
+Please use the new `/admin-*` slash commands instead:
+- !help → /admin-help
+- !modules → /admin-modules
+- !students → /admin-students
+- !show_grade → /admin-grade
+- !status → /admin-status
+- !clear_similarity → /admin-clear-similarity
+
+Prefix commands are kept temporarily for backwards compatibility but will be removed
+in a future version. Slash commands provide better discoverability and integration
+with Discord's permission system.
 """
 
 import io

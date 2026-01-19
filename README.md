@@ -20,14 +20,26 @@ The bot uses a ReAct (Reasoning + Acting) framework to intelligently decide when
 - **`/modules`** - List all available course modules with descriptions
 
 ### Admin Commands
-Admin commands use prefix commands (`!command`) instead of slash commands to keep them completely hidden from students. They only work in the configured admin channel.
 
-- **`!help`** (or `!admin`) - Show admin help with available commands, modules, and students
-- **`!modules`** - List all available modules
-- **`!students`** - List all registered students
-- **`!show_grade [module]`** - Generate CSV report of student grades
-- **`!status <student> [module]`** - View a specific student's learning progress (supports @mentions)
-- **`!clear_similarity [module]`** - Clear LLM Quiz similarity database (for duplicate detection reset)
+Admin commands use Discord slash commands with administrator permission checks. These commands are only visible to users with administrator permissions and can be used from any channel.
+
+**General Admin Commands:**
+- **`/admin-help`** - Show admin help with available commands, modules, and students
+- **`/admin-modules`** - List all available modules
+- **`/admin-students`** - List all registered students
+- **`/admin-grade [module:]`** - Generate CSV report of student grades (with optional module filter)
+- **`/admin-status student: [module:]`** - View a student's learning progress (use Discord user picker)
+- **`/admin-clear-similarity [module:]`** - Clear LLM Quiz similarity database (for duplicate detection reset)
+
+**Attendance Admin Commands:**
+- **`/admin-open-attendance`** - Start attendance session with rotating codes
+- **`/admin-close-attendance`** - Close session and save to database
+- **`/admin-export-attendance [session_id:]`** - Export attendance records to CSV
+- **`/admin-excuse student: [date:]`** - Mark student excused for a date (defaults to today)
+- **`/admin-mark-present student: [date:] [session_id:]`** - Manually mark student present
+- **`/admin-remove-attendance student: [date:] [session_id:]`** - Remove attendance record
+
+> **Note:** Legacy prefix commands (`!help`, `!status`, etc.) are deprecated but still work for backwards compatibility. Please migrate to slash commands as prefix commands will be removed in a future version.
 
 ### Google Sheets Backup & Export
 
@@ -157,19 +169,19 @@ Built-in attendance system with rotating codes for classroom use.
 - **`/register <student_id> [name]`** - Link Discord account to student ID for gradebook integration
 - **`/here <code>`** - Submit attendance with the current code (attendance channel only)
 
-**Admin Commands** (admin channel only):
-- **`!open_attendance`** - Start session with rotating codes displayed in admin channel
-- **`!close_attendance`** - End session and save records to database
-- **`!export_attendance [session_id]`** - Export attendance records to CSV
-- **`!excuse <student> [date]`** - Mark a student as excused
-- **`!mark_present <student> [date]`** - Manually mark a student present
-- **`!remove_attendance <student> <date>`** - Remove an attendance record
+**Admin Commands:**
+- **`/admin-open-attendance`** - Start session with rotating codes displayed in admin channel
+- **`/admin-close-attendance`** - End session and save records to database
+- **`/admin-export-attendance [session_id:]`** - Export attendance records to CSV
+- **`/admin-excuse student: [date:]`** - Mark a student as excused (defaults to today)
+- **`/admin-mark-present student: [date:] [session_id:]`** - Manually mark a student present
+- **`/admin-remove-attendance student: [date:] [session_id:]`** - Remove an attendance record
 
 **How it works:**
-1. Admin runs `!open_attendance` - a rotating code appears in the admin channel (display on projector)
+1. Admin runs `/admin-open-attendance` - a rotating code appears in the admin channel (display on projector)
 2. Students see a notification in the attendance channel and submit with `/here <code>`
 3. Codes rotate automatically every 15 seconds to prevent code-sharing
-4. Admin runs `!close_attendance` to save all records
+4. Admin runs `/admin-close-attendance` to save all records
 5. Export to CSV includes student_id, name, Discord username, timestamp, and status
 
 ### Quiz Format
@@ -487,13 +499,15 @@ discord-qa-agent/
 │   ├── bot.py             # Discord bot class
 │   ├── config.py          # Config loader
 │   ├── constants.py       # Constants and error messages
-│   ├── cogs/              # Discord slash commands
+│   ├── cogs/              # Discord commands
 │   │   ├── quiz.py        # /quiz command
 │   │   ├── llm_quiz.py    # /llm-quiz command
 │   │   ├── status.py      # /status command
 │   │   ├── modules.py     # /modules command
-│   │   ├── admin.py       # Admin prefix commands (!help, !status, etc.)
-│   │   ├── attendance.py  # Attendance commands (/register, /here, !open_attendance, etc.)
+│   │   ├── admin_slash.py # Admin slash commands (/admin-help, /admin-status, etc.)
+│   │   ├── attendance_slash.py # Admin attendance slash commands (/admin-open-attendance, etc.)
+│   │   ├── admin.py       # DEPRECATED: Admin prefix commands (kept for backwards compatibility)
+│   │   ├── attendance.py  # Student attendance commands (/register, /here) + deprecated admin prefix commands
 │   │   └── utils.py       # Common utilities
 │   ├── agent/             # LangGraph-based agent system
 │   │   ├── graph.py       # Main agent graph
