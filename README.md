@@ -225,13 +225,24 @@ This solves the "context conundrum" where traditional RAG chunks lose important 
 
 ## Setup
 
-### 1. Install Dependencies
+### 1. Clone Required Repository
+
+The bot requires the `llm-quiz` repository to be cloned in the project root directory:
+
+```bash
+# From the project root directory
+git clone https://github.com/skojaku/llm-quiz.git
+```
+
+This repository contains additional components needed for the LLM Quiz Challenge feature.
+
+### 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 3. Configure Environment
 
 Copy `.env.example` to `.env` and add your credentials:
 
@@ -248,11 +259,11 @@ ATTENDANCE_CHANNEL_ID=your_attendance_channel_id  # Optional, for /here command
 NL_ROUTING_CHANNELS=channel_id1,channel_id2  # Optional, auto-response channels
 ```
 
-### 3. Configure the Bot
+### 4. Configure the Bot
 
 Edit `config.yaml` for LLM settings and `course.yaml` for your course content.
 
-### 4. Set Up Ollama (Optional)
+### 5. Set Up Ollama (Optional)
 
 If using local LLM:
 ```bash
@@ -263,7 +274,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.2
 ```
 
-### 5. Run the Bot
+### 6. Run the Bot
 
 ```bash
 python main.py
