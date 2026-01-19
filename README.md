@@ -30,79 +30,125 @@ Admin commands use prefix commands (`!command`) instead of slash commands to kee
 - **`!clear_similarity [module]`** - Clear LLM Quiz similarity database (for duplicate detection reset)
 
 ### Google Sheets Backup & Export
-Export and import student progress data to/from Google Sheets for backup, grading, or cross-machine transfer. Exports are saved to **your personal Google Drive**.
 
-**Admin Commands** (slash commands):
+Export and import student progress data to/from Google Sheets for backup, grading, or cross-machine transfer. All exports are saved to **your personal Google Drive** in an organized folder.
+
+#### Admin Commands
+
 - **`/export-progress`** - Export all student data to a new Google Sheets spreadsheet
 - **`/import-progress <url> [mode]`** - Import data from a Google Sheets backup
+  - **Replace mode**: Deletes all existing data before importing (requires confirmation)
+  - **Merge mode**: Updates existing records and adds new ones
 - **`/list-exports [limit]`** - List recent exports with clickable links
 
-**What Gets Exported:**
+#### What Gets Exported
+
 - User profiles (Discord ID, student ID, name)
 - Quiz attempts and responses with LLM evaluations
 - Concept mastery tracking
 - LLM Quiz Challenge attempts
 - Attendance records
 
-**Setup** (One-Time):
+#### One-Time Setup
 
-1. **Enable Google APIs:**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project (or use existing)
-   - Enable **Google Sheets API**: https://console.cloud.google.com/apis/library/sheets.googleapis.com
-   - Enable **Google Drive API**: https://console.cloud.google.com/apis/library/drive.googleapis.com
+**Step 1: Enable Google APIs**
 
-2. **Create OAuth Credentials:**
-   - Navigate to: **APIs & Services** → **Credentials**
-   - Click: **Create Credentials** → **OAuth client ID**
-   - If prompted to configure consent screen:
-     - Choose **External** (allows any Google account)
-     - Fill in app name: `Chibi Bot`
-     - Add your email for support and developer contact
-     - Save and continue through all steps
-   - Select application type: **Desktop app**
-   - Name: `Chibi Bot` (or any name)
-   - Click: **Create**
-   - Download the JSON credentials file
-   - Save it as: `credentials/google_oauth_credentials.json`
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Enable the following APIs:
+   - [Google Sheets API](https://console.cloud.google.com/apis/library/sheets.googleapis.com)
+   - [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com)
+4. Wait 1-2 minutes for changes to propagate
 
-3. **Test the Setup:**
-   ```bash
-   python scripts/test_oauth_export.py
-   ```
-   A browser window will open for one-time authorization. Sign in with your Google account and grant permissions. After this, the bot will use your Google Drive for all exports.
+**Step 2: Create OAuth Credentials**
 
-4. **Use in Discord:**
-   Run `/export-progress` in Discord. The bot will create a spreadsheet in your Google Drive and reply with the link.
+1. In Google Cloud Console, navigate to: **APIs & Services** → **Credentials**
+2. Click: **Create Credentials** → **OAuth client ID**
+3. If prompted to configure the OAuth consent screen:
+   - User Type: Choose **External**
+   - App information:
+     - App name: `Chibi Bot` (or any name)
+     - User support email: Your email
+     - Developer contact email: Your email
+   - Click **Save and Continue** through all steps (you can skip optional sections)
+4. Back on the Credentials page, click **Create Credentials** → **OAuth client ID** again
+5. Application type: Select **Desktop app**
+6. Name: `Chibi Bot` (or any name)
+7. Click **Create**
+8. **Download** the JSON credentials file (click the download icon)
+9. Save it as: `credentials/google_oauth_credentials.json` in your project directory
 
-**Configuration:**
+**Step 3: Configure Export Folder (Optional)**
 
-You can customize where exports are saved in `config.yaml`:
+Edit `config.yaml` to customize where exports are saved:
+
 ```yaml
 backup:
   credentials_file: "credentials/google_oauth_credentials.json"
   token_file: "credentials/token.json"
-  folder_name: "Chibi Bot Exports"  # Google Drive folder name (creates if doesn't exist)
+  folder_name: "Chibi Bot Exports"  # Folder name in your Google Drive
   scopes:
     - "https://www.googleapis.com/auth/spreadsheets"
     - "https://www.googleapis.com/auth/drive.file"
 ```
 
-The `folder_name` setting organizes all exports into a specific Google Drive folder. If the folder doesn't exist, it will be created automatically. Leave this empty or remove it to save exports to your Drive root.
+The `folder_name` setting organizes all exports into a specific Google Drive folder. The folder is created automatically if it doesn't exist. To save exports to your Drive root instead, set `folder_name: ""` or remove the line.
 
-**Import Modes:**
-- **Replace:** Deletes all existing data before importing (requires confirmation)
-- **Merge:** Updates existing records and adds new ones
+**Step 4: Test OAuth Authorization**
 
-**Troubleshooting:**
+Run the test script to authorize the bot:
 
-*API Not Enabled:* Enable both APIs at the links above. Wait 1-2 minutes after enabling for changes to propagate.
+```bash
+python scripts/test_oauth_export.py
+```
 
-*Browser Authorization Fails:* Delete `credentials/token.json` and run the test script again.
+What happens:
+- A browser window opens automatically
+- Sign in with your Google account
+- Grant the requested permissions (Sheets + Drive access)
+- The bot saves an access token to `credentials/token.json`
+- A test spreadsheet is created and deleted
 
-*Permission Denied:* Ensure you granted all requested permissions during the OAuth flow.
+After this one-time authorization, the bot can export automatically without requiring a browser.
 
-For detailed testing instructions, see `docs/manual-testing-mt002.md` through `mt013.md`.
+**Step 5: Start Using Exports**
+
+1. Restart your Discord bot:
+   ```bash
+   python main.py
+   ```
+
+2. In Discord, run:
+   ```
+   /export-progress
+   ```
+
+3. The bot will create a spreadsheet in your Google Drive and reply with the link and export summary.
+
+#### Troubleshooting
+
+**"API not enabled" error:**
+- Ensure both Google Sheets API and Google Drive API are enabled
+- Wait 1-2 minutes after enabling for changes to propagate
+- Verify you're using the correct Google Cloud project
+
+**"Browser authorization fails" or "Invalid credentials":**
+- Delete `credentials/token.json` if it exists
+- Run `python scripts/test_oauth_export.py` again
+- Make sure you downloaded the OAuth client ID (not service account) credentials
+
+**"Permission denied" or "Access not granted":**
+- During OAuth flow, ensure you click "Allow" for all requested permissions
+- Don't select "Cancel" or close the browser during authorization
+
+**"Folder creation failed":**
+- Check that your `config.yaml` has valid `folder_name` (avoid special characters)
+- Ensure Drive API is enabled and OAuth scopes include `drive.file`
+
+**Imports not working:**
+- Verify the spreadsheet URL is correct and accessible
+- Ensure the spreadsheet was created by this bot (has expected format)
+- For Replace mode, confirm you clicked the confirmation button
 
 ### Attendance Tracking
 Built-in attendance system with rotating codes for classroom use.
