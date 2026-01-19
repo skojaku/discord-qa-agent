@@ -325,6 +325,26 @@ class GoogleSheetsClient:
         logger.info(f"Found {len(spreadsheet_files)} spreadsheets")
         return spreadsheet_files
 
+    def delete_spreadsheet(self, spreadsheet_id: str) -> None:
+        """
+        Delete a spreadsheet from Google Drive.
+
+        Args:
+            spreadsheet_id: The spreadsheet ID to delete
+
+        Raises:
+            APIError: If deletion fails
+        """
+        if not self.gc:
+            self.authenticate()
+
+        try:
+            self.gc.del_spreadsheet(spreadsheet_id)
+            logger.info(f"Deleted spreadsheet: {spreadsheet_id}")
+        except APIError as e:
+            logger.error(f"Failed to delete spreadsheet {spreadsheet_id}: {e}")
+            raise
+
     @staticmethod
     def _is_rate_limit_error(error: APIError) -> bool:
         """

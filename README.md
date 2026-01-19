@@ -76,6 +76,24 @@ Export and import student progress data to/from Google Sheets for backup, gradin
 
 **Note:** Service accounts create spreadsheets in their own Google Drive. Use `/list-exports` to access the files, or share the spreadsheet with specific users for direct access.
 
+**Troubleshooting:**
+
+*Storage Quota Exceeded:* Service accounts have limited Drive storage (typically 15 GB). If you get a quota error:
+```bash
+# Preview what would be deleted
+python scripts/cleanup_old_exports.py --dry-run
+
+# Keep only the 5 most recent exports
+python scripts/cleanup_old_exports.py --keep 5
+
+# Delete all exports (use with caution!)
+python scripts/cleanup_old_exports.py --delete-all
+```
+
+*API Not Enabled:* Enable both Google Sheets API and Google Drive API in [Google Cloud Console](https://console.cloud.google.com/apis/).
+
+*Permission Denied:* Verify your service account has proper IAM permissions in the Google Cloud project.
+
 For detailed testing instructions, see `docs/manual-testing-mt002.md` through `mt013.md`.
 
 ### Attendance Tracking
