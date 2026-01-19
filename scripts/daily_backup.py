@@ -39,13 +39,17 @@ from chibi.database.connection import Database
 import aiohttp
 
 
+# Ensure logs directory exists
+logs_dir = project_root / "logs"
+logs_dir.mkdir(exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(project_root / "logs" / "daily_backup.log"),
+        logging.FileHandler(logs_dir / "daily_backup.log"),
     ],
 )
 logger = logging.getLogger(__name__)
