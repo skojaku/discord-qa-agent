@@ -81,14 +81,12 @@ similarity:
   enabled: true
   similarity_threshold: 0.85  # 0-1, questions above this are rejected
   top_k: 5  # Number of similar questions to retrieve
-  # Primary: Ollama (local)
-  #embedding_model: "nomic-embed-text"
-  #ollama_base_url: "http://localhost:11434"
-  fallback_model: "qwen/qwen3-embedding-8b"
-  fallback_base_url: "https://openrouter.ai/api/v1"
+  # Primary: Ollama (local) - will auto-fallback to OpenRouter if unavailable
+  embedding_model: "nomic-embed-text"  # 768 dimensions
+  ollama_base_url: "http://localhost:11434"
   # Fallback: OpenRouter (cloud) - used when Ollama is unavailable
   fallback_enabled: true
-  fallback_model: "qwen/qwen3-embedding-8b"
+  fallback_model: "qwen/qwen3-embedding-8b"  # 4096 dimensions
   fallback_base_url: "https://openrouter.ai/api/v1"
   # Storage
   chromadb_path: "data/chromadb"

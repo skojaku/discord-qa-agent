@@ -10,6 +10,7 @@ from chromadb.config import Settings
 
 if TYPE_CHECKING:
     from ...config import SimilarityConfig
+    from ...services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,15 @@ class SimilarityRepository:
 
     COLLECTION_NAME = "llm_quiz_questions"
 
-    def __init__(self, config: "SimilarityConfig"):
+    def __init__(self, config: "SimilarityConfig", embedding_service: "EmbeddingService"):
         self.config = config
+        self.embedding_service = embedding_service
         self._client: Optional[chromadb.PersistentClient] = None
         self._collection: Optional[chromadb.Collection] = None
+        self._embedding_dimension: Optional[int] = None
 
     async def connect(self) -> None:
-        """Initialize ChromaDB connection."""
+        """Initialize ChromaDB connection with dynamic dimension detection."""
         Path(self.config.chromadb_path).mkdir(parents=True, exist_ok=True)
 
         self._client = chromadb.PersistentClient(
@@ -47,13 +50,59 @@ class SimilarityRepository:
             ),
         )
 
+        # Detect embedding dimension by generating a test embedding
+        logger.info("Detecting embedding dimensions from current model...")
+        test_embedding = await self.embedding_service.get_embedding("test")
+
+        if test_embedding is None:
+            raise RuntimeError(
+                "Failed to generate test embedding. Cannot determine embedding dimensions. "
+                "Please check your embedding service configuration."
+            )
+
+        self._embedding_dimension = len(test_embedding)
+        logger.info(f"Detected embedding dimension: {self._embedding_dimension}")
+
+        # Check if collection exists
+        existing_collections = [col.name for col in self._client.list_collections()]
+        collection_exists = self.COLLECTION_NAME in existing_collections
+
+        if collection_exists:
+            # Get existing collection to check dimensions
+            temp_collection = self._client.get_collection(name=self.COLLECTION_NAME)
+
+            # Try to detect existing dimension from collection metadata or by checking first item
+            existing_dimension = None
+            if temp_collection.count() > 0:
+                # Get one item to check dimension
+                sample = temp_collection.get(limit=1, include=["embeddings"])
+                if sample["embeddings"] and len(sample["embeddings"]) > 0:
+                    existing_dimension = len(sample["embeddings"][0])
+
+            if existing_dimension and existing_dimension != self._embedding_dimension:
+                logger.warning(
+                    f"Dimension mismatch detected! "
+                    f"Existing collection: {existing_dimension}D, Current model: {self._embedding_dimension}D"
+                )
+                logger.warning(
+                    f"Deleting existing collection '{self.COLLECTION_NAME}' and recreating with new dimensions. "
+                    f"Similarity history will be lost."
+                )
+                self._client.delete_collection(name=self.COLLECTION_NAME)
+                collection_exists = False
+
+        if not collection_exists:
+            logger.info(f"Creating new collection with {self._embedding_dimension} dimensions")
+
+        # Create or get collection
         self._collection = self._client.get_or_create_collection(
             name=self.COLLECTION_NAME,
             metadata={"hnsw:space": "cosine"},
         )
 
         logger.info(
-            f"ChromaDB connected, collection has {self._collection.count()} questions"
+            f"ChromaDB connected (dimension: {self._embedding_dimension}), "
+            f"collection has {self._collection.count()} questions"
         )
 
     async def close(self) -> None:

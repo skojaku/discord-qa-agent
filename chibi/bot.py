@@ -144,8 +144,18 @@ class ChibiBot(commands.Bot):
         self.attendance_session_manager = AttendanceSessionManager()
         logger.info("Attendance session manager initialized")
 
+        # Initialize embedding service (needed before ChromaDB repositories)
+        self.embedding_service = EmbeddingService(
+            self.config.similarity,
+            api_key=self.config.openrouter_api_key,
+        )
+        logger.info("Embedding service initialized")
+
         # Initialize similarity repository (ChromaDB)
-        self.similarity_repo = SimilarityRepository(self.config.similarity)
+        self.similarity_repo = SimilarityRepository(
+            self.config.similarity,
+            self.embedding_service,
+        )
         await self.similarity_repo.connect()
         logger.info("Similarity repository connected")
 
@@ -241,11 +251,7 @@ class ChibiBot(commands.Bot):
             min_attempts=self.config.mastery.min_attempts_for_mastery,
         )
 
-        # Initialize embedding and similarity services
-        self.embedding_service = EmbeddingService(
-            self.config.similarity,
-            api_key=self.config.openrouter_api_key,
-        )
+        # Initialize similarity service
         self.similarity_service = SimilarityService(
             config=self.config.similarity,
             embedding_service=self.embedding_service,
