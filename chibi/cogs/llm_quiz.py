@@ -111,13 +111,15 @@ class LLMQuizModal(discord.ui.Modal, title="LLM Quiz Challenge"):
                 requires_review=True,  # Enable admin review for wins
             )
 
-            # Add question to similarity database
-            await self.cog.bot.similarity_service.add_question(
-                question_id=attempt.id,
-                question_text=self.question.value,
-                module_id=self.module_id,
-                user_id=user.id,
-            )
+            # Add question to similarity database only if student won
+            # This prevents failed questions from blocking similar good questions
+            if result.student_wins:
+                await self.cog.bot.similarity_service.add_question(
+                    question_id=attempt.id,
+                    question_text=self.question.value,
+                    module_id=self.module_id,
+                    user_id=user.id,
+                )
 
             # Get updated progress (only counts approved wins)
             wins, target = await self.cog.bot.llm_quiz_service.get_module_progress(
