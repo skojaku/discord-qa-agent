@@ -1,9 +1,9 @@
 """LLM Manager with fallback logic."""
 
 import logging
-from typing import Optional
+from typing import List, Optional
 
-from .base import BaseLLMProvider, LLMResponse
+from .base import BaseLLMProvider, LLMResponse, HealthCheckResult
 
 logger = logging.getLogger(__name__)
 
@@ -138,3 +138,47 @@ class LLMManager:
     def fallback_provider_name(self) -> str:
         """Get the fallback provider name."""
         return self.fallback.name
+
+    async def health_check_all(self) -> List[HealthCheckResult]:
+        """Perform health checks on all providers.
+
+        Returns:
+            List of HealthCheckResult for each provider
+        """
+        results = []
+
+        # Check primary provider
+        logger.info(f"Checking health of primary provider: {self.primary.name}")
+        try:
+            primary_result = await self.primary.health_check()
+            results.append(primary_result)
+        except Exception as e:
+            logger.error(f"Primary provider health check crashed: {e}")
+            results.append(
+                HealthCheckResult(
+                    provider_name=self.primary.name,
+                    is_healthy=False,
+                    model="unknown",
+                    error_message=f"Health check crashed: {str(e)}",
+                    troubleshooting="The health check itself failed unexpectedly. Check the logs for details."
+                )
+            )
+
+        # Check fallback provider
+        logger.info(f"Checking health of fallback provider: {self.fallback.name}")
+        try:
+            fallback_result = await self.fallback.health_check()
+            results.append(fallback_result)
+        except Exception as e:
+            logger.error(f"Fallback provider health check crashed: {e}")
+            results.append(
+                HealthCheckResult(
+                    provider_name=self.fallback.name,
+                    is_healthy=False,
+                    model="unknown",
+                    error_message=f"Health check crashed: {str(e)}",
+                    troubleshooting="The health check itself failed unexpectedly. Check the logs for details."
+                )
+            )
+
+        return results

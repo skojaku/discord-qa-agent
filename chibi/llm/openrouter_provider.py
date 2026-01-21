@@ -1,11 +1,12 @@
 """OpenRouter LLM provider implementation."""
 
 import logging
+import time
 from typing import Any, Dict, List, Optional
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, AuthenticationError, APIConnectionError, APIError
 
-from .base import BaseLLMProvider, LLMResponse
+from .base import BaseLLMProvider, LLMResponse, HealthCheckResult
 
 logger = logging.getLogger(__name__)
 
@@ -171,3 +172,154 @@ class OpenRouterProvider(BaseLLMProvider):
         Actual availability is determined by request success.
         """
         return bool(self.api_key)
+
+    async def health_check(self) -> HealthCheckResult:
+        """Perform a health check by attempting a simple generation."""
+        start_time = time.time()
+
+        # Check if we have an API key
+        if not self.api_key:
+            return HealthCheckResult(
+                provider_name=self.name,
+                is_healthy=False,
+                model=self.model,
+                error_message="OpenRouter API key not configured",
+                troubleshooting=(
+                    "OpenRouter API key is missing or empty.\n\n"
+                    "To fix this issue:\n"
+                    "1. Get an API key from https://openrouter.ai/keys\n"
+                    "2. Add it to your .env file: OPENROUTER_API_KEY=your_key_here\n"
+                    "3. Or set it in config.yaml under llm.openrouter.api_key\n"
+                    "4. Restart the bot after updating the configuration"
+                ),
+                response_time_ms=(time.time() - start_time) * 1000
+            )
+
+        try:
+            # Try a simple generation to verify the API key and model work
+            response = await self.generate(
+                prompt="Say 'OK' if you can read this.",
+                max_tokens=10,
+                temperature=0.0
+            )
+
+            response_time = (time.time() - start_time) * 1000
+
+            if not response.content:
+                return HealthCheckResult(
+                    provider_name=self.name,
+                    is_healthy=False,
+                    model=self.model,
+                    error_message="Model returned empty response",
+                    troubleshooting=(
+                        f"OpenRouter accepted the request but the model '{self.model}' returned no content.\n\n"
+                        "To fix this issue:\n"
+                        "1. Check if this is a reasoning model that needs special parameters\n"
+                        "2. Verify the model name is correct: https://openrouter.ai/models\n"
+                        "3. Try a different model like 'meta-llama/llama-3-8b-instruct'\n"
+                        "4. Check your OpenRouter credits: https://openrouter.ai/credits\n"
+                        "5. If using reasoning models (gpt-oss-20b), ensure reasoning parameters are set"
+                    ),
+                    response_time_ms=response_time
+                )
+
+            return HealthCheckResult(
+                provider_name=self.name,
+                is_healthy=True,
+                model=self.model,
+                response_time_ms=response_time
+            )
+
+        except AuthenticationError as e:
+            return HealthCheckResult(
+                provider_name=self.name,
+                is_healthy=False,
+                model=self.model,
+                error_message=f"Authentication failed: {str(e)}",
+                troubleshooting=(
+                    "OpenRouter rejected the API key.\n\n"
+                    "To fix this issue:\n"
+                    "1. Verify your API key at https://openrouter.ai/keys\n"
+                    "2. Check if the key in .env matches the one on OpenRouter\n"
+                    "3. Regenerate the API key if it was revoked\n"
+                    "4. Make sure there are no extra spaces or quotes around the key\n"
+                    "5. Restart the bot after updating the API key"
+                ),
+                response_time_ms=(time.time() - start_time) * 1000
+            )
+
+        except APIConnectionError as e:
+            return HealthCheckResult(
+                provider_name=self.name,
+                is_healthy=False,
+                model=self.model,
+                error_message=f"Cannot connect to OpenRouter: {str(e)}",
+                troubleshooting=(
+                    f"Failed to connect to OpenRouter at {self.base_url}\n\n"
+                    "To fix this issue:\n"
+                    "1. Check your internet connection\n"
+                    "2. Verify the base_url in config.yaml: https://openrouter.ai/api/v1\n"
+                    "3. Check if OpenRouter is down: https://status.openrouter.ai\n"
+                    "4. Try again in a few moments\n"
+                    "5. Check firewall/proxy settings that might block the connection"
+                ),
+                response_time_ms=(time.time() - start_time) * 1000
+            )
+
+        except APIError as e:
+            error_msg = str(e)
+            # Check for common error patterns
+            if "insufficient credits" in error_msg.lower() or "balance" in error_msg.lower():
+                troubleshooting = (
+                    "You don't have enough OpenRouter credits.\n\n"
+                    "To fix this issue:\n"
+                    "1. Add credits at https://openrouter.ai/credits\n"
+                    "2. Check your current balance\n"
+                    "3. Set up auto-reload if available\n"
+                    "4. Consider using free models if available"
+                )
+            elif "model" in error_msg.lower() and "not found" in error_msg.lower():
+                troubleshooting = (
+                    f"Model '{self.model}' not found on OpenRouter.\n\n"
+                    "To fix this issue:\n"
+                    "1. Check available models: https://openrouter.ai/models\n"
+                    "2. Update config.yaml with a valid model name\n"
+                    "3. Try 'meta-llama/llama-3-8b-instruct' as a reliable default\n"
+                    "4. Make sure the model name format is correct (provider/model)"
+                )
+            else:
+                troubleshooting = (
+                    f"OpenRouter API error: {error_msg}\n\n"
+                    "To fix this issue:\n"
+                    "1. Check OpenRouter status: https://status.openrouter.ai\n"
+                    "2. Review the error message above for specific guidance\n"
+                    "3. Check your account status at https://openrouter.ai\n"
+                    "4. Try a different model if the current one is unavailable"
+                )
+
+            return HealthCheckResult(
+                provider_name=self.name,
+                is_healthy=False,
+                model=self.model,
+                error_message=f"API Error: {error_msg}",
+                troubleshooting=troubleshooting,
+                response_time_ms=(time.time() - start_time) * 1000
+            )
+
+        except Exception as e:
+            return HealthCheckResult(
+                provider_name=self.name,
+                is_healthy=False,
+                model=self.model,
+                error_message=f"Health check failed: {str(e)}",
+                troubleshooting=(
+                    f"An unexpected error occurred: {type(e).__name__}\n\n"
+                    "To fix this issue:\n"
+                    "1. Check the error message above for clues\n"
+                    "2. Verify your config.yaml settings\n"
+                    "3. Check OpenRouter status: https://status.openrouter.ai\n"
+                    "4. Try restarting the bot\n"
+                    "5. If the issue persists, report it with the error details"
+                ),
+                response_time_ms=(time.time() - start_time) * 1000
+            )

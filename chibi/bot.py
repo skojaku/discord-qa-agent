@@ -169,6 +169,36 @@ class ChibiBot(commands.Bot):
         self.llm_manager = LLMManager(primary, fallback)
         logger.info("LLM manager initialized")
 
+        # Perform health checks on LLM providers
+        logger.info("Performing LLM health checks...")
+        health_results = await self.llm_manager.health_check_all()
+
+        all_healthy = all(result.is_healthy for result in health_results)
+        if not all_healthy:
+            logger.error("=" * 80)
+            logger.error("LLM HEALTH CHECK FAILED")
+            logger.error("=" * 80)
+
+            for result in health_results:
+                if not result.is_healthy:
+                    logger.error(f"\n[{result.provider_name}] Model: {result.model}")
+                    logger.error(f"Status: UNHEALTHY")
+                    if result.response_time_ms:
+                        logger.error(f"Response time: {result.response_time_ms:.0f}ms")
+                    logger.error(f"Error: {result.error_message}")
+                    if result.troubleshooting:
+                        logger.error(f"\nTroubleshooting:\n{result.troubleshooting}")
+                    logger.error("-" * 80)
+                else:
+                    logger.info(f"[{result.provider_name}] Model: {result.model} - HEALTHY ({result.response_time_ms:.0f}ms)")
+
+            logger.error("\nThe bot may not function correctly until these issues are resolved.")
+            logger.error("=" * 80)
+        else:
+            logger.info("All LLM providers are healthy!")
+            for result in health_results:
+                logger.info(f"  [{result.provider_name}] {result.model} - OK ({result.response_time_ms:.0f}ms)")
+
         # Load course configuration
         self.course = load_course()
         logger.info(f"Course loaded: {self.course.name} with {len(self.course.modules)} modules")
