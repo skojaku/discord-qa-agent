@@ -102,7 +102,20 @@ WARNING - LLM returned empty content (provider: openrouter, model: openai/gpt-os
 
 ## Recommended Configuration
 
-For cost-effective contextual chunking:
+**Option 1: Local Ollama (RECOMMENDED)** - Free, fast, 100% success rate:
+
+```yaml
+contextual_retrieval:
+  enabled: true
+  model: "ollama/ministral-3:14b-cloud"
+  base_url: ""  # Uses default Ollama URL
+  max_context_tokens: 100
+  batch_size: 5
+  batch_delay_seconds: 0.5
+  temperature: 0.3
+```
+
+**Option 2: OpenRouter** - Cloud-based (costs money):
 
 ```yaml
 contextual_retrieval:
@@ -115,13 +128,16 @@ contextual_retrieval:
   temperature: 0.3
 ```
 
-Or for higher quality (slightly more expensive):
+**Option 3: OpenRouter with Reasoning Model** - Requires reasoning parameters:
 
 ```yaml
 contextual_retrieval:
   enabled: true
-  model: "openrouter/openai/gpt-4o-mini"
+  model: "openrouter/openai/gpt-oss-20b"
   base_url: "https://openrouter.ai/api/v1"
+  reasoning:
+    enabled: true
+    effort: "low"
   max_context_tokens: 100
   batch_size: 5
   batch_delay_seconds: 0.5
