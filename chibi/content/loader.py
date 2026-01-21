@@ -102,6 +102,12 @@ class ContentLoader:
                 if not path.is_absolute():
                     # Relative to project root
                     path = Path.cwd() / path
+                elif not path.exists():
+                    # If absolute path doesn't exist, try relative to project root
+                    # This handles file:/// URLs where the path starts with /
+                    relative_path = Path.cwd() / file_path.lstrip('/')
+                    if relative_path.exists():
+                        path = relative_path
 
                 content = path.read_text(encoding='utf-8')
                 logger.debug(f"Loaded local file: {path} ({len(content)} chars)")
