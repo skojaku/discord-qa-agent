@@ -144,8 +144,18 @@ class ChibiBot(commands.Bot):
         self.attendance_session_manager = AttendanceSessionManager()
         logger.info("Attendance session manager initialized")
 
+        # Initialize embedding service (needed before ChromaDB repositories)
+        self.embedding_service = EmbeddingService(
+            self.config.similarity,
+            api_key=self.config.openrouter_api_key,
+        )
+        logger.info("Embedding service initialized")
+
         # Initialize similarity repository (ChromaDB)
-        self.similarity_repo = SimilarityRepository(self.config.similarity)
+        self.similarity_repo = SimilarityRepository(
+            self.config.similarity,
+            self.embedding_service,
+        )
         await self.similarity_repo.connect()
         logger.info("Similarity repository connected")
 
@@ -165,9 +175,42 @@ class ChibiBot(commands.Bot):
             base_url=self.config.llm.fallback.base_url,
             model=self.config.llm.fallback.model,
             timeout=self.config.llm.fallback.timeout,
+            reasoning=self.config.llm.fallback.reasoning,
+            provider=self.config.llm.fallback.provider_preferences,
+            transforms=self.config.llm.fallback.transforms,
         )
         self.llm_manager = LLMManager(primary, fallback)
         logger.info("LLM manager initialized")
+
+        # Perform health checks on LLM providers
+        logger.info("Performing LLM health checks...")
+        health_results = await self.llm_manager.health_check_all()
+
+        all_healthy = all(result.is_healthy for result in health_results)
+        if not all_healthy:
+            logger.error("=" * 80)
+            logger.error("LLM HEALTH CHECK FAILED")
+            logger.error("=" * 80)
+
+            for result in health_results:
+                if not result.is_healthy:
+                    logger.error(f"\n[{result.provider_name}] Model: {result.model}")
+                    logger.error(f"Status: UNHEALTHY")
+                    if result.response_time_ms:
+                        logger.error(f"Response time: {result.response_time_ms:.0f}ms")
+                    logger.error(f"Error: {result.error_message}")
+                    if result.troubleshooting:
+                        logger.error(f"\nTroubleshooting:\n{result.troubleshooting}")
+                    logger.error("-" * 80)
+                else:
+                    logger.info(f"[{result.provider_name}] Model: {result.model} - HEALTHY ({result.response_time_ms:.0f}ms)")
+
+            logger.error("\nThe bot may not function correctly until these issues are resolved.")
+            logger.error("=" * 80)
+        else:
+            logger.info("All LLM providers are healthy!")
+            for result in health_results:
+                logger.info(f"  [{result.provider_name}] {result.model} - OK ({result.response_time_ms:.0f}ms)")
 
         # Load course configuration
         self.course = load_course()
@@ -208,11 +251,7 @@ class ChibiBot(commands.Bot):
             min_attempts=self.config.mastery.min_attempts_for_mastery,
         )
 
-        # Initialize embedding and similarity services
-        self.embedding_service = EmbeddingService(
-            self.config.similarity,
-            api_key=self.config.openrouter_api_key,
-        )
+        # Initialize similarity service
         self.similarity_service = SimilarityService(
             config=self.config.similarity,
             embedding_service=self.embedding_service,
@@ -498,12 +537,23 @@ class ChibiBot(commands.Bot):
                 timeout=60,
             )
             # Use main fallback as backup
-            context_fallback = OpenRouterProvider(
-                api_key=self.config.openrouter_api_key,
-                base_url=self.config.llm.fallback.base_url,
-                model=self.config.llm.fallback.model,
-                timeout=self.config.llm.fallback.timeout,
-            )
+            if self.config.llm.fallback.provider == "openrouter":
+                context_fallback = OpenRouterProvider(
+                    api_key=self.config.openrouter_api_key,
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                    reasoning=self.config.llm.fallback.reasoning,
+                    provider=self.config.llm.fallback.provider_preferences,
+                    transforms=self.config.llm.fallback.transforms,
+                )
+            else:
+                # Fallback is also Ollama
+                context_fallback = OllamaProvider(
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                )
         elif model.startswith("openrouter/"):
             model_name = model[11:]  # Remove "openrouter/" prefix
             base_url = (
@@ -524,12 +574,24 @@ class ChibiBot(commands.Bot):
                 f"provider={self.config.contextual_retrieval.provider}, "
                 f"transforms={self.config.contextual_retrieval.transforms}"
             )
-            # Use main primary (Ollama) as fallback
-            context_fallback = OllamaProvider(
-                base_url=self.config.llm.primary.base_url,
-                model=self.config.llm.primary.model,
-                timeout=self.config.llm.primary.timeout,
-            )
+            # Use main fallback as backup for contextual chunking
+            if self.config.llm.fallback.provider == "ollama":
+                context_fallback = OllamaProvider(
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                )
+            else:
+                # Fallback is also OpenRouter
+                context_fallback = OpenRouterProvider(
+                    api_key=self.config.openrouter_api_key,
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                    reasoning=self.config.llm.fallback.reasoning,
+                    provider=self.config.llm.fallback.provider_preferences,
+                    transforms=self.config.llm.fallback.transforms,
+                )
         else:
             # Assume it's a raw model name, use primary provider type
             logger.warning(
@@ -540,12 +602,24 @@ class ChibiBot(commands.Bot):
                 model=model,
                 timeout=60,
             )
-            context_fallback = OpenRouterProvider(
-                api_key=self.config.openrouter_api_key,
-                base_url=self.config.llm.fallback.base_url,
-                model=self.config.llm.fallback.model,
-                timeout=self.config.llm.fallback.timeout,
-            )
+            # Use main fallback as backup
+            if self.config.llm.fallback.provider == "openrouter":
+                context_fallback = OpenRouterProvider(
+                    api_key=self.config.openrouter_api_key,
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                    reasoning=self.config.llm.fallback.reasoning,
+                    provider=self.config.llm.fallback.provider_preferences,
+                    transforms=self.config.llm.fallback.transforms,
+                )
+            else:
+                # Fallback is also Ollama
+                context_fallback = OllamaProvider(
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                )
 
         return LLMManager(context_primary, context_fallback)
 

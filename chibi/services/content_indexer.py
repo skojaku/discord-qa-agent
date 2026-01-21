@@ -70,8 +70,10 @@ class ContentIndexer:
         stats = {
             "modules_indexed": 0,
             "modules_skipped": 0,
+            "modules_content_changed": 0,
             "total_chunks": 0,
             "errors": [],
+            "reindexed_modules": [],  # List of module IDs that were reindexed
         }
 
         for module in course.modules:
@@ -83,16 +85,27 @@ class ContentIndexer:
                 if result["indexed"]:
                     stats["modules_indexed"] += 1
                     stats["total_chunks"] += result["chunks"]
+                    stats["reindexed_modules"].append(module.id)
+                    if result.get("content_changed"):
+                        stats["modules_content_changed"] += 1
                 else:
                     stats["modules_skipped"] += 1
             except Exception as e:
                 logger.error(f"Error indexing module {module.id}: {e}")
                 stats["errors"].append(f"{module.id}: {str(e)}")
 
-        logger.info(
-            f"Course indexing complete: {stats['modules_indexed']} modules, "
-            f"{stats['total_chunks']} chunks"
-        )
+        if stats["modules_indexed"] > 0:
+            logger.info(
+                f"Course indexing complete: {stats['modules_indexed']} modules indexed "
+                f"({stats['modules_content_changed']} with content changes), "
+                f"{stats['total_chunks']} chunks"
+            )
+            if stats["reindexed_modules"]:
+                logger.info(f"Reindexed modules: {', '.join(stats['reindexed_modules'])}")
+        else:
+            logger.info(
+                f"Course indexing complete: All {stats['modules_skipped']} modules up to date"
+            )
 
         return stats
 
@@ -118,14 +131,18 @@ class ContentIndexer:
             "indexed": False,
             "chunks": 0,
             "urls_indexed": 0,
+            "content_changed": False,
         }
 
-        # Check if already indexed (any URL source exists)
+        # Check if content has changed (unless force_reindex is True)
         if not force_reindex:
-            has_content = await self._has_module_sources(module.id)
-            if has_content:
-                logger.debug(f"Module {module.id} already indexed, skipping")
+            content_changed = await self._has_content_changed(module)
+            if not content_changed:
+                logger.debug(f"Module {module.id} content unchanged, skipping")
                 return result
+            else:
+                logger.info(f"Module {module.id} content changed, reindexing")
+                result["content_changed"] = True
 
         # Clear existing chunks for all URLs of this module
         await self._delete_module_sources(module.id)
@@ -145,6 +162,10 @@ class ContentIndexer:
             # Build content for this URL
             full_content = self._build_url_content(module, url, content)
 
+            # IMPORTANT: Calculate content length from RAW content BEFORE contextualization
+            # This ensures change detection is deterministic and not affected by stochastic LLM behavior
+            content_length = len(full_content)
+
             # Chunk the content
             chunks = self.chunker.chunk_text(
                 text=full_content,
@@ -156,7 +177,8 @@ class ContentIndexer:
                 logger.debug(f"No chunks generated for {source_id}")
                 continue
 
-            # Add contextual information if enabled
+            # Add contextual information if enabled (happens AFTER content_length calculation)
+            # The LLM-generated context is stochastic, but doesn't affect change detection
             if self.use_contextual_retrieval and self.contextual_service:
                 logger.info(
                     f"Generating context for {len(chunks)} chunks in {source_id}"
@@ -170,11 +192,11 @@ class ContentIndexer:
             # Generate embeddings and store in batches
             for i in range(0, len(chunks), self.batch_size):
                 batch = chunks[i : i + self.batch_size]
-                indexed = await self._index_batch(batch)
+                indexed = await self._index_batch(batch, content_length=content_length)
                 total_indexed += indexed
 
             urls_indexed += 1
-            logger.debug(f"Indexed {source_id}: {len(chunks)} chunks")
+            logger.debug(f"Indexed {source_id}: {len(chunks)} chunks, {content_length} chars")
 
         if urls_indexed > 0:
             result["indexed"] = True
@@ -199,6 +221,42 @@ class ContentIndexer:
         """
         # Check for url_0 as a proxy for whether the module is indexed
         return await self.rag_repo.has_source(f"{module_id}:url_0")
+
+    async def _has_content_changed(self, module: "Module") -> bool:
+        """Check if module content has changed since last indexing.
+
+        Compares current content character counts with stored metadata.
+
+        Args:
+            module: The module to check
+
+        Returns:
+            True if content has changed or module not yet indexed
+        """
+        # Check each URL in the module
+        for url_index, (url, content) in enumerate(module.contents.items()):
+            source_id = f"{module.id}:url_{url_index}"
+
+            # Build full content (same as during indexing)
+            full_content = self._build_url_content(module, url, content)
+            current_length = len(full_content)
+
+            # Get stored content length from metadata
+            stored_length = await self.rag_repo.get_source_content_length(source_id)
+
+            # If no stored length (not indexed) or lengths differ, content has changed
+            if stored_length is None:
+                logger.debug(f"{source_id} not indexed yet")
+                return True
+
+            if current_length != stored_length:
+                logger.info(
+                    f"{source_id} content changed: {stored_length} -> {current_length} chars"
+                )
+                return True
+
+        # All URLs have unchanged content
+        return False
 
     async def _delete_module_sources(self, module_id: str) -> None:
         """Delete all URL sources for a module.
@@ -236,21 +294,27 @@ class ContentIndexer:
 
         return "\n\n".join(parts)
 
-    async def _index_batch(self, chunks: List[TextChunk]) -> int:
+    async def _index_batch(self, chunks: List[TextChunk], content_length: int = 0) -> int:
         """Index a batch of chunks.
 
         Args:
             chunks: List of chunks to index
+            content_length: Total character count of RAW source content before contextualization
+                          (stored in first chunk's metadata for change detection)
 
         Returns:
             Number of chunks successfully indexed
+
+        Note:
+            content_length is from raw content BEFORE LLM contextualization to ensure
+            deterministic change detection that isn't affected by stochastic LLM behavior.
         """
         chunk_ids = []
         texts = []
         embeddings = []
         metadatas = []
 
-        for chunk in chunks:
+        for idx, chunk in enumerate(chunks):
             # Use contextualized text for embedding if contextual retrieval is enabled
             text_for_embedding = (
                 chunk.contextualized_text
@@ -267,14 +331,21 @@ class ContentIndexer:
             chunk_ids.append(chunk.chunk_id)
             texts.append(chunk.text)  # Store original text for display
             embeddings.append(embedding)
-            metadatas.append(
-                {
-                    "source_id": chunk.source_id,
-                    "source_name": chunk.source_name,
-                    "chunk_index": chunk.chunk_index,
-                    "context": chunk.context or "",  # Store context in metadata
-                }
-            )
+
+            # Build metadata
+            metadata = {
+                "source_id": chunk.source_id,
+                "source_name": chunk.source_name,
+                "chunk_index": chunk.chunk_index,
+                "context": chunk.context or "",  # Store LLM-generated context
+            }
+
+            # Store RAW content length in first chunk's metadata for change detection
+            # This is the length BEFORE LLM contextualization, ensuring deterministic comparison
+            if chunk.chunk_index == 0 and content_length > 0:
+                metadata["content_length"] = content_length
+
+            metadatas.append(metadata)
 
             # Small delay to avoid overwhelming the embedding service
             await asyncio.sleep(0.05)

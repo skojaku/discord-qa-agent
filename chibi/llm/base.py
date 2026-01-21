@@ -15,6 +15,18 @@ class LLMResponse:
     tokens_used: int = 0
 
 
+@dataclass
+class HealthCheckResult:
+    """Result of an LLM provider health check."""
+
+    provider_name: str
+    is_healthy: bool
+    model: str
+    error_message: Optional[str] = None
+    troubleshooting: Optional[str] = None
+    response_time_ms: Optional[float] = None
+
+
 class BaseLLMProvider(ABC):
     """Abstract base class for LLM providers."""
 
@@ -51,5 +63,17 @@ class BaseLLMProvider(ABC):
 
         Returns:
             True if the provider can accept requests
+        """
+        pass
+
+    @abstractmethod
+    async def health_check(self) -> HealthCheckResult:
+        """Perform a health check by attempting a simple generation.
+
+        This method actually tries to generate a response to verify the
+        provider is fully functional, not just reachable.
+
+        Returns:
+            HealthCheckResult with status and troubleshooting info
         """
         pass

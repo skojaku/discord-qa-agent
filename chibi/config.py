@@ -18,6 +18,10 @@ class LLMProviderConfig:
     model: str
     timeout: int = 60
     max_retries: int = 2
+    # OpenRouter-specific parameters (only used if provider is "openrouter")
+    reasoning: Optional[dict] = None  # e.g., {"effort": "medium"} or {"enabled": true}
+    provider_preferences: Optional[dict] = None  # e.g., {"require_parameters": true}
+    transforms: Optional[list] = None  # e.g., ["middle-out"]
 
 
 @dataclass
@@ -77,17 +81,22 @@ class LLMQuizConfig:
 
 @dataclass
 class SimilarityConfig:
-    """Similarity detection configuration for anti-cheat."""
+    """Similarity detection configuration for anti-cheat.
+
+    Primary provider is auto-detected from embedding_model format:
+    - Contains "/" (e.g., "qwen/qwen3-embedding-4b") → OpenRouter
+    - No "/" (e.g., "nomic-embed-text") → Ollama
+    """
 
     enabled: bool = True
     similarity_threshold: float = 0.85
     top_k: int = 5
-    # Primary: Ollama (local)
-    embedding_model: str = "nomic-embed-text"
+    # Primary embedding model (provider auto-detected from name format)
+    embedding_model: str = "qwen/qwen3-embedding-4b"  # OpenRouter by default
     ollama_base_url: str = "http://localhost:11434"
-    # Fallback: OpenRouter (cloud)
+    # Fallback settings
     fallback_enabled: bool = True
-    fallback_model: str = "openai/text-embedding-3-small"
+    fallback_model: str = "nomic-embed-text"  # Ollama fallback
     fallback_base_url: str = "https://openrouter.ai/api/v1"
     # Storage
     chromadb_path: str = "data/chromadb"
@@ -196,6 +205,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
             model=primary_data.get("model", "llama3.2"),
             timeout=primary_data.get("timeout", 60),
             max_retries=primary_data.get("max_retries", 2),
+            reasoning=primary_data.get("reasoning"),
+            provider_preferences=primary_data.get("provider_preferences"),
+            transforms=primary_data.get("transforms"),
         ),
         fallback=LLMProviderConfig(
             provider=fallback_data.get("provider", "openrouter"),
@@ -205,6 +217,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
             model=fallback_data.get("model", "meta-llama/llama-3.2-3b-instruct"),
             timeout=fallback_data.get("timeout", 90),
             max_retries=fallback_data.get("max_retries", 1),
+            reasoning=fallback_data.get("reasoning"),
+            provider_preferences=fallback_data.get("provider_preferences"),
+            transforms=fallback_data.get("transforms"),
         ),
         max_tokens=llm_data.get("max_tokens", 1024),
         temperature=llm_data.get("temperature", 0.7),

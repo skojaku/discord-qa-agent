@@ -9,41 +9,41 @@ course:
 # Module definitions
 modules:
   - id: "m00"
-    name: "Practice Module: Binghamton University"
-    description: "A practice module to learn how /quiz and /llm-quiz commands work using facts about Binghamton University"
+    name: "Practice Module: Elementary Physics"
+    description: "A practice module to learn how /quiz and /llm-quiz commands work using fundamental physics principles"
     content_urls:
-      - "file://test_content/binghamton-university.md"
+      - "file:///test_content/elementary-physics.md"
     concepts:
-      - id: "bu-history"
-        name: "Binghamton University History"
+      - id: "newtons-laws"
+        name: "Newton's Laws of Motion"
         type: "theory"
         difficulty: 1
-        description: "The founding, evolution, and major milestones of Binghamton University from 1946 to present"
-        quiz_focus: "Founding year (1946), original name (Triple Cities College), connection to Syracuse University, name changes (Harpur College, Binghamton University), campus move to Vestal in 1961, becoming a SUNY university center in 1965"
+        description: "The three fundamental laws of motion developed by Isaac Newton that form the foundation of classical mechanics"
+        quiz_focus: "First Law (Inertia): objects at rest stay at rest and objects in motion stay in motion unless acted upon by unbalanced force, Second Law: F = ma where F is force (Newtons), m is mass (kg), a is acceleration (m/s²), Third Law: for every action there is equal and opposite reaction (action-reaction pairs act on different objects), applications include rockets (expel gas downward, rocket pushed upward), walking (foot pushes ground backward, ground pushes foot forward)"
         prerequisites: []
 
-      - id: "bu-location"
-        name: "Campus Location and Geography"
+      - id: "kinematics"
+        name: "Kinematics: Describing Motion"
         type: "theory"
         difficulty: 1
-        description: "The geographic location, campus size, and physical setting of Binghamton University"
-        quiz_focus: "Location in Vestal/Binghamton New York, 828-acre campus, Southern Tier region, Triple Cities area, Susquehanna River, campus address (4400 Vestal Parkway East)"
+        description: "The branch of physics describing motion using position, velocity, and acceleration without considering forces"
+        quiz_focus: "Displacement is vector (straight-line distance with direction), distance is scalar (total path length), velocity is rate of change of position (vector, includes direction), speed is magnitude of velocity (scalar), acceleration is rate of change of velocity (m/s²), gravitational acceleration g = 9.8 m/s² near Earth surface, kinematic equations for constant acceleration: v = v₀ + at, x = x₀ + v₀t + ½at², v² = v₀² + 2a(x - x₀)"
         prerequisites: []
 
-      - id: "bu-academic-structure"
-        name: "Academic Colleges and Programs"
+      - id: "energy-work"
+        name: "Energy and Work"
         type: "theory"
         difficulty: 1
-        description: "The organization of Binghamton University into colleges and schools with their respective programs"
-        quiz_focus: "Harpur College (Arts & Sciences, oldest and largest), School of Management, Thomas J. Watson College (Engineering, founded 1983), Decker College (Nursing), School of Pharmacy (newest), specific programs offered by each"
+        description: "The capacity to do work and the relationship between energy, work, and power"
+        quiz_focus: "Kinetic energy KE = ½mv² (energy of motion, increases with square of velocity), gravitational potential energy PE = mgh (m is mass, g = 9.8 m/s², h is height), elastic potential energy PE = ½kx² (k is spring constant, x is displacement), work W = Fd cos(θ) measured in Joules, work-energy theorem: net work equals change in kinetic energy, conservation of energy: energy cannot be created or destroyed only transformed (mechanical energy converts between kinetic and potential)"
         prerequisites: []
 
-      - id: "bu-status"
-        name: "University Status and Recognition"
+      - id: "forces-momentum"
+        name: "Forces and Momentum"
         type: "theory"
         difficulty: 1
-        description: "Binghamton's standing as New York's top public university and its role in the SUNY system"
-        quiz_focus: "Recognition as NY's top public university, SUNY system membership, research university status, endowment ($245 million as of 2024), Binghamton University Foundation"
+        description: "Different types of forces and the concept of momentum in analyzing motion and collisions"
+        quiz_focus: "Gravity F = mg (weight), friction opposes motion (static and kinetic), normal force perpendicular to surface, tension in ropes/cables, Hooke's Law for springs F = -kx, momentum p = mv (product of mass and velocity), conservation of momentum in isolated systems (total momentum before equals total momentum after), impulse J = FΔt = Δp (explains why airbags reduce injury by extending collision time), elastic collisions conserve both momentum and kinetic energy, inelastic collisions conserve momentum but not kinetic energy"
         prerequisites: []
 
   - id: "m01"
