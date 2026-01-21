@@ -277,21 +277,19 @@ class RAGRepository:
             Content length in characters, or None if not found/not indexed
         """
         try:
-            # Get the first chunk (chunk_index=0) for this source
+            # Get all chunks for this source
             results = self.collection.get(
-                where={
-                    "source_id": source_id,
-                    "chunk_index": 0,
-                },
+                where={"source_id": source_id},
                 include=["metadatas"],
-                limit=1,
             )
 
             if results["ids"] and results["metadatas"]:
-                metadata = results["metadatas"][0]
-                content_length = metadata.get("content_length")
-                if content_length is not None:
-                    return int(content_length)
+                # Find the first chunk (chunk_index=0)
+                for metadata in results["metadatas"]:
+                    if metadata.get("chunk_index") == 0:
+                        content_length = metadata.get("content_length")
+                        if content_length is not None:
+                            return int(content_length)
 
             return None
         except Exception as e:
