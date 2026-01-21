@@ -10,11 +10,12 @@ llm:
   primary:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "meta-llama/llama-3-8b-instruct"  # Reliable model, no special params needed
-    timeout: 90
+    model: "openai/gpt-oss-20b"  # Reasoning model - requires max_tokens format
+    timeout: 120
     max_retries: 1
-    # Note: gpt-oss models (20b, 120b) return empty responses even with reasoning params
-    # Use llama or other standard models instead
+    # IMPORTANT: gpt-oss requires max_tokens format (not effort)
+    reasoning:
+      max_tokens: 2000  # Reserve tokens for reasoning (model requires this)
 
   # Fallback provider (OpenRouter - cloud)
   fallback:

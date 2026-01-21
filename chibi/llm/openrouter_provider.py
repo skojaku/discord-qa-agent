@@ -197,9 +197,15 @@ class OpenRouterProvider(BaseLLMProvider):
 
         try:
             # Try a simple generation to verify the API key and model work
+            # If reasoning is configured, we need more tokens (reasoning budget + response)
+            max_tokens_for_test = 10
+            if self.reasoning and self.reasoning.get('max_tokens'):
+                # Add buffer beyond reasoning budget for actual response
+                max_tokens_for_test = self.reasoning['max_tokens'] + 100
+
             response = await self.generate(
                 prompt="Say 'OK' if you can read this.",
-                max_tokens=10,
+                max_tokens=max_tokens_for_test,
                 temperature=0.0
             )
 

@@ -9,8 +9,10 @@ Reasoning models (similar to OpenAI's o1 series) use step-by-step thinking to so
 ## Supported Models
 
 Known reasoning models on OpenRouter:
-- `openai/gpt-oss-20b`
-- `openai/gpt-oss-120b`
+- `openai/gpt-oss-20b` - **Requires `max_tokens` format** (see Important Note below)
+- `openai/gpt-oss-120b` - **Requires `max_tokens` format** (see Important Note below)
+
+**IMPORTANT:** gpt-oss models do NOT work with `effort` parameter. They require `max_tokens` format.
 
 ## Configuration
 
@@ -28,22 +30,23 @@ llm:
     max_retries: 1
 ```
 
-### Option 2: Reasoning Model (Requires Reasoning Parameters)
+### Option 2: GPT-OSS Reasoning Model (Requires max_tokens Format)
 
-To use a reasoning model, add the `reasoning` configuration:
+**CRITICAL:** gpt-oss models (20b, 120b) require `max_tokens` format, NOT `effort`:
 
 ```yaml
 llm:
-  fallback:
+  primary:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "openai/gpt-oss-120b"
-    timeout: 90
+    model: "openai/gpt-oss-20b"
+    timeout: 120
     max_retries: 1
     reasoning:
-      enabled: true    # Enable reasoning mode
-      effort: "low"    # Reasoning effort level
+      max_tokens: 2000  # REQUIRED: Use max_tokens format
 ```
+
+**Why max_tokens?** These models have mandatory reasoning enabled and return empty responses with `effort` parameters. Only `max_tokens` works correctly.
 
 ## Reasoning Parameters
 
@@ -196,9 +199,26 @@ llm:
 
 ## Troubleshooting
 
-### Empty Responses
-**Problem:** Model returns no content but charges tokens
-**Solution:** Add reasoning parameters to config
+### Empty Responses from gpt-oss Models
+**Problem:** `gpt-oss-20b` or `gpt-oss-120b` returns empty responses
+**Root Cause:** These models have mandatory reasoning and only work with `max_tokens` format
+**Solution:** Use `reasoning: { max_tokens: 2000 }` NOT `reasoning: { effort: "low" }`
+
+**Verified Working Config:**
+```yaml
+model: "openai/gpt-oss-20b"
+reasoning:
+  max_tokens: 2000
+```
+
+**Known NOT Working:**
+- `reasoning: { effort: "low" }` - Returns empty ❌
+- `reasoning: { enabled: true, effort: "low" }` - Returns empty ❌
+- No reasoning params - Returns empty ❌
+
+### Empty Responses from Other Models
+**Problem:** Other reasoning models return no content but charge tokens
+**Solution:** Check model-specific format (Anthropic/Gemini use max_tokens, OpenAI o-series use effort)
 
 ### Slow Responses
 **Problem:** Reasoning models are taking too long
