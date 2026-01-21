@@ -37,7 +37,15 @@ class GuidanceCog(commands.Cog):
         self, interaction: discord.Interaction, current: str
     ) -> List[app_commands.Choice[str]]:
         """Autocomplete callback for module selection."""
-        return await module_autocomplete_choices(self.bot.course, current)
+        try:
+            return await module_autocomplete_choices(self.bot.course, current)
+        except discord.errors.HTTPException as e:
+            # Silently handle "Interaction has already been acknowledged" errors
+            # This can happen due to Discord rate limiting or timing issues
+            if e.code == 40060:  # Interaction already acknowledged
+                logger.debug(f"Autocomplete interaction already acknowledged: {e}")
+                return []
+            raise
 
     @app_commands.command(
         name="guidance",

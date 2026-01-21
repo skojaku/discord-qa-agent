@@ -531,12 +531,23 @@ class ChibiBot(commands.Bot):
                 timeout=60,
             )
             # Use main fallback as backup
-            context_fallback = OpenRouterProvider(
-                api_key=self.config.openrouter_api_key,
-                base_url=self.config.llm.fallback.base_url,
-                model=self.config.llm.fallback.model,
-                timeout=self.config.llm.fallback.timeout,
-            )
+            if self.config.llm.fallback.provider == "openrouter":
+                context_fallback = OpenRouterProvider(
+                    api_key=self.config.openrouter_api_key,
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                    reasoning=self.config.llm.fallback.reasoning,
+                    provider=self.config.llm.fallback.provider_preferences,
+                    transforms=self.config.llm.fallback.transforms,
+                )
+            else:
+                # Fallback is also Ollama
+                context_fallback = OllamaProvider(
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                )
         elif model.startswith("openrouter/"):
             model_name = model[11:]  # Remove "openrouter/" prefix
             base_url = (
@@ -557,12 +568,24 @@ class ChibiBot(commands.Bot):
                 f"provider={self.config.contextual_retrieval.provider}, "
                 f"transforms={self.config.contextual_retrieval.transforms}"
             )
-            # Use main primary (Ollama) as fallback
-            context_fallback = OllamaProvider(
-                base_url=self.config.llm.primary.base_url,
-                model=self.config.llm.primary.model,
-                timeout=self.config.llm.primary.timeout,
-            )
+            # Use main fallback as backup for contextual chunking
+            if self.config.llm.fallback.provider == "ollama":
+                context_fallback = OllamaProvider(
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                )
+            else:
+                # Fallback is also OpenRouter
+                context_fallback = OpenRouterProvider(
+                    api_key=self.config.openrouter_api_key,
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                    reasoning=self.config.llm.fallback.reasoning,
+                    provider=self.config.llm.fallback.provider_preferences,
+                    transforms=self.config.llm.fallback.transforms,
+                )
         else:
             # Assume it's a raw model name, use primary provider type
             logger.warning(
@@ -573,12 +596,24 @@ class ChibiBot(commands.Bot):
                 model=model,
                 timeout=60,
             )
-            context_fallback = OpenRouterProvider(
-                api_key=self.config.openrouter_api_key,
-                base_url=self.config.llm.fallback.base_url,
-                model=self.config.llm.fallback.model,
-                timeout=self.config.llm.fallback.timeout,
-            )
+            # Use main fallback as backup
+            if self.config.llm.fallback.provider == "openrouter":
+                context_fallback = OpenRouterProvider(
+                    api_key=self.config.openrouter_api_key,
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                    reasoning=self.config.llm.fallback.reasoning,
+                    provider=self.config.llm.fallback.provider_preferences,
+                    transforms=self.config.llm.fallback.transforms,
+                )
+            else:
+                # Fallback is also Ollama
+                context_fallback = OllamaProvider(
+                    base_url=self.config.llm.fallback.base_url,
+                    model=self.config.llm.fallback.model,
+                    timeout=self.config.llm.fallback.timeout,
+                )
 
         return LLMManager(context_primary, context_fallback)
 
