@@ -18,7 +18,7 @@ llm:
   fallback:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "openai/gpt-oss-120b"
+    model: "meta-llama/llama-3-8b-instruct"  # Changed from gpt-oss-120b (reasoning model needs special params)
     timeout: 90
     max_retries: 1
 
@@ -98,7 +98,8 @@ contextual_retrieval:
   # Use "default" to use the main LLM config, or specify a dedicated model:
   # - "ollama/llama3.2" for local Ollama
   # - "openrouter/meta-llama/llama-3.2-3b-instruct" for OpenRouter
-  model: "ollama/ministral-3:14b-cloud"
+  model: "openrouter/mistralai/ministral-3:14b-cloud"
+  #model: "ollama/ministral-3:14b-cloud"
   base_url: ""  # Leave empty for default (http://localhost:11434 for ollama, https://openrouter.ai/api/v1 for openrouter)
   # OpenRouter-specific parameters (only used when model starts with "openrouter/")
   # reasoning:
