@@ -165,6 +165,9 @@ class ChibiBot(commands.Bot):
             base_url=self.config.llm.fallback.base_url,
             model=self.config.llm.fallback.model,
             timeout=self.config.llm.fallback.timeout,
+            reasoning=self.config.llm.fallback.reasoning,
+            provider=self.config.llm.fallback.provider_preferences,
+            transforms=self.config.llm.fallback.transforms,
         )
         self.llm_manager = LLMManager(primary, fallback)
         logger.info("LLM manager initialized")

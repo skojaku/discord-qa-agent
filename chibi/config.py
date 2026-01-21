@@ -18,6 +18,10 @@ class LLMProviderConfig:
     model: str
     timeout: int = 60
     max_retries: int = 2
+    # OpenRouter-specific parameters (only used if provider is "openrouter")
+    reasoning: Optional[dict] = None  # e.g., {"effort": "medium"} or {"enabled": true}
+    provider_preferences: Optional[dict] = None  # e.g., {"require_parameters": true}
+    transforms: Optional[list] = None  # e.g., ["middle-out"]
 
 
 @dataclass
@@ -196,6 +200,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
             model=primary_data.get("model", "llama3.2"),
             timeout=primary_data.get("timeout", 60),
             max_retries=primary_data.get("max_retries", 2),
+            reasoning=primary_data.get("reasoning"),
+            provider_preferences=primary_data.get("provider_preferences"),
+            transforms=primary_data.get("transforms"),
         ),
         fallback=LLMProviderConfig(
             provider=fallback_data.get("provider", "openrouter"),
@@ -205,6 +212,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
             model=fallback_data.get("model", "meta-llama/llama-3.2-3b-instruct"),
             timeout=fallback_data.get("timeout", 90),
             max_retries=fallback_data.get("max_retries", 1),
+            reasoning=fallback_data.get("reasoning"),
+            provider_preferences=fallback_data.get("provider_preferences"),
+            transforms=fallback_data.get("transforms"),
         ),
         max_tokens=llm_data.get("max_tokens", 1024),
         temperature=llm_data.get("temperature", 0.7),
