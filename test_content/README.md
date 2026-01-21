@@ -1,45 +1,47 @@
-# Practice Module: Origins and History of Famous Foods (m00)
+# Practice Module: Binghamton University (m00)
 
 ## Purpose
 
-This module is designed to help students learn how to use the quiz commands (`/quiz` and `/llm-quiz`) without needing to understand complex machine learning concepts. It contains fascinating facts about the origins and history of foods we eat every day. This topic is engaging, relatable, and fun to learn!
+This module is designed to help students at Binghamton University learn how to use the quiz commands (`/quiz` and `/llm-quiz`) while discovering the history, campus, and culture of their own university. Learn about the institution where you're studying!
 
 ## Module Overview
 
 **Module ID:** `m00`
-**Name:** Practice Module: Origins and History of Famous Foods
+**Name:** Practice Module: Binghamton University
 **Difficulty:** Level 1 (Easiest)
-**Topics:** 4 concepts about food origins and history
+**Topics:** 4 concepts about Binghamton University
 
 ## Concepts Covered
 
-### 1. Italian and Mediterranean Foods (`italian-mediterranean`)
+### 1. History and Founding (`bu-history-founding`)
 Learn about:
-- Pizza origins in Naples, creation of Pizza Margherita (1889)
-- Pasta history and the debunking of the Marco Polo myth
-- Bread as humanity's oldest prepared food (14,000+ years)
-- How these "Italian" foods evolved and spread worldwide
+- Founded 1946 as Triple Cities College in Endicott for WWII veterans
+- Branch of Syracuse University until 1950, then joined SUNY as Harpur College
+- Moved to Vestal in 1961 on 387 acres (now 930+ acres)
+- Became Binghamton University in 1965 as a SUNY university center
 
-### 2. Asian Cuisine Origins (`asian-foods`)
+### 2. Campus and Facilities (`bu-campus-facilities`)
 Learn about:
-- Sushi evolution from fermented preservation to fresh nigiri
-- Ramen's Chinese origins and Japanese transformation
-- Instant ramen invention by Momofuku Ando (1958)
-- Dumplings across Asian cultures (jiaozi, gyoza, mandu, momos)
+- 930-acre campus in Vestal with Academic Spine as main corridor
+- Bartle Library tower as iconic campus landmark
+- Residential colleges: Newing, Hinman, CIW, Mountainview, Dickinson, Susquehanna
+- 190-acre Nature Preserve, Events Center, and ITC (Innovative Technologies Complex)
 
-### 3. American Foods and Fast Food Culture (`american-fast-food`)
+### 3. Academic Structure and Programs (`bu-academic-structure`)
 Learn about:
-- Hamburger's German roots and American innovation
-- Hot dog origins from frankfurters and wieners
-- Fried chicken's fusion of Scottish and West African traditions
-- Rise of fast food chains (White Castle, McDonald's, KFC)
+- Harpur College (Arts & Sciences) - largest with 10,300+ undergrads
+- Watson College of Engineering (founded 1983, named for IBM founder)
+- School of Management (AACSB accredited)
+- Decker College of Nursing and CCPA (Community and Public Affairs)
+- R1 research classification, 130+ graduate programs
 
-### 4. Beverages and Desserts (`beverages-desserts`)
+### 4. Student Life and Campus Culture (`bu-student-life`)
 Learn about:
-- Coffee's journey from Ethiopian legend to global phenomenon
-- Chocolate transformation from bitter Mayan drink to sweet treat
-- Ice cream's ancient origins and the 1904 ice cream cone
-- Coca-Cola invention as medicine (1886) and global expansion
+- 14,300 undergrads and 3,700 grad students, 18,000+ total
+- Diverse student body (35-40% Asian American, students from 100+ countries)
+- 400+ student organizations, residential college system
+- NCAA Division I Bearcats in America East Conference
+- "Public Ivy" with top 40 public university rankings
 
 ## How to Practice
 
@@ -52,8 +54,8 @@ Learn about:
 
 2. Try specific concepts:
    ```
-   /quiz module:m00 concept:italian-mediterranean
-   /quiz module:m00 concept:asian-foods
+   /quiz module:m00 concept:bu-history-founding
+   /quiz module:m00 concept:bu-campus-facilities
    ```
 
 3. Try different formats:
@@ -65,33 +67,33 @@ Learn about:
 
 ### Using `/llm-quiz`
 
-Try to "stump the AI" by creating questions about food origins:
+Try to "stump the AI" by creating questions about Binghamton University:
 
 ```
 /llm-quiz module:m00
 ```
 
 Then ask questions like:
-- "When was Pizza Margherita created and why?"
-- "Who invented instant ramen?"
-- "What was the original purpose of Coca-Cola?"
-- "How did ancient chocolate differ from modern chocolate?"
+- "What was Binghamton University originally called when it was founded in 1946?"
+- "Name all five original residential colleges at Binghamton"
+- "What does Watson College stand for and when was it founded?"
+- "What is Binghamton's athletic conference and team nickname?"
 
 The bot will evaluate whether your question successfully stumps the AI or if the AI answers correctly.
 
 ## Tips for Success
 
-1. **Read the content first**: Check `food-history.md` to familiarize yourself with the fascinating stories
+1. **Read the content first**: Check `binghamton-university.md` to familiarize yourself with your university
 2. **Start simple**: Begin with multiple-choice questions, then try harder formats
 3. **Practice regularly**: Use this module to get comfortable with the bot before tackling complex ML topics
 4. **Experiment**: Try different question formats and concepts to see how the bot responds
-5. **Have fun**: These food facts are genuinely interesting and will make studying enjoyable!
+5. **Learn about BU**: Understanding your university's history and culture enriches your college experience!
 
 ## Benefits
 
-- ✅ **Fun and engaging**: Learn about foods you eat every day
-- ✅ **Easy to remember**: Stories stick better than abstract facts
-- ✅ **Culturally enriching**: Discover the global history behind familiar dishes
+- ✅ **Directly relevant**: Learn about your own university
+- ✅ **School pride**: Discover BU's impressive history and achievements
+- ✅ **Campus knowledge**: Navigate campus and understand traditions better
 - ✅ **Immediate feedback**: See how the bot evaluates your answers
 - ✅ **Safe environment**: Practice without affecting your grade on real course material
 - ✅ **Learn the system**: Understand quiz mechanics before using them for coursework
@@ -108,4 +110,4 @@ You can move on to the actual course modules (m01, m02, etc.) with confidence!
 
 ## Content Source
 
-The information in this module comes from food history research, culinary historians, archaeological evidence, and verified historical documentation. All facts have been researched for accuracy as of 2024-2026. Sources include academic food history texts, museum collections, and reputable culinary history publications.
+The information in this module comes from Binghamton University's official records, historical documentation, and publicly available university information. Sources include BU archives, official university publications, and verified historical records. All facts have been verified for accuracy as of 2024-2026.

@@ -9,41 +9,41 @@ course:
 # Module definitions
 modules:
   - id: "m00"
-    name: "Practice Module: Origins and History of Famous Foods"
-    description: "A practice module to learn how /quiz and /llm-quiz commands work using fascinating facts about food origins and history"
+    name: "Practice Module: Binghamton University"
+    description: "A practice module to learn how /quiz and /llm-quiz commands work using facts about Binghamton University"
     content_urls:
-      - "file:///test_content/food-history.md"
+      - "file:///test_content/binghamton-university.md"
     concepts:
-      - id: "italian-mediterranean"
-        name: "Italian and Mediterranean Foods"
+      - id: "bu-history-founding"
+        name: "History and Founding"
         type: "theory"
         difficulty: 1
-        description: "The origins and evolution of pizza, pasta, and bread from ancient times to modern day"
-        quiz_focus: "Pizza origins in Naples, Pizza Margherita created 1889 for Queen Margherita, pasta pre-dates Marco Polo (myth debunked), bread as 14,000+ year old food, leavened bread discovered by Egyptians 3000 BCE, sliced bread invented 1928, pasta shapes and regional Italian traditions"
+        description: "Binghamton University's evolution from Triple Cities College to premier public research university"
+        quiz_focus: "Founded 1946 as Triple Cities College in Endicott for WWII veterans, originally branch of Syracuse University, joined SUNY as Harpur College in 1950 (named for Robert Harpur colonial teacher), moved to Vestal in 1961 on 387 acres, became Binghamton University in 1965 as SUNY university center (one of four flagship institutions), campus now 930+ acres"
         prerequisites: []
 
-      - id: "asian-foods"
-        name: "Asian Cuisine Origins"
+      - id: "bu-campus-facilities"
+        name: "Campus and Facilities"
         type: "theory"
         difficulty: 1
-        description: "The fascinating history of sushi, ramen, and dumplings across Asian cultures"
-        quiz_focus: "Sushi started as fermentation preservation method (narezushi), nigiri-zushi invented by Hanaya Yohei in 19th century Tokyo, California roll 1970s, ramen from Chinese lamian, instant ramen invented by Momofuku Ando 1958, Cup Noodles 1971, Chinese jiaozi 1800 years old, dumpling variations (gyoza, mandu, momos)"
+        description: "The physical campus including buildings, residential communities, and facilities"
+        quiz_focus: "930-acre campus in Vestal, Academic Spine as main corridor, Bartle Library with iconic tower, five original residential colleges (Newing-arts, Hinman-wellness, College-in-the-Woods/CIW-sustainability, Mountainview-global, Dickinson-leadership) plus Susquehanna apartments, 190-acre Nature Preserve with trails, Events Center seats 5000+ for basketball and events, ITC (Innovative Technologies Complex) opened 2011 for engineering"
         prerequisites: []
 
-      - id: "american-fast-food"
-        name: "American Foods and Fast Food Culture"
+      - id: "bu-academic-structure"
+        name: "Academic Structure and Programs"
         type: "theory"
         difficulty: 1
-        description: "How hamburgers, hot dogs, and fried chicken became American icons and birthed fast food culture"
-        quiz_focus: "Hamburger from German Hamburg steak, debate over who put it in bun, White Castle 1921 first fast food chain, McDonald's Speedee Service System 1940s-50s, hot dogs from German frankfurters/wieners, Charles Feltman's Coney Island 1860s, fried chicken fusion of Scottish and West African traditions, KFC by Colonel Sanders using pressure cooking"
+        description: "The colleges, schools, and academic organization of Binghamton University"
+        quiz_focus: "Harpur College largest (Arts & Sciences, 10,300+ undergrads, 26 departments), Watson College of Engineering founded 1983 (named for Thomas J. Watson Sr. IBM founder, includes Computer Science), School of Management (AACSB accredited - top 5% worldwide), Decker College of Nursing, CCPA (College of Community and Public Affairs), R1 research classification (very high research activity), 130+ graduate programs including masters and doctoral"
         prerequisites: []
 
-      - id: "beverages-desserts"
-        name: "Beverages and Desserts from Around the World"
+      - id: "bu-student-life"
+        name: "Student Life and Campus Culture"
         type: "theory"
         difficulty: 1
-        description: "The surprising histories of coffee, chocolate, ice cream, and Coca-Cola"
-        quiz_focus: "Coffee legend of Ethiopian goat herder Kaldi 850 CE, Yemeni Sufi monks, European coffeehouses 17th century, chocolate from Olmec 1900 BCE, Aztec xocolatl bitter drink, chocolate bar invented 1847 by Joseph Fry, milk chocolate 1875, ice cream cone popularized 1904 World's Fair, Coca-Cola invented 1886 by John Pemberton as medicine, originally contained cocaine (removed 1903)"
+        description: "Student demographics, organizations, athletics, and campus culture"
+        quiz_focus: "18,000+ total students (14,300 undergrads, 3,700 grad), diverse (35-40% Asian American, students from 100+ countries), 400+ student organizations, NCAA Division I athletics as Bearcats in America East Conference, residential college system creates smaller communities, ranked top 40 public universities, 'Public Ivy' recognition, academically serious and career-focused student culture, Spring Fling and Late Nite Binghamton major events"
         prerequisites: []
 
   - id: "m01"
