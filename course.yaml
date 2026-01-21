@@ -8,6 +8,44 @@ course:
 
 # Module definitions
 modules:
+  - id: "m00"
+    name: "Practice Module: Binghamton University"
+    description: "A practice module to learn how /quiz and /llm-quiz commands work using facts about Binghamton University"
+    content_urls:
+      - "file://test_content/binghamton-university.md"
+    concepts:
+      - id: "bu-history"
+        name: "Binghamton University History"
+        type: "theory"
+        difficulty: 1
+        description: "The founding, evolution, and major milestones of Binghamton University from 1946 to present"
+        quiz_focus: "Founding year (1946), original name (Triple Cities College), connection to Syracuse University, name changes (Harpur College, Binghamton University), campus move to Vestal in 1961, becoming a SUNY university center in 1965"
+        prerequisites: []
+
+      - id: "bu-location"
+        name: "Campus Location and Geography"
+        type: "theory"
+        difficulty: 1
+        description: "The geographic location, campus size, and physical setting of Binghamton University"
+        quiz_focus: "Location in Vestal/Binghamton New York, 828-acre campus, Southern Tier region, Triple Cities area, Susquehanna River, campus address (4400 Vestal Parkway East)"
+        prerequisites: []
+
+      - id: "bu-academic-structure"
+        name: "Academic Colleges and Programs"
+        type: "theory"
+        difficulty: 1
+        description: "The organization of Binghamton University into colleges and schools with their respective programs"
+        quiz_focus: "Harpur College (Arts & Sciences, oldest and largest), School of Management, Thomas J. Watson College (Engineering, founded 1983), Decker College (Nursing), School of Pharmacy (newest), specific programs offered by each"
+        prerequisites: []
+
+      - id: "bu-status"
+        name: "University Status and Recognition"
+        type: "theory"
+        difficulty: 1
+        description: "Binghamton's standing as New York's top public university and its role in the SUNY system"
+        quiz_focus: "Recognition as NY's top public university, SUNY system membership, research university status, endowment ($245 million as of 2024), Binghamton University Foundation"
+        prerequisites: []
+
   - id: "m01"
     name: "The Data Scientist's Toolkit"
     description: "Tools and principles of reproducible data science"

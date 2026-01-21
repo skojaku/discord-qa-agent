@@ -1,7 +1,9 @@
 """Content loader for fetching module content from URLs."""
 
 import logging
+from pathlib import Path
 from typing import Dict
+from urllib.parse import urlparse
 
 import httpx
 
@@ -75,14 +77,43 @@ class ContentLoader:
         return results
 
     async def _fetch_url(self, url: str) -> str:
-        """Fetch content from a URL with retries.
+        """Fetch content from a URL or local file with retries.
+
+        Supports both HTTP(S) URLs and local file:// URLs.
 
         Args:
-            url: The URL to fetch
+            url: The URL to fetch (http://, https://, or file://)
 
         Returns:
             The content as a string, or empty string on failure
         """
+        # Handle local files with file:// prefix
+        parsed = urlparse(url)
+        if parsed.scheme == 'file':
+            try:
+                # Remove file:// and handle both absolute and relative paths
+                file_path = parsed.path
+                # On Windows, file:///C:/... becomes /C:/... which is incorrect
+                # This handles that case
+                if file_path.startswith('/') and len(file_path) > 2 and file_path[2] == ':':
+                    file_path = file_path[1:]
+
+                path = Path(file_path)
+                if not path.is_absolute():
+                    # Relative to project root
+                    path = Path.cwd() / path
+
+                content = path.read_text(encoding='utf-8')
+                logger.debug(f"Loaded local file: {path} ({len(content)} chars)")
+                return content
+            except FileNotFoundError:
+                logger.error(f"Local file not found: {url}")
+                return ""
+            except Exception as e:
+                logger.error(f"Error reading local file {url}: {e}")
+                return ""
+
+        # Handle HTTP(S) URLs with retries
         for attempt in range(self.max_retries):
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:

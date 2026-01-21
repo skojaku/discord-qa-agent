@@ -6,37 +6,21 @@ discord:
 
 # LLM Configuration
 llm:
-  # Primary provider (OpenRouter - cloud)
+  # Primary provider (Ollama - local)
   primary:
-    provider: "openrouter"
-    base_url: "https://openrouter.ai/api/v1"
-    model: "openai/gpt-oss-20b"  # Reasoning model - requires max_tokens format
-    timeout: 120
-    max_retries: 1
-    # IMPORTANT: gpt-oss requires max_tokens format (not effort)
-    reasoning:
-      max_tokens: 2000  # Reserve tokens for reasoning (model requires this)
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+    model: "ministral-3:14b-cloud"
+    timeout: 60
+    max_retries: 2
 
   # Fallback provider (OpenRouter - cloud)
   fallback:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "openai/gpt-oss-20b"  # Reasoning model - requires max_tokens format
-    timeout: 120
+    model: "openai/gpt-oss-120b"
+    timeout: 90
     max_retries: 1
-    # IMPORTANT: gpt-oss requires max_tokens format (not effort)
-    reasoning:
-      max_tokens: 2000  # Reserve tokens for reasoning (model requires this)
-#    provider: "ollama"
-#    base_url: "http://localhost:11434"
-#    model: "ministral-3:14b-cloud"
-#    timeout: 60
-#    max_retries: 2
-    # Example with reasoning model:
-    # model: "openai/gpt-oss-120b"
-    # reasoning:
-    #   enabled: true
-    #   effort: "low"
 
   # Shared LLM settings
   max_tokens: 1024
@@ -73,8 +57,8 @@ llm_quiz:
   quiz_model: "openrouter/meta-llama/llama-3-8b-instruct"
   quiz_base_url: "https://openrouter.ai/api/v1"
   # Evaluator model (judges both answers)
-  evaluator_model: "openrouter/z-ai/glm-4.6"
-  evaluator_base_url: "https://openrouter.ai/api/v1"
+  evaluator_model: "ollama/glm-4.6:cloud"
+  evaluator_base_url: "http://localhost:11434"
 
 # Similarity detection for LLM Quiz anti-cheat
 similarity:
@@ -112,12 +96,10 @@ contextual_retrieval:
   temperature: 0.3  # LLM temperature for context generation
   # Model for generating context summaries
   # Use "default" to use the main LLM config, or specify a dedicated model:
-  # - "ollama/ministral-3:14b-cloud" for local Ollama
+  # - "ollama/llama3.2" for local Ollama
   # - "openrouter/meta-llama/llama-3.2-3b-instruct" for OpenRouter
-  # - "openrouter/mistralai/ministral-8b" for OpenRouter Mistral
-  model: "openrouter/meta-llama/llama-3-8b-instruct"  # Fast, reliable model for context generation
-  #model: "ollama/ministral-3:14b-cloud"
-  base_url: "https://openrouter.ai/api/v1"  # Leave empty for default (http://localhost:11434 for ollama, https://openrouter.ai/api/v1 for openrouter)
+  model: "ollama/ministral-3:14b-cloud"
+  base_url: ""  # Leave empty for default (http://localhost:11434 for ollama, https://openrouter.ai/api/v1 for openrouter)
   # OpenRouter-specific parameters (only used when model starts with "openrouter/")
   # reasoning:
   #   enabled: true  # Enable reasoning for reasoning models like gpt-oss-20b

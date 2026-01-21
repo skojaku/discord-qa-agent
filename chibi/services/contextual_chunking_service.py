@@ -120,10 +120,23 @@ class ContextualChunkingService:
 
             if response and response.content:
                 self._stats["successful_contexts"] += 1
+                logger.debug(f"Generated context ({len(response.content)} chars) using {response.provider}/{response.model}")
                 return response.content.strip()
+            elif response:
+                # Response received but no content
+                logger.warning(f"LLM returned empty content (provider: {response.provider}, model: {response.model})")
+                self._stats["failed_contexts"] += 1
+            else:
+                # Both providers failed
+                logger.warning(
+                    f"Both LLM providers failed to generate context. "
+                    f"Primary: {self.llm_manager.primary_provider_name}, "
+                    f"Fallback: {self.llm_manager.fallback_provider_name}"
+                )
+                self._stats["failed_contexts"] += 1
 
         except Exception as e:
-            logger.warning(f"Failed to generate context for chunk: {e}")
+            logger.warning(f"Exception during context generation: {e}", exc_info=True)
             self._stats["failed_contexts"] += 1
 
         return None
@@ -152,6 +165,12 @@ class ContextualChunkingService:
 
         self._stats["total_chunks"] += len(chunks)
 
+        # Track per-call stats
+        call_success = 0
+        call_failed = 0
+        start_success = self._stats["successful_contexts"]
+        start_failed = self._stats["failed_contexts"]
+
         # Process in batches
         for i in range(0, len(chunks), self.config.batch_size):
             batch = chunks[i : i + self.config.batch_size]
@@ -179,10 +198,15 @@ class ContextualChunkingService:
             if i + self.config.batch_size < len(chunks):
                 await asyncio.sleep(self.config.batch_delay_seconds)
 
+        # Calculate per-call stats
+        call_success = self._stats["successful_contexts"] - start_success
+        call_failed = self._stats["failed_contexts"] - start_failed
+
         logger.info(
             f"Contextualized {len(chunks)} chunks: "
-            f"{self._stats['successful_contexts']} success, "
-            f"{self._stats['failed_contexts']} failed"
+            f"{call_success} success, {call_failed} failed "
+            f"(cumulative: {self._stats['successful_contexts']} success, "
+            f"{self._stats['failed_contexts']} failed)"
         )
 
         return chunks

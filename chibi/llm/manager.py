@@ -47,7 +47,8 @@ class LLMManager:
         # Try primary provider if not too many recent failures
         if self._primary_failures < self._max_failures:
             try:
-                if await self.primary.is_available():
+                is_available = await self.primary.is_available()
+                if is_available:
                     logger.debug(f"Using primary provider: {self.primary.name}")
                     response = await self.primary.generate(
                         prompt=prompt,
@@ -55,10 +56,23 @@ class LLMManager:
                         max_tokens=max_tokens,
                         temperature=temperature,
                     )
-                    self._primary_failures = 0  # Reset on success
-                    return response
+                    if response and response.content:
+                        self._primary_failures = 0  # Reset on success
+                        return response
+                    else:
+                        logger.warning(
+                            f"Primary provider ({self.primary.name}) returned empty response"
+                        )
+                        self._primary_failures += 1
+                else:
+                    logger.warning(
+                        f"Primary provider ({self.primary.name}) not available"
+                    )
+                    self._primary_failures += 1
             except Exception as e:
-                logger.warning(f"Primary provider ({self.primary.name}) failed: {e}")
+                logger.warning(
+                    f"Primary provider ({self.primary.name}) failed: {type(e).__name__}: {e}"
+                )
                 self._primary_failures += 1
         else:
             logger.info(
@@ -67,7 +81,8 @@ class LLMManager:
 
         # Try fallback provider
         try:
-            if await self.fallback.is_available():
+            is_available = await self.fallback.is_available()
+            if is_available:
                 logger.info(f"Using fallback provider: {self.fallback.name}")
                 response = await self.fallback.generate(
                     prompt=prompt,
@@ -75,13 +90,26 @@ class LLMManager:
                     max_tokens=max_tokens,
                     temperature=temperature,
                 )
-                return response
+                if response and response.content:
+                    return response
+                else:
+                    logger.error(
+                        f"Fallback provider ({self.fallback.name}) returned empty response"
+                    )
             else:
-                logger.error(f"Fallback provider ({self.fallback.name}) not available")
+                logger.error(
+                    f"Fallback provider ({self.fallback.name}) not available"
+                )
         except Exception as e:
-            logger.error(f"Fallback provider ({self.fallback.name}) failed: {e}")
+            logger.error(
+                f"Fallback provider ({self.fallback.name}) failed: {type(e).__name__}: {e}"
+            )
 
         # Both providers failed
+        logger.error(
+            f"All LLM providers failed. Primary: {self.primary.name}, "
+            f"Fallback: {self.fallback.name}"
+        )
         return None
 
     def reset_primary_failures(self) -> None:
