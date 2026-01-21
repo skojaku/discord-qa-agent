@@ -105,17 +105,22 @@ class OpenRouterProvider(BaseLLMProvider):
         final_provider = provider if provider is not None else self.provider
         final_transforms = transforms if transforms is not None else self.transforms
 
+        logger.debug(
+            f"OpenRouter parameters - reasoning={final_reasoning}, "
+            f"provider={final_provider}, transforms={final_transforms}"
+        )
+
         if final_reasoning:
             extra_body["reasoning"] = final_reasoning
-            logger.debug(f"Using reasoning config: {final_reasoning}")
+            logger.info(f"Passing reasoning config to API: {final_reasoning}")
 
         if final_provider:
             extra_body["provider"] = final_provider
-            logger.debug(f"Using provider preferences: {final_provider}")
+            logger.debug(f"Passing provider preferences to API: {final_provider}")
 
         if final_transforms:
             extra_body["transforms"] = final_transforms
-            logger.debug(f"Using transforms: {final_transforms}")
+            logger.debug(f"Passing transforms to API: {final_transforms}")
 
         try:
             # Pass extra_body only if we have OpenRouter-specific params
@@ -128,6 +133,12 @@ class OpenRouterProvider(BaseLLMProvider):
 
             if extra_body:
                 kwargs["extra_body"] = extra_body
+                logger.info(f"Calling OpenRouter API with extra_body: {extra_body}")
+            else:
+                logger.warning(
+                    f"Calling OpenRouter API WITHOUT extra_body "
+                    f"(reasoning={final_reasoning}, provider={final_provider}, transforms={final_transforms})"
+                )
 
             response = await self._client.chat.completions.create(**kwargs)
 

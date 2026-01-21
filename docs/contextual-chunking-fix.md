@@ -4,57 +4,65 @@
 
 Contextual chunking has <2% success rate. Only 1-2 chunks out of 50+ are successfully contextualized.
 
-## Root Cause
+## Root Cause ✅ SOLVED
 
-The `openai/gpt-oss-20b` model configured for contextual retrieval **returns empty content**:
-- API call succeeds (no error thrown)
-- Tokens are consumed (73 tokens per request)
-- Response content is blank
+The `openai/gpt-oss-20b` model is a **reasoning model** (like OpenAI's o1 series) that requires OpenRouter-specific parameters:
+- **Requires:** `reasoning` parameter to enable reasoning mode
+- **Without reasoning param:** Returns empty content (96 tokens charged, no text)
+- **With reasoning param:** Returns actual content ✓
 
-Test results (test_openrouter_models.py):
+Test results (test_openrouter_reasoning.py):
 ```
-✓ openai/gpt-oss-120b - Returns empty content (73 tokens)
-✓ openai/gpt-oss-20b - Returns empty content (73 tokens)
-✓ meta-llama/llama-3-8b-instruct - Returns actual content ✓
+❌ WITHOUT reasoning param: Empty content (96 tokens)
+✓ WITH reasoning (enabled=true): "hello world" (173 tokens)
+✓ WITH reasoning (effort='low'): Full summary (134 tokens)
+✓ Per-call override: Works correctly
 ```
 
 ## Why It Wasn't Caught
 
-The old code didn't count empty responses as failures:
+1. **Reasoning models need special parameters**: The OpenRouterProvider didn't support OpenRouter-specific parameters
+2. **Empty responses not counted**: The old code didn't count empty responses as failures:
 ```python
 if response and response.content:
     success += 1
 # If response exists but content is empty → not counted at all!
 ```
 
-## Solution
+## Solution ✅ IMPLEMENTED
 
-### Option 1: Switch to a working model (RECOMMENDED)
+### Fixed: Added OpenRouter-Specific Parameter Support
 
-Edit `config.yaml` line 101:
+The codebase now supports all OpenRouter-specific parameters:
 
-```yaml
-# Current (returns empty content):
-model: "openrouter/openai/gpt-oss-20b"
+**1. OpenRouterProvider Enhanced** (chibi/llm/openrouter_provider.py):
+- Added `reasoning`, `provider`, `transforms` parameters to `__init__`
+- Passes OpenRouter params via `extra_body` in API calls
+- Supports per-call overrides and instance defaults
+- Logs reasoning token usage
 
-# Recommended alternatives:
-model: "openrouter/meta-llama/llama-3-8b-instruct"  # Fast, works well
-# OR
-model: "openrouter/openai/gpt-4o-mini"              # Higher quality
-# OR
-model: "openrouter/google/gemini-2.0-flash-001"     # Fast, cheap
-```
+**2. Config Schema Updated** (chibi/config.py):
+- Added `reasoning`, `provider`, `transforms` fields to `ContextualRetrievalConfig`
+- Parses these from config.yaml
 
-### Option 2: Disable contextual retrieval
-
-Edit `config.yaml` line 92:
-
+**3. Config File Updated** (config.yaml):
 ```yaml
 contextual_retrieval:
-  enabled: false  # Changed from true
+  model: "openrouter/openai/gpt-oss-20b"
+  reasoning:
+    enabled: true  # Required for reasoning models
+    effort: "low"  # 20% of tokens for reasoning (fast, cheap)
 ```
 
-Contextual retrieval is optional - your bot will work fine without it.
+### Alternative: Switch to a Non-Reasoning Model
+
+If you prefer not to use reasoning models:
+
+```yaml
+# Fast, simple, no special parameters needed:
+model: "openrouter/meta-llama/llama-3-8b-instruct"
+# reasoning: not needed
+```
 
 ## Model Naming Convention Clarification
 
