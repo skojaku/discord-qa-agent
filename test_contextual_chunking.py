@@ -69,7 +69,7 @@ async def test_contextual_chunking():
 
     # Initialize bot (but don't start Discord connection)
     # We'll manually call the init methods we need
-    from chibi.content.course_loader import load_course
+    from chibi.content.course import load_course
     from chibi.database.connection import Database
     from chibi.database.repositories.rag_repository import RAGRepository
     from chibi.services.embedding_service import EmbeddingService
@@ -81,7 +81,7 @@ async def test_contextual_chunking():
 
     # Load course
     course = load_course("course.yaml")
-    print(f"Loaded course: {course.title}")
+    print(f"Loaded course: {course.name}")
     print(f"Modules: {', '.join(m.id for m in course.modules)}")
 
     # Initialize database and RAG
