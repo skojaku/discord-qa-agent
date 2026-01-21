@@ -9,41 +9,41 @@ course:
 # Module definitions
 modules:
   - id: "m00"
-    name: "Practice Module: World Geography"
-    description: "A practice module to learn how /quiz and /llm-quiz commands work using facts about world geography"
+    name: "Practice Module: Origins and History of Famous Foods"
+    description: "A practice module to learn how /quiz and /llm-quiz commands work using fascinating facts about food origins and history"
     content_urls:
-      - "file:///test_content/world-geography.md"
+      - "file:///test_content/food-history.md"
     concepts:
-      - id: "continents-regions"
-        name: "Continents and World Regions"
+      - id: "italian-mediterranean"
+        name: "Italian and Mediterranean Foods"
         type: "theory"
         difficulty: 1
-        description: "The seven continents, their sizes, populations, and key geographical characteristics"
-        quiz_focus: "Seven continents (Asia, Africa, North America, South America, Antarctica, Europe, Australia/Oceania), relative sizes and populations, Asia as largest by area and population, Antarctica as coldest and uninhabited, key characteristics of each continent"
+        description: "The origins and evolution of pizza, pasta, and bread from ancient times to modern day"
+        quiz_focus: "Pizza origins in Naples, Pizza Margherita created 1889 for Queen Margherita, pasta pre-dates Marco Polo (myth debunked), bread as 14,000+ year old food, leavened bread discovered by Egyptians 3000 BCE, sliced bread invented 1928, pasta shapes and regional Italian traditions"
         prerequisites: []
 
-      - id: "geo-features"
-        name: "Major Geographical Features"
+      - id: "asian-foods"
+        name: "Asian Cuisine Origins"
         type: "theory"
         difficulty: 1
-        description: "The world's major oceans, mountain ranges, rivers, deserts, and lakes"
-        quiz_focus: "Five oceans (Pacific largest, Atlantic, Indian, Southern, Arctic), major mountain ranges (Himalayas with Mt. Everest, Andes longest, Rockies, Alps), important rivers (Nile/Amazon longest, Yangtze, Mississippi), Sahara desert, Caspian Sea as largest lake"
+        description: "The fascinating history of sushi, ramen, and dumplings across Asian cultures"
+        quiz_focus: "Sushi started as fermentation preservation method (narezushi), nigiri-zushi invented by Hanaya Yohei in 19th century Tokyo, California roll 1970s, ramen from Chinese lamian, instant ramen invented by Momofuku Ando 1958, Cup Noodles 1971, Chinese jiaozi 1800 years old, dumpling variations (gyoza, mandu, momos)"
         prerequisites: []
 
-      - id: "climate-biomes"
-        name: "Climate Zones and Biomes"
+      - id: "american-fast-food"
+        name: "American Foods and Fast Food Culture"
         type: "theory"
         difficulty: 1
-        description: "The world's major climate zones and biomes including tropical, temperate, and polar regions"
-        quiz_focus: "Tropical zone characteristics (high temperatures year-round), temperate zones (four seasons), polar zones (extreme cold, tundra), major biomes (rainforests, deserts, grasslands/savannas, tundra), relationship between climate and ecosystems"
+        description: "How hamburgers, hot dogs, and fried chicken became American icons and birthed fast food culture"
+        quiz_focus: "Hamburger from German Hamburg steak, debate over who put it in bun, White Castle 1921 first fast food chain, McDonald's Speedee Service System 1940s-50s, hot dogs from German frankfurters/wieners, Charles Feltman's Coney Island 1860s, fried chicken fusion of Scottish and West African traditions, KFC by Colonel Sanders using pressure cooking"
         prerequisites: []
 
-      - id: "countries-capitals"
-        name: "Countries, Capitals, and Major Cities"
+      - id: "beverages-desserts"
+        name: "Beverages and Desserts from Around the World"
         type: "theory"
         difficulty: 1
-        description: "Major world capitals and cities across different continents"
-        quiz_focus: "195 countries worldwide, major Asian capitals (Beijing, Tokyo, New Delhi, Seoul), African capitals (Cairo, Nairobi, Lagos), European capitals (London, Paris, Berlin, Rome, Moscow), American capitals (Ottawa, Washington D.C., Mexico City, Brasília, Buenos Aires), Tokyo as world's largest metro area"
+        description: "The surprising histories of coffee, chocolate, ice cream, and Coca-Cola"
+        quiz_focus: "Coffee legend of Ethiopian goat herder Kaldi 850 CE, Yemeni Sufi monks, European coffeehouses 17th century, chocolate from Olmec 1900 BCE, Aztec xocolatl bitter drink, chocolate bar invented 1847 by Joseph Fry, milk chocolate 1875, ice cream cone popularized 1904 World's Fair, Coca-Cola invented 1886 by John Pemberton as medicine, originally contained cocaine (removed 1903)"
         prerequisites: []
 
   - id: "m01"
