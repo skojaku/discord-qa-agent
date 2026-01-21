@@ -81,17 +81,22 @@ class LLMQuizConfig:
 
 @dataclass
 class SimilarityConfig:
-    """Similarity detection configuration for anti-cheat."""
+    """Similarity detection configuration for anti-cheat.
+
+    Primary provider is auto-detected from embedding_model format:
+    - Contains "/" (e.g., "qwen/qwen3-embedding-4b") → OpenRouter
+    - No "/" (e.g., "nomic-embed-text") → Ollama
+    """
 
     enabled: bool = True
     similarity_threshold: float = 0.85
     top_k: int = 5
-    # Primary: Ollama (local)
-    embedding_model: str = "nomic-embed-text"
+    # Primary embedding model (provider auto-detected from name format)
+    embedding_model: str = "qwen/qwen3-embedding-4b"  # OpenRouter by default
     ollama_base_url: str = "http://localhost:11434"
-    # Fallback: OpenRouter (cloud)
+    # Fallback settings
     fallback_enabled: bool = True
-    fallback_model: str = "openai/text-embedding-3-small"
+    fallback_model: str = "nomic-embed-text"  # Ollama fallback
     fallback_base_url: str = "https://openrouter.ai/api/v1"
     # Storage
     chromadb_path: str = "data/chromadb"
