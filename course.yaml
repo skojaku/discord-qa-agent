@@ -12,7 +12,7 @@ modules:
     name: "Practice Module: Binghamton University"
     description: "A practice module to learn how /quiz and /llm-quiz commands work using facts about Binghamton University"
     content_urls:
-      - "file://test_content/binghamton-university.md"
+      - "file:///test_content/binghamton-university.md"
     concepts:
       - id: "bu-history"
         name: "Binghamton University History"
