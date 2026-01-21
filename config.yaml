@@ -100,3 +100,12 @@ contextual_retrieval:
   # - "openrouter/meta-llama/llama-3.2-3b-instruct" for OpenRouter
   model: "openrouter/openai/gpt-oss-20b"
   base_url: "https://openrouter.ai/api/v1"  # Leave empty for default (http://localhost:11434 for ollama, https://openrouter.ai/api/v1 for openrouter)
+  # OpenRouter-specific parameters (only used when model starts with "openrouter/")
+  reasoning:
+    enabled: true  # Enable reasoning for reasoning models like gpt-oss-20b
+    effort: "low"  # "low" uses ~20% of max_tokens for reasoning (faster, cheaper)
+  # provider:  # Optional: Provider routing preferences
+  #   require_parameters: true  # Only use providers that support all parameters
+  #   data_collection: "deny"  # Only use Zero Data Retention providers
+  # transforms:  # Optional: Context window management
+  #   - "middle-out"  # Remove messages from middle if context exceeds limit

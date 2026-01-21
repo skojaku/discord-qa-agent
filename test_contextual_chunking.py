@@ -107,7 +107,13 @@ async def test_contextual_chunking():
             base_url=config.contextual_retrieval.base_url,
             model=model_name,
             timeout=90,
+            reasoning=config.contextual_retrieval.reasoning,
+            provider=config.contextual_retrieval.provider,
+            transforms=config.contextual_retrieval.transforms,
         )
+        print(f"  Reasoning config: {config.contextual_retrieval.reasoning}")
+        print(f"  Provider config: {config.contextual_retrieval.provider}")
+        print(f"  Transforms: {config.contextual_retrieval.transforms}")
         context_fallback = OllamaProvider(
             base_url=config.llm.primary.base_url,
             model=config.llm.primary.model,

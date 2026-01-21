@@ -515,6 +515,14 @@ class ChibiBot(commands.Bot):
                 base_url=base_url,
                 model=model_name,
                 timeout=90,
+                reasoning=self.config.contextual_retrieval.reasoning,
+                provider=self.config.contextual_retrieval.provider,
+                transforms=self.config.contextual_retrieval.transforms,
+            )
+            logger.info(
+                f"OpenRouterProvider configured with reasoning={self.config.contextual_retrieval.reasoning}, "
+                f"provider={self.config.contextual_retrieval.provider}, "
+                f"transforms={self.config.contextual_retrieval.transforms}"
             )
             # Use main primary (Ollama) as fallback
             context_fallback = OllamaProvider(

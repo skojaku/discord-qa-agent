@@ -131,6 +131,10 @@ class ContextualRetrievalConfig:
     # Model for generating context (use "default" to use main LLM)
     model: str = "default"  # e.g., "ollama/llama3.2" or "openrouter/meta-llama/llama-3.2-3b-instruct"
     base_url: str = ""  # Base URL (leave empty for default based on provider prefix)
+    # OpenRouter-specific parameters (only used if model starts with "openrouter/")
+    reasoning: Optional[dict] = None  # e.g., {"effort": "medium"} or {"enabled": true}
+    provider: Optional[dict] = None  # e.g., {"require_parameters": true}
+    transforms: Optional[list] = None  # e.g., ["middle-out"]
 
 
 @dataclass
@@ -291,6 +295,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
             temperature=contextual_retrieval_data.get("temperature", 0.3),
             model=contextual_retrieval_data.get("model", "default"),
             base_url=contextual_retrieval_data.get("base_url", ""),
+            reasoning=contextual_retrieval_data.get("reasoning"),
+            provider=contextual_retrieval_data.get("provider"),
+            transforms=contextual_retrieval_data.get("transforms"),
         ),
         backup=BackupConfig(
             credentials_file=backup_data.get("credentials_file", "credentials/google_oauth_credentials.json"),
