@@ -16,8 +16,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from chibi.bot import ChibiBot
-from chibi.config.loader import Config
+from chibi.config import load_config
 from dotenv import load_dotenv
 
 # Set up detailed logging
@@ -50,7 +49,7 @@ async def test_contextual_chunking():
     load_dotenv()
 
     # Load config
-    config = Config.from_yaml("config.yaml")
+    config = load_config("config.yaml")
 
     print(f"Contextual Retrieval Enabled: {config.contextual_retrieval.enabled}")
     print(f"Contextual Model: {config.contextual_retrieval.model}")
