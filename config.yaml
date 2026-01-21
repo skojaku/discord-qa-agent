@@ -6,25 +6,23 @@ discord:
 
 # LLM Configuration
 llm:
-  # Primary provider (Ollama - local)
+  # Primary provider (OpenRouter - cloud)
   primary:
+    provider: "openrouter"
+    base_url: "https://openrouter.ai/api/v1"
+    model: "meta-llama/llama-3-8b-instruct"  # Reliable model, no special params needed
+    timeout: 90
+    max_retries: 1
+    # Note: gpt-oss models (20b, 120b) return empty responses even with reasoning params
+    # Use llama or other standard models instead
+
+  # Fallback provider (OpenRouter - cloud)
+  fallback:
     provider: "ollama"
     base_url: "http://localhost:11434"
     model: "ministral-3:14b-cloud"
     timeout: 60
     max_retries: 2
-
-  # Fallback provider (OpenRouter - cloud)
-  fallback:
-    provider: "openrouter"
-    base_url: "https://openrouter.ai/api/v1"
-    model: "meta-llama/llama-3-8b-instruct"  # Standard model (no special params needed)
-    timeout: 90
-    max_retries: 1
-    # Optional: OpenRouter-specific parameters (only needed for reasoning models)
-    # reasoning:
-    #   enabled: true       # Enable reasoning mode
-    #   effort: "low"       # Options: "xhigh", "high", "medium", "low", "minimal", "none"
     # Example with reasoning model:
     # model: "openai/gpt-oss-120b"
     # reasoning:
@@ -66,8 +64,8 @@ llm_quiz:
   quiz_model: "openrouter/meta-llama/llama-3-8b-instruct"
   quiz_base_url: "https://openrouter.ai/api/v1"
   # Evaluator model (judges both answers)
-  evaluator_model: "ollama/glm-4.6:cloud"
-  evaluator_base_url: "http://localhost:11434"
+  evaluator_model: "openrouter/z-ai/glm-4.6"
+  evaluator_base_url: "https://openrouter.ai/api/v1"
 
 # Similarity detection for LLM Quiz anti-cheat
 similarity:
