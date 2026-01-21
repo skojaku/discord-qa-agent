@@ -161,6 +161,9 @@ class ContentIndexer:
 
             # Build content for this URL
             full_content = self._build_url_content(module, url, content)
+
+            # IMPORTANT: Calculate content length from RAW content BEFORE contextualization
+            # This ensures change detection is deterministic and not affected by stochastic LLM behavior
             content_length = len(full_content)
 
             # Chunk the content
@@ -174,7 +177,8 @@ class ContentIndexer:
                 logger.debug(f"No chunks generated for {source_id}")
                 continue
 
-            # Add contextual information if enabled
+            # Add contextual information if enabled (happens AFTER content_length calculation)
+            # The LLM-generated context is stochastic, but doesn't affect change detection
             if self.use_contextual_retrieval and self.contextual_service:
                 logger.info(
                     f"Generating context for {len(chunks)} chunks in {source_id}"
@@ -295,10 +299,15 @@ class ContentIndexer:
 
         Args:
             chunks: List of chunks to index
-            content_length: Total character count of source content (stored in first chunk)
+            content_length: Total character count of RAW source content before contextualization
+                          (stored in first chunk's metadata for change detection)
 
         Returns:
             Number of chunks successfully indexed
+
+        Note:
+            content_length is from raw content BEFORE LLM contextualization to ensure
+            deterministic change detection that isn't affected by stochastic LLM behavior.
         """
         chunk_ids = []
         texts = []
@@ -323,15 +332,16 @@ class ContentIndexer:
             texts.append(chunk.text)  # Store original text for display
             embeddings.append(embedding)
 
-            # Build metadata - store content_length in first chunk for change detection
+            # Build metadata
             metadata = {
                 "source_id": chunk.source_id,
                 "source_name": chunk.source_name,
                 "chunk_index": chunk.chunk_index,
-                "context": chunk.context or "",  # Store context in metadata
+                "context": chunk.context or "",  # Store LLM-generated context
             }
 
-            # Store content length in first chunk's metadata for change detection
+            # Store RAW content length in first chunk's metadata for change detection
+            # This is the length BEFORE LLM contextualization, ensuring deterministic comparison
             if chunk.chunk_index == 0 and content_length > 0:
                 metadata["content_length"] = content_length
 

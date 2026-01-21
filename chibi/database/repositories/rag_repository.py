@@ -268,13 +268,20 @@ class RAGRepository:
     async def get_source_content_length(self, source_id: str) -> Optional[int]:
         """Get the stored content length for a source.
 
-        Content length is stored in the first chunk's metadata for change detection.
+        Returns the character count of the RAW source content (before LLM contextualization).
+        This value is stored in the first chunk's metadata during indexing and is used
+        for deterministic change detection.
 
         Args:
             source_id: The source (module) ID
 
         Returns:
-            Content length in characters, or None if not found/not indexed
+            Content length in characters (raw content before contextualization),
+            or None if not found/not indexed
+
+        Note:
+            The stored length is from raw content BEFORE contextualization to avoid
+            false positives from stochastic LLM behavior.
         """
         try:
             # Get all chunks for this source
