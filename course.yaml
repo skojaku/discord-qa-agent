@@ -9,41 +9,41 @@ course:
 # Module definitions
 modules:
   - id: "m00"
-    name: "Practice Module: Binghamton University"
-    description: "A practice module to learn how /quiz and /llm-quiz commands work using facts about Binghamton University"
+    name: "Practice Module: Elementary Physics"
+    description: "A practice module to learn how /quiz and /llm-quiz commands work using fundamental physics principles"
     content_urls:
-      - "file:///test_content/binghamton-university.md"
+      - "file:///test_content/elementary-physics.md"
     concepts:
-      - id: "bu-history-founding"
-        name: "History and Founding"
+      - id: "newtons-laws"
+        name: "Newton's Laws of Motion"
         type: "theory"
         difficulty: 1
-        description: "Binghamton University's evolution from Triple Cities College to premier public research university"
-        quiz_focus: "Founded 1946 as Triple Cities College in Endicott for WWII veterans, originally branch of Syracuse University, joined SUNY as Harpur College in 1950 (named for Robert Harpur colonial teacher), moved to Vestal in 1961 on 387 acres, became Binghamton University in 1965 as SUNY university center (one of four flagship institutions), campus now 930+ acres"
+        description: "The three fundamental laws of motion developed by Isaac Newton that form the foundation of classical mechanics"
+        quiz_focus: "First Law (Inertia): objects at rest stay at rest and objects in motion stay in motion unless acted upon by unbalanced force, Second Law: F = ma where F is force (Newtons), m is mass (kg), a is acceleration (m/s²), Third Law: for every action there is equal and opposite reaction (action-reaction pairs act on different objects), applications include rockets (expel gas downward, rocket pushed upward), walking (foot pushes ground backward, ground pushes foot forward)"
         prerequisites: []
 
-      - id: "bu-campus-facilities"
-        name: "Campus and Facilities"
+      - id: "kinematics"
+        name: "Kinematics: Describing Motion"
         type: "theory"
         difficulty: 1
-        description: "The physical campus including buildings, residential communities, and facilities"
-        quiz_focus: "930-acre campus in Vestal, Academic Spine as main corridor, Bartle Library with iconic tower, five original residential colleges (Newing-arts, Hinman-wellness, College-in-the-Woods/CIW-sustainability, Mountainview-global, Dickinson-leadership) plus Susquehanna apartments, 190-acre Nature Preserve with trails, Events Center seats 5000+ for basketball and events, ITC (Innovative Technologies Complex) opened 2011 for engineering"
+        description: "The branch of physics describing motion using position, velocity, and acceleration without considering forces"
+        quiz_focus: "Displacement is vector (straight-line distance with direction), distance is scalar (total path length), velocity is rate of change of position (vector, includes direction), speed is magnitude of velocity (scalar), acceleration is rate of change of velocity (m/s²), gravitational acceleration g = 9.8 m/s² near Earth surface, kinematic equations for constant acceleration: v = v₀ + at, x = x₀ + v₀t + ½at², v² = v₀² + 2a(x - x₀)"
         prerequisites: []
 
-      - id: "bu-academic-structure"
-        name: "Academic Structure and Programs"
+      - id: "energy-work"
+        name: "Energy and Work"
         type: "theory"
         difficulty: 1
-        description: "The colleges, schools, and academic organization of Binghamton University"
-        quiz_focus: "Harpur College largest (Arts & Sciences, 10,300+ undergrads, 26 departments), Watson College of Engineering founded 1983 (named for Thomas J. Watson Sr. IBM founder, includes Computer Science), School of Management (AACSB accredited - top 5% worldwide), Decker College of Nursing, CCPA (College of Community and Public Affairs), R1 research classification (very high research activity), 130+ graduate programs including masters and doctoral"
+        description: "The capacity to do work and the relationship between energy, work, and power"
+        quiz_focus: "Kinetic energy KE = ½mv² (energy of motion, increases with square of velocity), gravitational potential energy PE = mgh (m is mass, g = 9.8 m/s², h is height), elastic potential energy PE = ½kx² (k is spring constant, x is displacement), work W = Fd cos(θ) measured in Joules, work-energy theorem: net work equals change in kinetic energy, conservation of energy: energy cannot be created or destroyed only transformed (mechanical energy converts between kinetic and potential)"
         prerequisites: []
 
-      - id: "bu-student-life"
-        name: "Student Life and Campus Culture"
+      - id: "forces-momentum"
+        name: "Forces and Momentum"
         type: "theory"
         difficulty: 1
-        description: "Student demographics, organizations, athletics, and campus culture"
-        quiz_focus: "18,000+ total students (14,300 undergrads, 3,700 grad), diverse (35-40% Asian American, students from 100+ countries), 400+ student organizations, NCAA Division I athletics as Bearcats in America East Conference, residential college system creates smaller communities, ranked top 40 public universities, 'Public Ivy' recognition, academically serious and career-focused student culture, Spring Fling and Late Nite Binghamton major events"
+        description: "Different types of forces and the concept of momentum in analyzing motion and collisions"
+        quiz_focus: "Gravity F = mg (weight), friction opposes motion (static and kinetic), normal force perpendicular to surface, tension in ropes/cables, Hooke's Law for springs F = -kx, momentum p = mv (product of mass and velocity), conservation of momentum in isolated systems (total momentum before equals total momentum after), impulse J = FΔt = Δp (explains why airbags reduce injury by extending collision time), elastic collisions conserve both momentum and kinetic energy, inelastic collisions conserve momentum but not kinetic energy"
         prerequisites: []
 
   - id: "m01"

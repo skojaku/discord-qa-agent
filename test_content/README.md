@@ -1,47 +1,48 @@
-# Practice Module: Binghamton University (m00)
+# Practice Module: Elementary Physics (m00)
 
 ## Purpose
 
-This module is designed to help students at Binghamton University learn how to use the quiz commands (`/quiz` and `/llm-quiz`) while discovering the history, campus, and culture of their own university. Learn about the institution where you're studying!
+This module is designed to help students learn how to use the quiz commands (`/quiz` and `/llm-quiz`) without needing to understand complex machine learning concepts. It contains fundamental physics principles that form the foundation of understanding how the physical world works. This content is universally useful and builds scientific literacy.
 
 ## Module Overview
 
 **Module ID:** `m00`
-**Name:** Practice Module: Binghamton University
+**Name:** Practice Module: Elementary Physics
 **Difficulty:** Level 1 (Easiest)
-**Topics:** 4 concepts about Binghamton University
+**Topics:** 4 concepts about fundamental physics principles
 
 ## Concepts Covered
 
-### 1. History and Founding (`bu-history-founding`)
+### 1. Newton's Laws of Motion (`newtons-laws`)
 Learn about:
-- Founded 1946 as Triple Cities College in Endicott for WWII veterans
-- Branch of Syracuse University until 1950, then joined SUNY as Harpur College
-- Moved to Vestal in 1961 on 387 acres (now 930+ acres)
-- Became Binghamton University in 1965 as a SUNY university center
+- First Law (Inertia): Objects at rest stay at rest, objects in motion stay in motion unless acted upon by force
+- Second Law: F = ma (force equals mass times acceleration)
+- Third Law: For every action, there is an equal and opposite reaction
+- Applications: rockets, walking, car collisions
 
-### 2. Campus and Facilities (`bu-campus-facilities`)
+### 2. Kinematics: Describing Motion (`kinematics`)
 Learn about:
-- 930-acre campus in Vestal with Academic Spine as main corridor
-- Bartle Library tower as iconic campus landmark
-- Residential colleges: Newing, Hinman, CIW, Mountainview, Dickinson, Susquehanna
-- 190-acre Nature Preserve, Events Center, and ITC (Innovative Technologies Complex)
+- Position, displacement, distance (vector vs scalar)
+- Velocity and speed (average vs instantaneous)
+- Acceleration (rate of change of velocity)
+- Gravitational acceleration g = 9.8 m/s²
+- Kinematic equations for constant acceleration
 
-### 3. Academic Structure and Programs (`bu-academic-structure`)
+### 3. Energy and Work (`energy-work`)
 Learn about:
-- Harpur College (Arts & Sciences) - largest with 10,300+ undergrads
-- Watson College of Engineering (founded 1983, named for IBM founder)
-- School of Management (AACSB accredited)
-- Decker College of Nursing and CCPA (Community and Public Affairs)
-- R1 research classification, 130+ graduate programs
+- Kinetic energy: KE = ½mv² (energy of motion)
+- Potential energy: PE = mgh (gravitational), PE = ½kx² (elastic/spring)
+- Work: W = Fd cos(θ), measured in Joules
+- Work-energy theorem: net work equals change in kinetic energy
+- Conservation of energy: energy cannot be created or destroyed
 
-### 4. Student Life and Campus Culture (`bu-student-life`)
+### 4. Forces and Momentum (`forces-momentum`)
 Learn about:
-- 14,300 undergrads and 3,700 grad students, 18,000+ total
-- Diverse student body (35-40% Asian American, students from 100+ countries)
-- 400+ student organizations, residential college system
-- NCAA Division I Bearcats in America East Conference
-- "Public Ivy" with top 40 public university rankings
+- Types of forces: gravity (F = mg), friction, normal force, tension, spring force (Hooke's Law F = -kx)
+- Momentum: p = mv
+- Conservation of momentum in isolated systems
+- Impulse: J = FΔt = Δp
+- Elastic vs inelastic collisions
 
 ## How to Practice
 
@@ -54,8 +55,8 @@ Learn about:
 
 2. Try specific concepts:
    ```
-   /quiz module:m00 concept:bu-history-founding
-   /quiz module:m00 concept:bu-campus-facilities
+   /quiz module:m00 concept:newtons-laws
+   /quiz module:m00 concept:kinematics
    ```
 
 3. Try different formats:
@@ -67,33 +68,33 @@ Learn about:
 
 ### Using `/llm-quiz`
 
-Try to "stump the AI" by creating questions about Binghamton University:
+Try to "stump the AI" by creating questions about elementary physics:
 
 ```
 /llm-quiz module:m00
 ```
 
 Then ask questions like:
-- "What was Binghamton University originally called when it was founded in 1946?"
-- "Name all five original residential colleges at Binghamton"
-- "What does Watson College stand for and when was it founded?"
-- "What is Binghamton's athletic conference and team nickname?"
+- "State Newton's Second Law and explain what each variable represents"
+- "What is the difference between velocity and speed?"
+- "How does kinetic energy change when you double an object's velocity?"
+- "Why do airbags reduce injury in car crashes, using the concept of impulse?"
 
 The bot will evaluate whether your question successfully stumps the AI or if the AI answers correctly.
 
 ## Tips for Success
 
-1. **Read the content first**: Check `binghamton-university.md` to familiarize yourself with your university
+1. **Read the content first**: Check `elementary-physics.md` to familiarize yourself with the concepts
 2. **Start simple**: Begin with multiple-choice questions, then try harder formats
 3. **Practice regularly**: Use this module to get comfortable with the bot before tackling complex ML topics
 4. **Experiment**: Try different question formats and concepts to see how the bot responds
-5. **Learn about BU**: Understanding your university's history and culture enriches your college experience!
+5. **Think conceptually**: Physics is about understanding principles, not just memorizing formulas
 
 ## Benefits
 
-- ✅ **Directly relevant**: Learn about your own university
-- ✅ **School pride**: Discover BU's impressive history and achievements
-- ✅ **Campus knowledge**: Navigate campus and understand traditions better
+- ✅ **Universally useful**: Physics principles apply to everyday life
+- ✅ **Foundation for science**: These concepts underlie all of physics and engineering
+- ✅ **Builds intuition**: Understanding motion and energy helps make sense of the world
 - ✅ **Immediate feedback**: See how the bot evaluates your answers
 - ✅ **Safe environment**: Practice without affecting your grade on real course material
 - ✅ **Learn the system**: Understand quiz mechanics before using them for coursework
@@ -110,4 +111,4 @@ You can move on to the actual course modules (m01, m02, etc.) with confidence!
 
 ## Content Source
 
-The information in this module comes from Binghamton University's official records, historical documentation, and publicly available university information. Sources include BU archives, official university publications, and verified historical records. All facts have been verified for accuracy as of 2024-2026.
+The information in this module comes from established physics textbooks, educational resources, and fundamental principles of classical mechanics as developed by Isaac Newton and subsequent physicists. All facts and formulas have been verified for accuracy as of 2024-2026.
