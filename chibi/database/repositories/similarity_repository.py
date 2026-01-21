@@ -76,7 +76,7 @@ class SimilarityRepository:
             if temp_collection.count() > 0:
                 # Get one item to check dimension
                 sample = temp_collection.get(limit=1, include=["embeddings"])
-                if sample["embeddings"] and len(sample["embeddings"]) > 0:
+                if sample.get("embeddings") is not None and len(sample["embeddings"]) > 0:
                     existing_dimension = len(sample["embeddings"][0])
 
             if existing_dimension and existing_dimension != self._embedding_dimension:
