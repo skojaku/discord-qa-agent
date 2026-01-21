@@ -264,3 +264,36 @@ class RAGRepository:
         """
         count = await self.get_chunk_count_for_source(source_id)
         return count > 0
+
+    async def get_source_content_length(self, source_id: str) -> Optional[int]:
+        """Get the stored content length for a source.
+
+        Content length is stored in the first chunk's metadata for change detection.
+
+        Args:
+            source_id: The source (module) ID
+
+        Returns:
+            Content length in characters, or None if not found/not indexed
+        """
+        try:
+            # Get the first chunk (chunk_index=0) for this source
+            results = self.collection.get(
+                where={
+                    "source_id": source_id,
+                    "chunk_index": 0,
+                },
+                include=["metadatas"],
+                limit=1,
+            )
+
+            if results["ids"] and results["metadatas"]:
+                metadata = results["metadatas"][0]
+                content_length = metadata.get("content_length")
+                if content_length is not None:
+                    return int(content_length)
+
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to get content length for {source_id}: {e}")
+            return None
