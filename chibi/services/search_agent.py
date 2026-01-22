@@ -56,15 +56,20 @@ Guidelines:
 - Start with intuition, analogies, or real-world examples before technical details
 - Keep your response concise (2-4 sentences)
 - Cite which module the information comes from when relevant
-- If the content doesn't fully answer the question, acknowledge what you can answer and what's missing
+- If the course content doesn't answer the question or no relevant content is found, use your own knowledge to answer the question
+- When using your own knowledge (not from course content), briefly mention that this answer is based on general knowledge rather than the specific course materials
 - Use a friendly, conversational tone"""
 
-    SYNTHESIS_USER_PROMPT = """COURSE CONTENT:
+    SYNTHESIS_USER_PROMPT_WITH_CONTENT = """COURSE CONTENT:
 {context}
 
 STUDENT QUESTION: {query}
 
 Please provide a helpful answer based on the course content above."""
+
+    SYNTHESIS_USER_PROMPT_NO_CONTENT = """STUDENT QUESTION: {query}
+
+No relevant content was found in the course materials for this question. Please provide a helpful answer based on your general knowledge, and mention that this is not from the specific course materials."""
 
     def __init__(
         self,
@@ -129,13 +134,12 @@ Please provide a helpful answer based on the course content above."""
             exclude_chunk_ids=exclude_chunk_ids,
         )
 
-        # 3. Synthesize answer if ASSISTANT type and has relevant content
+        # 3. Synthesize answer if ASSISTANT type (even if no content found, LLM can use its own knowledge)
         answer = ""
-        if (
-            context_type == SearchContextType.ASSISTANT
-            and context_result.has_relevant_content
-        ):
-            answer = await self._synthesize_answer(query, context_result.context)
+        if context_type == SearchContextType.ASSISTANT:
+            answer = await self._synthesize_answer(
+                query, context_result.context, context_result.has_relevant_content
+            )
 
         logger.info(
             f"Search completed: type={context_type.value}, "
@@ -320,21 +324,29 @@ Please provide a helpful answer based on the course content above."""
                 exclude_chunk_ids=exclude_chunk_ids,
             )
 
-    async def _synthesize_answer(self, query: str, context: str) -> str:
+    async def _synthesize_answer(
+        self, query: str, context: str, has_relevant_content: bool
+    ) -> str:
         """Synthesize a coherent answer from context using LLM.
 
         Args:
             query: The user's question
-            context: Retrieved course content
+            context: Retrieved course content (may be empty)
+            has_relevant_content: Whether relevant content was found
 
         Returns:
             Synthesized answer string
         """
         try:
-            prompt = self.SYNTHESIS_USER_PROMPT.format(
-                context=context,
-                query=query,
-            )
+            if has_relevant_content:
+                prompt = self.SYNTHESIS_USER_PROMPT_WITH_CONTENT.format(
+                    context=context,
+                    query=query,
+                )
+            else:
+                prompt = self.SYNTHESIS_USER_PROMPT_NO_CONTENT.format(
+                    query=query,
+                )
 
             response = await self.llm_manager.generate(
                 prompt=prompt,
