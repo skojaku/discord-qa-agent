@@ -28,6 +28,7 @@ You have these tools available:
 
 2. <tool>quiz</tool><params>{{"module": "optional-module-id"}}</params>
    Generate a quiz question for the student. Use when they ask for a quiz or to test themselves.
+   IMPORTANT: Use the module ID (e.g., "m00", "m01"), NOT the module name.
 
 3. <tool>status</tool>
    Show the student's learning progress and mastery levels.
@@ -35,6 +36,7 @@ You have these tools available:
 4. <tool>llm_quiz</tool><params>{{"module": "module-id"}}</params>
    Start an LLM challenge where the student tries to stump/challenge the AI.
    IMPORTANT: Always invoke this tool when user mentions "llm quiz", "challenge", "stump the ai", etc.
+   Use the module ID (e.g., "m00", "m01"), NOT the module name.
    If no module specified, invoke with empty params - the tool will prompt for module selection.
 
 5. <tool>guidance</tool>
@@ -147,11 +149,11 @@ class MainAgent:
         module_list = ""
         if self.course and hasattr(self.course, "modules"):
             modules = [
-                f"- {m.name}: {m.description or 'No description'}"
+                f"- {m.id} ({m.name}): {m.description or 'No description'}"
                 for m in self.course.modules
             ]
             if modules:
-                module_list = "Available course modules:\n" + "\n".join(modules)
+                module_list = "Available course modules (use the ID in <params>):\n" + "\n".join(modules)
 
         return SYSTEM_PROMPT.format(module_list=module_list)
 
