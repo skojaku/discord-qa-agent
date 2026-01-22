@@ -10,7 +10,7 @@ llm:
   primary:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "meta-llama/llama-3.1-8b-instruct"
+    model: "google/gemini-3-flash-preview"
     timeout: 90
     max_retries: 1
 
@@ -18,7 +18,7 @@ llm:
   fallback:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "meta-llama/llama-3.1-8b-instruct"
+    model: "google/gemini-3-flash-preview"
     timeout: 90
     max_retries: 1
 #    provider: "ollama"
