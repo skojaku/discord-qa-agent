@@ -14,12 +14,12 @@ modules:
     content_urls:
       - "file:///test_content/elementary-physics.md"
     concepts:
-      - id: "newtons-laws"
-        name: "Newton's Laws of Motion"
+      - id: "mechanics-fundamentals"
+        name: "Newton's Laws and Forces"
         type: "theory"
         difficulty: 1
-        description: "The three fundamental laws of motion developed by Isaac Newton that form the foundation of classical mechanics"
-        quiz_focus: "First Law (Inertia): objects at rest stay at rest and objects in motion stay in motion unless acted upon by unbalanced force, Second Law: F = ma where F is force (Newtons), m is mass (kg), a is acceleration (m/s²), Third Law: for every action there is equal and opposite reaction (action-reaction pairs act on different objects), applications include rockets (expel gas downward, rocket pushed upward), walking (foot pushes ground backward, ground pushes foot forward)"
+        description: "Fundamental laws of motion and forces including Newton's laws, momentum, and force types"
+        quiz_focus: "First Law (Inertia): objects at rest stay at rest and objects in motion stay in motion unless acted upon by unbalanced force, Second Law: F = ma where F is force (Newtons), m is mass (kg), a is acceleration (m/s²), Third Law: for every action there is equal and opposite reaction, gravity F = mg, friction, normal force, tension, Hooke's Law F = -kx, momentum p = mv, conservation of momentum, impulse J = FΔt = Δp, elastic vs inelastic collisions"
         prerequisites: []
 
       - id: "kinematics"
@@ -36,14 +36,6 @@ modules:
         difficulty: 1
         description: "The capacity to do work and the relationship between energy, work, and power"
         quiz_focus: "Kinetic energy KE = ½mv² (energy of motion, increases with square of velocity), gravitational potential energy PE = mgh (m is mass, g = 9.8 m/s², h is height), elastic potential energy PE = ½kx² (k is spring constant, x is displacement), work W = Fd cos(θ) measured in Joules, work-energy theorem: net work equals change in kinetic energy, conservation of energy: energy cannot be created or destroyed only transformed (mechanical energy converts between kinetic and potential)"
-        prerequisites: []
-
-      - id: "forces-momentum"
-        name: "Forces and Momentum"
-        type: "theory"
-        difficulty: 1
-        description: "Different types of forces and the concept of momentum in analyzing motion and collisions"
-        quiz_focus: "Gravity F = mg (weight), friction opposes motion (static and kinetic), normal force perpendicular to surface, tension in ropes/cables, Hooke's Law for springs F = -kx, momentum p = mv (product of mass and velocity), conservation of momentum in isolated systems (total momentum before equals total momentum after), impulse J = FΔt = Δp (explains why airbags reduce injury by extending collision time), elastic collisions conserve both momentum and kinetic energy, inelastic collisions conserve momentum but not kinetic energy"
         prerequisites: []
 
   - id: "m01"
@@ -64,20 +56,12 @@ modules:
         quiz_focus: "Git commands (commit, push, pull, branch, merge), GitHub workflows, resolving merge conflicts, collaborative development practices"
         prerequisites: []
 
-      - id: "data-provenance"
-        name: "Data Provenance"
+      - id: "data-management"
+        name: "Data Provenance and Tidy Data"
         type: "theory"
         difficulty: 2
-        description: "Data provenance is the complete history of data from collection through transformations"
-        quiz_focus: "Why provenance matters for reproducibility, documenting data sources, tracking transformations, metadata best practices"
-        prerequisites: []
-
-      - id: "tidy-data"
-        name: "Tidy Data Principles"
-        type: "theory"
-        difficulty: 2
-        description: "Tidy data principles structure datasets where each variable is a column, each observation is a row, and each value is a cell"
-        quiz_focus: "Identifying tidy vs messy data, reshaping operations (pivot, melt), benefits for analysis workflows"
+        description: "Managing data history and structure for reproducible analysis"
+        quiz_focus: "Data provenance: documenting sources, tracking transformations, metadata best practices. Tidy data: each variable is a column, each observation is a row, each value is a cell, identifying tidy vs messy data, reshaping operations (pivot, melt), benefits for analysis workflows"
         prerequisites: []
 
       - id: "reproducibility"
@@ -108,20 +92,12 @@ modules:
         quiz_focus: "Data-ink ratio, chart junk, choosing appropriate chart types, color theory, accessibility"
         prerequisites: []
 
-      - id: "dimensionality-reduction"
-        name: "Dimensionality Reduction"
+      - id: "advanced-viz-techniques"
+        name: "Advanced Visualization Techniques"
         type: "theory"
         difficulty: 3
-        description: "Techniques like PCA, t-SNE, and UMAP for visualizing high-dimensional data in 2D/3D space"
-        quiz_focus: "When to use PCA vs t-SNE vs UMAP, interpreting reduced dimensions, perplexity parameter, preserving local vs global structure"
-        prerequisites: ["viz-principles"]
-
-      - id: "network-visualization"
-        name: "Network Visualization"
-        type: "practical"
-        difficulty: 3
-        description: "Visualizing graph structures using layout algorithms and node-link diagrams"
-        quiz_focus: "Force-directed layouts, adjacency matrices, node positioning algorithms, handling large networks"
+        description: "Techniques for visualizing complex data including high-dimensional data and networks"
+        quiz_focus: "Dimensionality reduction: PCA vs t-SNE vs UMAP, perplexity parameter, preserving local vs global structure. Network visualization: force-directed layouts, adjacency matrices, node positioning algorithms, handling large networks"
         prerequisites: ["viz-principles"]
 
       - id: "time-series-viz"
@@ -181,21 +157,13 @@ modules:
       - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/master/docs/lecture-note/m04-text/semaxis.qmd"
       - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/master/docs/lecture-note/m04-text/word-bias.qmd"
     concepts:
-      - id: "llm-basics"
-        name: "Large Language Models"
+      - id: "llm-fundamentals"
+        name: "LLMs and Text Generation"
         type: "theory"
         difficulty: 2
-        description: "Understanding what LLMs are, how they generate text, and practical usage patterns"
-        quiz_focus: "What LLMs learn, pretraining vs fine-tuning, model scale, capabilities and limitations"
+        description: "Understanding what LLMs are, how they generate text, and controlling their output"
+        quiz_focus: "What LLMs learn, pretraining vs fine-tuning, model scale, capabilities and limitations. Text generation: temperature effects, top-k vs top-p sampling, beam search, deterministic vs stochastic generation"
         prerequisites: []
-
-      - id: "gpt-sampling"
-        name: "GPT Inference and Sampling"
-        type: "practical"
-        difficulty: 3
-        description: "Controlling text generation through temperature, top-k, top-p, and other sampling parameters"
-        quiz_focus: "Temperature effects, top-k vs top-p sampling, beam search, deterministic vs stochastic generation"
-        prerequisites: ["llm-basics"]
 
       - id: "tokenization"
         name: "Tokenization"
@@ -203,7 +171,7 @@ modules:
         difficulty: 2
         description: "How LLMs convert text into tokens using BPE, WordPiece, and other algorithms"
         quiz_focus: "Subword tokenization, vocabulary size, token efficiency across languages, edge cases"
-        prerequisites: ["llm-basics"]
+        prerequisites: ["llm-fundamentals"]
 
       - id: "transformers"
         name: "Transformer Architecture"
@@ -213,45 +181,29 @@ modules:
         quiz_focus: "Self-attention mechanism, positional encoding, multi-head attention, feed-forward layers, layer normalization"
         prerequisites: ["tokenization"]
 
-      - id: "bert-gpt"
-        name: "BERT vs GPT Architectures"
+      - id: "transformer-variants"
+        name: "Transformer Architectures: BERT, GPT, and Beyond"
         type: "theory"
         difficulty: 3
-        description: "Understanding encoder-only (BERT), decoder-only (GPT), and their use cases"
-        quiz_focus: "Bidirectional vs unidirectional attention, masked language modeling, autoregressive generation, when to use each"
-        prerequisites: ["transformers"]
-
-      - id: "sentence-transformers"
-        name: "Sentence Transformers"
-        type: "practical"
-        difficulty: 3
-        description: "Models that produce fixed-length embeddings for semantic similarity"
-        quiz_focus: "Siamese networks, contrastive learning, cosine similarity, semantic search applications"
+        description: "Understanding encoder-only (BERT), decoder-only (GPT), and embedding models"
+        quiz_focus: "Bidirectional vs unidirectional attention, masked language modeling, autoregressive generation, when to use each. Sentence Transformers: Siamese networks, contrastive learning, cosine similarity, semantic search applications"
         prerequisites: ["transformers"]
 
       - id: "word-embeddings"
-        name: "Word Embeddings"
+        name: "Word Embeddings and Semantic Spaces"
         type: "theory"
         difficulty: 3
         description: "Representing words as vectors where geometric relationships capture semantic meaning"
-        quiz_focus: "Word2Vec (CBOW, Skip-gram), distributional hypothesis, analogies in vector space, limitations"
+        quiz_focus: "Word2Vec (CBOW, Skip-gram), distributional hypothesis, analogies in vector space. Semantic axes: constructing axes, projecting words onto axes, measuring bias, interpreting dimensions"
         prerequisites: []
 
-      - id: "semantic-axes"
-        name: "Semantic Axes"
-        type: "theory"
-        difficulty: 3
-        description: "Measuring meaning as direction in embedding space along interpretable dimensions"
-        quiz_focus: "Constructing semantic axes, projecting words onto axes, measuring bias, interpreting dimensions"
-        prerequisites: ["word-embeddings"]
-
-      - id: "word-bias"
+      - id: "embedding-bias"
         name: "Bias in Word Embeddings"
         type: "theory"
         difficulty: 3
         description: "How embeddings reflect and amplify societal biases present in training data"
         quiz_focus: "Measuring bias through associations, gender bias, debiasing techniques, ethical implications"
-        prerequisites: ["word-embeddings", "semantic-axes"]
+        prerequisites: ["word-embeddings"]
 
   - id: "m05"
     name: "Deep Learning for Images"
@@ -263,21 +215,13 @@ modules:
       - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/master/docs/lecture-note/m05-images/03-using-cnn-models.qmd"
       - "https://raw.githubusercontent.com/skojaku/applied-soft-comp/master/docs/lecture-note/m05-images/04-cnn-innovations.qmd"
     concepts:
-      - id: "image-representation"
-        name: "Images as Data Structures"
+      - id: "images-and-deep-learning"
+        name: "Images and the Deep Learning Revolution"
         type: "theory"
         difficulty: 2
-        description: "Understanding how images are represented as multidimensional arrays and why spatial structure matters"
-        quiz_focus: "RGB channels, pixel values, tensors, coordinate systems, spatial relationships"
+        description: "Understanding image representation and the shift from hand-crafted features to learned representations"
+        quiz_focus: "Images as tensors: RGB channels, pixel values, coordinate systems, spatial relationships. Deep learning revolution: LeNet vs AlexNet, ImageNet competition, why deep learning won, feature learning vs feature engineering"
         prerequisites: []
-
-      - id: "deep-learning-revolution"
-        name: "The Deep Learning Revolution"
-        type: "theory"
-        difficulty: 2
-        description: "The historical shift from hand-crafted features to learned representations"
-        quiz_focus: "LeNet vs AlexNet, ImageNet competition, why deep learning won, feature learning vs feature engineering"
-        prerequisites: ["image-representation"]
 
       - id: "cnn-building-blocks"
         name: "CNN Building Blocks"
@@ -285,7 +229,7 @@ modules:
         difficulty: 3
         description: "Core operations in CNNs: convolution, pooling, activation functions, and batch normalization"
         quiz_focus: "Convolution operation, kernel size, stride, padding, max/avg pooling, ReLU activation, batch normalization"
-        prerequisites: ["image-representation"]
+        prerequisites: ["images-and-deep-learning"]
 
       - id: "transfer-learning"
         name: "Transfer Learning"
@@ -321,20 +265,12 @@ modules:
         quiz_focus: "Locality, parameter sharing, hierarchical features on graphs, challenges of irregular structure"
         prerequisites: []
 
-      - id: "spectral-graph-theory"
-        name: "Spectral Perspective"
+      - id: "graph-neural-networks"
+        name: "Graph Neural Networks"
         type: "theory"
         difficulty: 4
-        description: "Using graph Laplacian eigenvectors as frequency basis for defining graph convolution"
-        quiz_focus: "Graph Laplacian, eigendecomposition, spectral filters, frequency interpretation, computational cost"
-        prerequisites: ["graph-convolution-intro"]
-
-      - id: "spatial-graph-networks"
-        name: "Spatial Graph Networks"
-        type: "practical"
-        difficulty: 4
-        description: "Defining convolution as neighborhood aggregation through GCN, GraphSAGE, GAT, and GIN"
-        quiz_focus: "Message passing, GCN layer, attention mechanisms in GAT, sampling in GraphSAGE, expressive power"
+        description: "Spectral and spatial approaches to graph convolution including GCN, GAT, and GraphSAGE"
+        quiz_focus: "Spectral perspective: Graph Laplacian, eigendecomposition, frequency interpretation. Spatial perspective: message passing, GCN layer, attention mechanisms in GAT, sampling in GraphSAGE, expressive power"
         prerequisites: ["graph-convolution-intro"]
 
       - id: "graph-embeddings"
@@ -371,21 +307,13 @@ modules:
         quiz_focus: "Saussurean linguistics, relational meaning, Buddhist logic, structural anthropology"
         prerequisites: ["categorical-boundaries"]
 
-      - id: "embeddings-philosophy"
-        name: "From Categories to Coordinates"
+      - id: "embeddings-as-philosophy"
+        name: "Embeddings as Operationalized Structuralism"
         type: "theory"
         difficulty: 3
-        description: "How embeddings operationalize structuralism by mapping concepts to continuous vector spaces"
-        quiz_focus: "Word2Vec as geometry, restoring gradation, vector arithmetic, continuous vs discrete representations"
+        description: "How embeddings operationalize structuralism and unify representations across data types"
+        quiz_focus: "Operationalizing structuralism: Word2Vec as geometry, restoring gradation, vector arithmetic, continuous vs discrete representations. Universal representations: cross-modal embeddings, unified latent spaces, CLIP, applications across text/images/networks/time-series"
         prerequisites: ["structuralism", "word-embeddings"]
-
-      - id: "universal-representations"
-        name: "Universal Representations"
-        type: "theory"
-        difficulty: 3
-        description: "How the embedding paradigm unifies text, images, networks, and time-series through relational structure"
-        quiz_focus: "Cross-modal embeddings, unified latent spaces, CLIP, applications across data types"
-        prerequisites: ["embeddings-philosophy"]
 
 # Available quiz formats
 quiz_formats:
