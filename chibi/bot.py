@@ -164,21 +164,45 @@ class ChibiBot(commands.Bot):
         await self.rag_repo.connect()
         logger.info("RAG repository connected")
 
-        # Initialize LLM providers
-        primary = OllamaProvider(
-            base_url=self.config.llm.primary.base_url,
-            model=self.config.llm.primary.model,
-            timeout=self.config.llm.primary.timeout,
-        )
-        fallback = OpenRouterProvider(
-            api_key=self.config.openrouter_api_key,
-            base_url=self.config.llm.fallback.base_url,
-            model=self.config.llm.fallback.model,
-            timeout=self.config.llm.fallback.timeout,
-            reasoning=self.config.llm.fallback.reasoning,
-            provider=self.config.llm.fallback.provider_preferences,
-            transforms=self.config.llm.fallback.transforms,
-        )
+        # Initialize LLM providers based on config
+        if self.config.llm.primary.provider == "ollama":
+            primary = OllamaProvider(
+                base_url=self.config.llm.primary.base_url,
+                model=self.config.llm.primary.model,
+                timeout=self.config.llm.primary.timeout,
+            )
+        elif self.config.llm.primary.provider == "openrouter":
+            primary = OpenRouterProvider(
+                api_key=self.config.openrouter_api_key,
+                base_url=self.config.llm.primary.base_url,
+                model=self.config.llm.primary.model,
+                timeout=self.config.llm.primary.timeout,
+                reasoning=self.config.llm.primary.reasoning,
+                provider=self.config.llm.primary.provider_preferences,
+                transforms=self.config.llm.primary.transforms,
+            )
+        else:
+            raise ValueError(f"Unknown primary provider: {self.config.llm.primary.provider}")
+
+        if self.config.llm.fallback.provider == "ollama":
+            fallback = OllamaProvider(
+                base_url=self.config.llm.fallback.base_url,
+                model=self.config.llm.fallback.model,
+                timeout=self.config.llm.fallback.timeout,
+            )
+        elif self.config.llm.fallback.provider == "openrouter":
+            fallback = OpenRouterProvider(
+                api_key=self.config.openrouter_api_key,
+                base_url=self.config.llm.fallback.base_url,
+                model=self.config.llm.fallback.model,
+                timeout=self.config.llm.fallback.timeout,
+                reasoning=self.config.llm.fallback.reasoning,
+                provider=self.config.llm.fallback.provider_preferences,
+                transforms=self.config.llm.fallback.transforms,
+            )
+        else:
+            raise ValueError(f"Unknown fallback provider: {self.config.llm.fallback.provider}")
+
         self.llm_manager = LLMManager(primary, fallback)
         logger.info("LLM manager initialized")
 
