@@ -10,12 +10,12 @@ llm:
   primary:
     provider: "openrouter"
     base_url: "https://openrouter.ai/api/v1"
-    model: "openai/gpt-oss-20b"  # Reasoning model - requires max_tokens format
-    timeout: 120
-    max_retries: 1
+    model: "google/gemini-3-flash-preview"  # Reasoning model - requires max_tokens format
+    timeout: 90
+    max_retries: 1 
     # IMPORTANT: gpt-oss requires max_tokens format (not effort)
-    reasoning:
-      max_tokens: 2000  # Reserve tokens for reasoning (model requires this)
+    #reasoning:
+    #  max_tokens: 2000  # Reserve tokens for reasoning (model requires this)
 
   # Fallback provider (OpenRouter - cloud)
   fallback:
