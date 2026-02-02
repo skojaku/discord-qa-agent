@@ -33,6 +33,7 @@ from .services import (
     ContextualChunkingService,
     ContextualChunkConfig,
     EmbeddingService,
+    ExplainService,
     GradeService,
     GuidanceService,
     LLMQuizChallengeService,
@@ -275,6 +276,9 @@ class ChibiBot(commands.Bot):
             min_attempts=self.config.mastery.min_attempts_for_mastery,
         )
 
+        # Initialize explain service (requires search_agent, initialized after it's created)
+        self.explain_service = None
+
         # Initialize similarity service
         self.similarity_service = SimilarityService(
             config=self.config.similarity,
@@ -386,6 +390,16 @@ class ChibiBot(commands.Bot):
             )
             logger.info("Search agent initialized")
 
+            # Initialize explain service (requires search_agent and llm_manager)
+            self.explain_service = ExplainService(
+                llm_manager=self.llm_manager,
+                search_agent=self.search_agent,
+                admin_channel_id=self.config.explain.admin_channel_id,
+                output_channel_id=self.config.explain.output_channel_id,
+                thread_prefix=self.config.explain.thread_prefix,
+            )
+            logger.info("Explain service initialized")
+
         # Initialize main agent (if agent is enabled)
         if self.config.agent.enabled:
             self.main_agent = create_agent(
@@ -406,6 +420,7 @@ class ChibiBot(commands.Bot):
         await self.load_extension("chibi.cogs.guidance")
         await self.load_extension("chibi.cogs.attendance")
         await self.load_extension("chibi.cogs.attendance_slash")
+        await self.load_extension("chibi.cogs.explain")
         await self.load_extension("chibi.cogs.help")
         await self.load_extension("chibi.cogs.backup_cog")
         logger.info("Cogs loaded")
@@ -489,6 +504,14 @@ class ChibiBot(commands.Bot):
         # Don't process empty messages
         if not message.content.strip():
             return
+
+        # Check if this is a message in an active explain session thread
+        if self.explain_service and isinstance(message.channel, discord.Thread):
+            session = self.explain_service.get_active_session(message.channel.id)
+            if session:
+                # Route to explain service for handling
+                await self.explain_service.handle_thread_message(message)
+                return  # Don't process through main agent
 
         # Determine if we should process this message
         should_process = False

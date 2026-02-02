@@ -95,6 +95,14 @@ agent:
   # Maximum conversation history to retain per user/channel
   max_conversation_history: 20
 
+# Explain content creation feature
+explain:
+  # Channel IDs configured via environment variables:
+  # - EXPLAIN_ADMIN_CHANNEL_ID: Where admin threads are created
+  # - AI_TUTOR_CHANNEL_ID: Where educational content is posted
+  thread_prefix: "[Explain]"  # Prefix for thread names in output channel
+  completion_timeout: 86400  # 24 hours before inactive threads are considered stale
+
 # Contextual Retrieval settings (for improved RAG)
 # Uses LLM to generate context summaries for each chunk before embedding
 contextual_retrieval:
