@@ -207,7 +207,7 @@ Keep it conversational and encouraging. End with clear questions.
                 max_tokens=300,
                 temperature=0.7,
             )
-            return response
+            return response.content
         except Exception as e:
             logger.error(f"Error generating initial message: {e}", exc_info=True)
             # Fallback message
@@ -275,7 +275,7 @@ Answer only: YES or NO"""
                 response = await self.llm_manager.generate(
                     prompt=prompt, max_tokens=5, temperature=0.0
                 )
-                return "yes" in response.lower()
+                return "yes" in response.content.lower()
             except Exception as e:
                 logger.error(f"Error in LLM completion detection: {e}")
                 return False
@@ -341,7 +341,7 @@ Keep it conversational, helpful, and focused on gathering what's needed for exce
                 response = await self.llm_manager.generate(
                     prompt=prompt, max_tokens=400, temperature=0.7
                 )
-            await message.reply(response, mention_author=False)
+            await message.reply(response.content, mention_author=False)
         except Exception as e:
             logger.error(f"Error generating conversation response: {e}", exc_info=True)
             await message.reply(
@@ -435,7 +435,7 @@ Write the complete content now, following all style guidelines above.
                 max_tokens=2500,
                 temperature=TEMPERATURE_QUIZ_GENERATION,  # Creative but not random
             )
-            return content
+            return content.content
         except Exception as e:
             logger.error(f"Error generating educational content: {e}", exc_info=True)
             raise
