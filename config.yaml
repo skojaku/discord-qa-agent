@@ -43,7 +43,7 @@ persona:
 
 # Mastery calculation thresholds (hybrid: LLM quality + correct ratio)
 mastery:
-  min_attempts_for_mastery: 3
+  min_attempts_for_mastery: 2
   quality_threshold: 3.5      # Out of 5
   correct_ratio_threshold: 0.7  # 70% correct
 
