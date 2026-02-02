@@ -509,8 +509,20 @@ class ChibiBot(commands.Bot):
         else:
             channel_id = message.channel.id
             nl_channels = self.config.agent.nl_routing_channels
+
+            # Check if the channel itself is in nl_routing_channels
             if nl_channels and channel_id in nl_channels:
                 should_process = True
+
+            # Check if this is a thread whose parent channel is in nl_routing_channels
+            elif nl_channels and isinstance(message.channel, discord.Thread):
+                parent_id = message.channel.parent_id
+                if parent_id and parent_id in nl_channels:
+                    should_process = True
+                    logger.debug(
+                        f"Processing thread message from {message.author.display_name} "
+                        f"in thread '{message.channel.name}'"
+                    )
 
         if not should_process:
             return
