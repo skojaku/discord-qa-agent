@@ -4,6 +4,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
+import discord
 from langgraph.graph import END, StateGraph
 
 from .memory import ConversationMemory
@@ -454,15 +455,24 @@ class MainAgent:
         if not response:
             return
 
+        # Check if this is a system message (can't reply to system messages)
+        is_system_message = message.type not in (
+            discord.MessageType.default,
+            discord.MessageType.reply,
+        )
+
         if len(response) > 2000:
             chunks = [response[i : i + 2000] for i in range(0, len(response), 2000)]
             for i, chunk in enumerate(chunks):
-                if i == 0:
+                if i == 0 and not is_system_message:
                     await message.reply(chunk, mention_author=False)
                 else:
                     await message.channel.send(chunk)
         else:
-            await message.reply(response, mention_author=False)
+            if is_system_message:
+                await message.channel.send(response)
+            else:
+                await message.reply(response, mention_author=False)
 
     async def invoke(
         self,
