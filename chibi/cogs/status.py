@@ -159,7 +159,8 @@ class StatusCog(commands.Cog):
                 inline=False,
             )
 
-        embed.set_footer(text="Use /status <module> for detailed progress | /llm-quiz to challenge the AI")
+        example_id = self.bot.course.modules[0].id if self.bot.course.modules else "m01"
+        embed.set_footer(text=f"Use /status {example_id} for detailed progress | /llm-quiz module:{example_id} to challenge the AI")
 
         return embed
 
@@ -221,7 +222,7 @@ class StatusCog(commands.Cog):
                 inline=False,
             )
 
-        embed.set_footer(text="Use /quiz to practice | /llm-quiz to challenge AI | /status for summary")
+        embed.set_footer(text=f"Use /quiz {module.id} to practice | /llm-quiz module:{module.id} to challenge AI | /status for summary")
 
         return embed
 

@@ -152,8 +152,9 @@ class GuidanceTool(BaseTool):
                 inline=False,
             )
 
+        example_id = guidance.modules[0].module_id if guidance.modules else "m01"
         embed.set_footer(
-            text="Use /guidance <module> for detailed concept-by-concept guidance"
+            text=f"Use /guidance {example_id} for detailed concept-by-concept guidance"
         )
 
         return embed
@@ -220,7 +221,7 @@ class GuidanceTool(BaseTool):
                 inline=False,
             )
 
-        embed.set_footer(text="Use /quiz to practice | /llm-quiz to challenge the AI")
+        embed.set_footer(text=f"Use /quiz {mod_guidance.module_id} to practice | /llm-quiz module:{mod_guidance.module_id} to challenge the AI")
 
         return embed
 

@@ -141,8 +141,9 @@ class GuidanceCog(commands.Cog):
                 inline=False,
             )
 
+        example_id = guidance.modules[0].module_id if guidance.modules else "m01"
         embed.set_footer(
-            text="Use /guidance <module> for detailed concept-by-concept guidance"
+            text=f"Use /guidance {example_id} for detailed concept-by-concept guidance"
         )
 
         return embed
@@ -212,7 +213,7 @@ class GuidanceCog(commands.Cog):
             )
 
         embed.set_footer(
-            text="Use /quiz to practice | /llm-quiz to challenge the AI"
+            text=f"Use /quiz {mod_guidance.module_id} to practice | /llm-quiz module:{mod_guidance.module_id} to challenge the AI"
         )
 
         return embed
