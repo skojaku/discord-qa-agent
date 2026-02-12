@@ -1,7 +1,7 @@
 """Status tool implementation."""
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import discord
 
@@ -75,6 +75,19 @@ class StatusTool(BaseTool):
                 summary = "Overall learning progress summary"
 
             await discord_message.reply(embed=embed, mention_author=False)
+
+            # Send follow-up "what's remaining" message
+            try:
+                guidance = await self.bot.guidance_service.get_guidance(
+                    user.id, module_id
+                )
+                remaining_msg = self._build_remaining_message(guidance, module_id)
+                if remaining_msg:
+                    await discord_message.reply(
+                        remaining_msg, mention_author=False
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to send remaining message: {e}")
 
             return ToolResult(
                 success=True,
@@ -242,6 +255,49 @@ class StatusTool(BaseTool):
         )
 
         return embed
+
+    def _build_remaining_message(
+        self, guidance, module_id: Optional[str] = None
+    ) -> Optional[str]:
+        """Build a plain-text message summarizing what's remaining."""
+        if module_id:
+            if not guidance.modules:
+                return None
+            mod = guidance.modules[0]
+            lines = []
+            for cg in mod.concept_guidance:
+                if not cg.is_complete:
+                    lines.append(
+                        f"\u2022 {cg.concept_name}: {cg.guidance_text} Use `/quiz {module_id}`"
+                    )
+            if mod.llm_quiz_guidance and not mod.llm_quiz_guidance.is_complete:
+                lines.append(
+                    f"\u2022 LLM Quiz: {mod.llm_quiz_guidance.guidance_text} "
+                    f"Use `/llm-quiz module:{module_id}`"
+                )
+            if not lines:
+                return None
+            header = f"\U0001f4cb What's remaining for {mod.module_name}:"
+            return header + "\n" + "\n".join(lines)
+        else:
+            if not guidance.priority_actions:
+                return None
+            lines = []
+            for action in guidance.priority_actions:
+                cmd_hint = self._extract_command_hint(action, guidance)
+                lines.append(f"\u2022 {action}{cmd_hint}")
+            header = "\U0001f4cb What's remaining:"
+            return header + "\n" + "\n".join(lines)
+
+    def _extract_command_hint(self, action: str, guidance) -> str:
+        """Extract a command hint from a priority action string."""
+        for mod in guidance.modules:
+            if action.startswith(f"[{mod.module_name}]"):
+                if "LLM Quiz" in action:
+                    return f" Use `/llm-quiz module:{mod.module_id}`"
+                else:
+                    return f" Use `/quiz {mod.module_id}`"
+        return ""
 
 
 async def create_tool(bot: "ChibiBot", config: ToolConfig) -> StatusTool:

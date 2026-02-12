@@ -79,6 +79,70 @@ class StatusCog(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
+        # Send follow-up "what's remaining" message
+        try:
+            guidance = await self.bot.guidance_service.get_guidance(user.id, module)
+            remaining_msg = self._build_remaining_message(guidance, module)
+            if remaining_msg:
+                await interaction.followup.send(remaining_msg)
+        except Exception as e:
+            logger.warning(f"Failed to send remaining message: {e}")
+
+    def _build_remaining_message(
+        self, guidance, module_id: Optional[str] = None
+    ) -> Optional[str]:
+        """Build a plain-text message summarizing what's remaining.
+
+        Args:
+            guidance: GradingGuidance from the guidance service
+            module_id: Optional module ID for module-specific view
+
+        Returns:
+            Formatted message string, or None if everything is complete
+        """
+        if module_id:
+            # Module detail view
+            if not guidance.modules:
+                return None
+            mod = guidance.modules[0]
+            lines = []
+            for cg in mod.concept_guidance:
+                if not cg.is_complete:
+                    lines.append(
+                        f"\u2022 {cg.concept_name}: {cg.guidance_text} Use `/quiz {module_id}`"
+                    )
+            if mod.llm_quiz_guidance and not mod.llm_quiz_guidance.is_complete:
+                lines.append(
+                    f"\u2022 LLM Quiz: {mod.llm_quiz_guidance.guidance_text} "
+                    f"Use `/llm-quiz module:{module_id}`"
+                )
+            if not lines:
+                return None
+            header = f"\U0001f4cb What's remaining for {mod.module_name}:"
+            return header + "\n" + "\n".join(lines)
+        else:
+            # Summary view - use priority_actions
+            if not guidance.priority_actions:
+                return None
+            lines = []
+            for action in guidance.priority_actions:
+                # Extract module ID for command hints
+                # priority_actions format: "[Module Name] Concept: guidance_text"
+                cmd_hint = self._extract_command_hint(action, guidance)
+                lines.append(f"\u2022 {action}{cmd_hint}")
+            header = "\U0001f4cb What's remaining:"
+            return header + "\n" + "\n".join(lines)
+
+    def _extract_command_hint(self, action: str, guidance) -> str:
+        """Extract a command hint from a priority action string."""
+        for mod in guidance.modules:
+            if action.startswith(f"[{mod.module_name}]"):
+                if "LLM Quiz" in action:
+                    return f" Use `/llm-quiz module:{mod.module_id}`"
+                else:
+                    return f" Use `/quiz {mod.module_id}`"
+        return ""
+
     async def _build_summary_embed(
         self, user_id: int, discord_user: discord.User
     ) -> discord.Embed:
