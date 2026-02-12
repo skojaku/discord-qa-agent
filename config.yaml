@@ -62,7 +62,7 @@ backup:
 
 # LLM Quiz Challenge settings (students try to stump the AI)
 llm_quiz:
-  target_wins_per_module: 3  # Number of successful stumps required per module
+  target_wins_per_module: 2  # Number of successful stumps required per module
   # Quiz model (the one students try to stump)
   quiz_model: "openrouter/meta-llama/llama-3-8b-instruct"
   quiz_base_url: "https://openrouter.ai/api/v1"
