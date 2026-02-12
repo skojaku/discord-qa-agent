@@ -176,7 +176,6 @@ async def main():
             return
 
     intents = discord.Intents.default()
-    intents.members = True
     client = discord.Client(intents=intents)
 
     @client.event
