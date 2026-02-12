@@ -207,21 +207,23 @@ class StatusCog(commands.Cog):
             inline=False,
         )
 
-        # LLM Quiz Challenge progress
+        # LLM Quiz Challenge progress (show all modules)
         llm_quiz_progress = await self.bot.llm_quiz_service.get_all_progress(user_id)
-        if llm_quiz_progress:
-            progress_lines = []
-            for module_id, (wins, target) in llm_quiz_progress.items():
-                module_obj = self.bot.course.get_module(module_id)
-                module_name = module_obj.name if module_obj else module_id
-                status = "✅" if wins >= target else "⏳"
-                progress_lines.append(f"{status} {module_name}: {wins}/{target}")
+        target_wins = self.bot.llm_quiz_service.target_wins_per_module
+        progress_lines = []
+        for module in self.bot.course.modules:
+            if module.id in llm_quiz_progress:
+                wins, target = llm_quiz_progress[module.id]
+            else:
+                wins, target = 0, target_wins
+            status = "✅" if wins >= target else "⏳"
+            progress_lines.append(f"{status} {module.name}: {wins}/{target}")
 
-            embed.add_field(
-                name="🎯 LLM Quiz Challenge",
-                value="\n".join(progress_lines) if progress_lines else "No challenges attempted yet",
-                inline=False,
-            )
+        embed.add_field(
+            name="🎯 LLM Quiz Challenge",
+            value="\n".join(progress_lines) if progress_lines else "No modules available",
+            inline=False,
+        )
 
         example_id = self.bot.course.modules[0].id if self.bot.course.modules else "m01"
         embed.set_footer(text=f"Use /status {example_id} for detailed progress | /llm-quiz module:{example_id} to challenge the AI")
@@ -285,6 +287,20 @@ class StatusCog(commands.Cog):
                 value="\n".join(concept_lines),
                 inline=False,
             )
+
+        # LLM Quiz Challenge progress for this module
+        llm_quiz_progress = await self.bot.llm_quiz_service.get_all_progress(user_id)
+        target_wins = self.bot.llm_quiz_service.target_wins_per_module
+        if module.id in llm_quiz_progress:
+            wins, target = llm_quiz_progress[module.id]
+        else:
+            wins, target = 0, target_wins
+        llm_status = "✅" if wins >= target else "⏳"
+        embed.add_field(
+            name="🎯 LLM Quiz Challenge",
+            value=f"{llm_status} {wins}/{target} wins",
+            inline=False,
+        )
 
         embed.set_footer(text=f"Use /quiz {module.id} to practice | /llm-quiz module:{module.id} to challenge AI | /status for summary")
 
