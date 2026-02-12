@@ -4,10 +4,11 @@ Admin commands use slash commands with administrator permission checks.
 These commands are only visible to users with administrator permissions.
 """
 
+import asyncio
 import io
 import logging
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -42,6 +43,7 @@ class AdminSlashCog(commands.Cog):
         /admin-grade [module] - Generate CSV grade report
         /admin-status <student> [module] - View student progress
         /admin-clear-similarity [module] - Clear similarity database
+        /admin-remind <module> [preview] - Send reminder DMs to students with incomplete work
     """
 
     def __init__(self, bot: "ChibiBot"):
@@ -105,6 +107,11 @@ class AdminSlashCog(commands.Cog):
         embed.add_field(
             name="`/admin-clear-similarity [module:]`",
             value="Clear LLM Quiz similarity database\n*Optional: specify module to clear only that module*",
+            inline=False,
+        )
+        embed.add_field(
+            name="`/admin-remind module: [preview:]`",
+            value="Send reminder DMs to students with incomplete work\n*Use preview:True to see who would be reminded without sending*",
             inline=False,
         )
 
@@ -484,6 +491,200 @@ class AdminSlashCog(commands.Cog):
                 ephemeral=True
             )
 
+    async def _get_students_needing_reminders(
+        self, guild: discord.Guild, module: "Module"
+    ) -> List[dict]:
+        """Get students who have incomplete work for a module."""
+        users = await self.bot.user_repo.get_all()
+        concept_ids = [c.id for c in module.concepts]
+        target_wins = self.bot.llm_quiz_service.target_wins_per_module
+        students = []
+
+        for user in users:
+            # Skip server admins
+            member = guild.get_member(int(user.discord_id))
+            if member and member.guild_permissions.administrator:
+                continue
+
+            # Check concept mastery
+            mastery_records = await self.bot.mastery_repo.get_by_concepts(
+                user.id, concept_ids
+            )
+            mastery_by_concept = {m.concept_id: m for m in mastery_records}
+            missing_concepts = [
+                c for c in concept_ids
+                if mastery_by_concept.get(c) is None
+                or mastery_by_concept[c].mastery_level != "mastered"
+            ]
+
+            # Check LLM quiz wins
+            approved_wins = await self.bot.llm_quiz_repo.count_wins_for_module(
+                user.id, module.id
+            )
+            llm_quiz_needed = max(0, target_wins - approved_wins)
+
+            if missing_concepts or llm_quiz_needed > 0:
+                students.append({
+                    "discord_id": user.discord_id,
+                    "display_name": user.student_name or user.username,
+                    "missing_concepts": missing_concepts,
+                    "approved_wins": approved_wins,
+                    "llm_quiz_needed": llm_quiz_needed,
+                })
+
+        return students
+
+    def _build_reminder_message(
+        self, student: dict, module: "Module", concept_names: dict
+    ) -> str:
+        """Build a personalized reminder DM for a student."""
+        name = student["display_name"]
+        missing = student["missing_concepts"]
+        llm_needed = student["llm_quiz_needed"]
+        llm_wins = student["approved_wins"]
+        target_wins = self.bot.llm_quiz_service.target_wins_per_module
+        total_concepts = len(concept_names)
+
+        lines = [
+            f"Hi {name},",
+            "",
+            f"This is a friendly reminder about **{module.name}**. "
+            "Here's what you still need to complete:",
+            "",
+        ]
+
+        task_num = 1
+
+        if missing:
+            concept_list = ", ".join(
+                f"**{concept_names[c]}**" for c in missing
+            )
+            if len(missing) == total_concepts:
+                lines.append(
+                    f"{task_num}. **Quiz**: You haven't started the quizzes yet. "
+                    f"You need to master all {total_concepts} concepts: {concept_list}. "
+                    f"Use `/quiz {module.id}` to get started."
+                )
+            else:
+                mastered = total_concepts - len(missing)
+                lines.append(
+                    f"{task_num}. **Quiz**: You've mastered {mastered}/{total_concepts} concepts. "
+                    f"Still need to master: {concept_list}. "
+                    f"Use `/quiz {module.id}` to continue."
+                )
+            task_num += 1
+
+        if llm_needed > 0:
+            if llm_wins == 0:
+                lines.append(
+                    f"{task_num}. **LLM Quiz**: You need at least {target_wins} approved wins. "
+                    f"Use `/llm-quiz module:{module.id}` to challenge the AI with a question from this module."
+                )
+            else:
+                lines.append(
+                    f"{task_num}. **LLM Quiz**: You have {llm_wins}/{target_wins} approved wins. "
+                    f"You need {llm_needed} more. "
+                    f"Use `/llm-quiz module:{module.id}` to submit another question."
+                )
+
+        lines.extend([
+            "",
+            f"You can check your progress anytime with `/status {module.id}`.",
+            "",
+            "If you have questions, reach out to the TA or the Instructor!",
+        ])
+
+        return "\n".join(lines)
+
+    @app_commands.command(
+        name="admin-remind",
+        description="[ADMIN] Send reminder DMs to students with incomplete work"
+    )
+    @app_commands.describe(
+        module="Module ID",
+        preview="Preview only, don't send DMs"
+    )
+    @app_commands.autocomplete(module=module_autocomplete)
+    @app_commands.checks.has_permissions(administrator=True)
+    async def send_reminders(
+        self,
+        interaction: discord.Interaction,
+        module: str,
+        preview: bool = False,
+    ):
+        """Send reminder DMs to students with incomplete module work."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        # Validate module
+        target_module = self.bot.course.get_module(module)
+        if not target_module:
+            await interaction.followup.send(ERROR_MODULE_NOT_FOUND, ephemeral=True)
+            return
+
+        # Build concept name mapping
+        concept_names = {c.id: c.name for c in target_module.concepts}
+
+        # Get students needing reminders
+        students = await self._get_students_needing_reminders(
+            interaction.guild, target_module
+        )
+
+        if not students:
+            await interaction.followup.send(
+                f"All students have completed **{target_module.name}**!",
+                ephemeral=True,
+            )
+            return
+
+        # Build preview
+        preview_lines = [
+            f"**{target_module.name}** — {len(students)} student(s) need reminders:\n"
+        ]
+        for s in students:
+            parts = []
+            if s["missing_concepts"]:
+                names = ", ".join(concept_names[c] for c in s["missing_concepts"])
+                parts.append(f"quiz: {names}")
+            if s["llm_quiz_needed"] > 0:
+                parts.append(f"llm-quiz: {s['llm_quiz_needed']} more win(s)")
+            preview_lines.append(f"• **{s['display_name']}** — {'; '.join(parts)}")
+
+        preview_text = "\n".join(preview_lines)
+
+        if preview:
+            await interaction.followup.send(preview_text, ephemeral=True)
+            return
+
+        # Send DMs
+        sent = 0
+        failed = 0
+        failed_names = []
+
+        for s in students:
+            msg = self._build_reminder_message(s, target_module, concept_names)
+            try:
+                user = await self.bot.fetch_user(int(s["discord_id"]))
+                await user.send(msg)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Failed to DM {s['display_name']}: {e}")
+                failed += 1
+                failed_names.append(s["display_name"])
+            await asyncio.sleep(1)
+
+        # Report results
+        result_lines = [f"Sent **{sent}** reminder(s) for **{target_module.name}**."]
+        if failed:
+            result_lines.append(
+                f"Failed to send to **{failed}** student(s): {', '.join(failed_names)}"
+            )
+        await interaction.followup.send("\n".join(result_lines), ephemeral=True)
+
+        logger.info(
+            f"Admin {interaction.user.display_name} sent reminders for {module} "
+            f"(sent={sent}, failed={failed})"
+        )
+
     # Error handlers for permission errors
     @admin_help.error
     @list_modules.error
@@ -491,6 +692,7 @@ class AdminSlashCog(commands.Cog):
     @show_grade.error
     @student_status.error
     @clear_similarity.error
+    @send_reminders.error
     async def admin_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ):
