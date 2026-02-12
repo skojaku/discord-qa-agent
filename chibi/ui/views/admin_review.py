@@ -100,7 +100,7 @@ class AdminReviewView(discord.ui.View):
         self,
         attempt_id: int,
         on_review_callback: Callable[[int, str, discord.Interaction], Coroutine[Any, Any, None]],
-        timeout: float = 86400.0,  # 24 hour timeout
+        timeout: float = 604800.0,  # 7 day timeout
     ):
         super().__init__(timeout=timeout)
         self.attempt_id = attempt_id
