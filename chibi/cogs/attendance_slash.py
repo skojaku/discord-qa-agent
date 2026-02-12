@@ -611,17 +611,24 @@ class AttendanceSlashCog(commands.Cog):
                 if not self.session_manager.is_active:
                     break
 
-                # Generate new code
-                code_length = self.bot.config.attendance.code_length
-                old_code = self.session_manager.current_code
-                new_code = generate_code(code_length, previous_code=old_code)
-
-                # Update session manager
-                self.session_manager.update_code(new_code)
-
-                # Update the admin channel message with new code
                 try:
-                    admin_channel = self.bot.get_channel(self.session_manager.channel_id)
+                    # Generate new code
+                    code_length = self.bot.config.attendance.code_length
+                    old_code = self.session_manager.current_code
+                    new_code = generate_code(code_length, previous_code=old_code)
+
+                    # Update session manager
+                    self.session_manager.update_code(new_code)
+
+                    # Update the admin channel message with new code
+                    channel_id = self.session_manager.channel_id
+                    admin_channel = self.bot.get_channel(channel_id)
+                    if admin_channel is None:
+                        logger.warning(
+                            f"Channel {channel_id} not in cache, fetching from API"
+                        )
+                        admin_channel = await self.bot.fetch_channel(channel_id)
+
                     if admin_channel and self.session_manager.message_id:
                         message = await admin_channel.fetch_message(
                             self.session_manager.message_id
@@ -647,13 +654,17 @@ class AttendanceSlashCog(commands.Cog):
                         )
 
                         await message.edit(embed=code_embed)
+                    else:
+                        logger.warning(
+                            f"Could not find admin channel ({channel_id}) or message_id is None"
+                        )
 
                 except discord.NotFound:
                     logger.warning("Admin message not found, stopping rotation")
                     break
                 except Exception as e:
-                    logger.error(f"Error updating admin message: {e}")
-                    # Continue rotation even if message update fails
+                    logger.error(f"Error in rotation iteration: {e}", exc_info=True)
+                    # Continue rotation even if this iteration fails
 
         except asyncio.CancelledError:
             logger.info("Code rotation task cancelled")
