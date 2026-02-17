@@ -5,7 +5,7 @@ Please use the new `/admin-*` slash commands instead:
 - !help → /admin-help
 - !modules → /admin-modules
 - !students → /admin-students
-- !show_grade → /admin-grade
+- !show_grade → /admin-export-grade
 - !status → /admin-status
 - !clear_similarity → /admin-clear-similarity
 
@@ -14,17 +14,14 @@ in a future version. Slash commands provide better discoverability and integrati
 with Discord's permission system.
 """
 
-import io
 import logging
 import re
-from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
 
 from ..constants import (
-    CSV_FILENAME_PREFIX,
     DESCRIPTION_TRUNCATE_LENGTH,
     EMBED_FIELD_CHUNK_SIZE,
     ERROR_ADMIN_CHANNEL_NOT_CONFIGURED,
@@ -86,7 +83,7 @@ class AdminCog(commands.Cog):
     """Cog for admin-only prefix commands.
 
     Commands:
-        !show_grade [module] - Generate CSV report of student grades
+        !show_grade [module] - Deprecated, use /admin-export-grade
         !status <student> [module] - View a student's learning progress
     """
 
@@ -127,7 +124,7 @@ class AdminCog(commands.Cog):
             )
             embed.add_field(
                 name="`!show_grade [module]`",
-                value="Export student grades as CSV file\n*Optional: filter by module ID*",
+                value="**Deprecated.** Use `/admin-export-grade` instead.",
                 inline=False,
             )
             embed.add_field(
@@ -234,41 +231,11 @@ class AdminCog(commands.Cog):
         ctx: commands.Context,
         module: Optional[str] = None,
     ):
-        """Generate and send a CSV file with student grades.
-
-        Usage: !show_grade [module]
-
-        Args:
-            module: Optional module ID to filter by
-        """
-        async with ctx.typing():
-            # Validate module if specified
-            target_module = None
-            if module:
-                target_module = self.bot.course.get_module(module)
-                if not target_module:
-                    await ctx.send(ERROR_MODULE_NOT_FOUND)
-                    return
-
-            # Generate CSV data using grade service
-            csv_content = await self.bot.grade_service.generate_grade_csv(target_module)
-
-            # Create file object
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            module_suffix = f"_{module}" if module else ""
-            filename = f"{CSV_FILENAME_PREFIX}{module_suffix}_{timestamp}.csv"
-
-            file = discord.File(
-                io.BytesIO(csv_content.encode("utf-8")),
-                filename=filename
-            )
-
-            # Send the file
-            module_info = f" for module **{target_module.name}**" if target_module else ""
-            await ctx.send(
-                f"Grade report{module_info} generated successfully.",
-                file=file
-            )
+        """Deprecated. Use /admin-export-grade instead."""
+        await ctx.send(
+            "This command has been replaced by `/admin-export-grade`, "
+            "which exports grades to Google Sheets."
+        )
 
     @commands.command(name="status")
     @commands.has_permissions(administrator=True)

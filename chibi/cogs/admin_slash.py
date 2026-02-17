@@ -5,7 +5,6 @@ These commands are only visible to users with administrator permissions.
 """
 
 import asyncio
-import io
 import logging
 from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
@@ -15,7 +14,6 @@ from discord import app_commands
 from discord.ext import commands
 
 from ..constants import (
-    CSV_FILENAME_PREFIX,
     DESCRIPTION_TRUNCATE_LENGTH,
     EMBED_FIELD_CHUNK_SIZE,
     ERROR_MODULE_NOT_FOUND,
@@ -40,7 +38,7 @@ class AdminSlashCog(commands.Cog):
         /admin-help - Show admin commands help
         /admin-modules - List available modules
         /admin-students - List registered students
-        /admin-grade [module] - Generate CSV grade report
+        /admin-export-grade [module] - Export grades to Google Sheets
         /admin-status <student> [module] - View student progress
         /admin-clear-similarity [module] - Clear similarity database
         /admin-remind <module> [preview] - Send reminder DMs to students with incomplete work
@@ -95,8 +93,8 @@ class AdminSlashCog(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="`/admin-grade [module:]`",
-            value="Export student grades as CSV file\n*Optional: filter by module ID*",
+            name="`/admin-export-grade [module:]`",
+            value="Export student grades to Google Sheets\n*Optional: filter by module ID*",
             inline=False,
         )
         embed.add_field(
@@ -213,20 +211,20 @@ class AdminSlashCog(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(
-        name="admin-grade",
-        description="[ADMIN] Generate CSV report of student grades"
+        name="admin-export-grade",
+        description="[ADMIN] Export student grades to Google Sheets"
     )
     @app_commands.describe(
         module="Optional: Filter by module ID"
     )
     @app_commands.autocomplete(module=module_autocomplete)
     @app_commands.checks.has_permissions(administrator=True)
-    async def show_grade(
+    async def export_grade(
         self,
         interaction: discord.Interaction,
         module: Optional[str] = None,
     ):
-        """Generate and send a CSV file with student grades."""
+        """Export student grades to a Google Sheets spreadsheet."""
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Validate module if specified
@@ -237,26 +235,62 @@ class AdminSlashCog(commands.Cog):
                 await interaction.followup.send(ERROR_MODULE_NOT_FOUND, ephemeral=True)
                 return
 
-        # Generate CSV data using grade service
-        csv_content = await self.bot.grade_service.generate_grade_csv(target_module)
+        # Check backup service is available
+        if not self.bot.backup_service or not self.bot.backup_service.sheets_client:
+            await interaction.followup.send(
+                "Google Sheets is not configured. Check backup settings.",
+                ephemeral=True,
+            )
+            return
 
-        # Create file object
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        module_suffix = f"_{module}" if module else ""
-        filename = f"{CSV_FILENAME_PREFIX}{module_suffix}_{timestamp}.csv"
+        try:
+            # Generate grade data
+            sheet_data = await self.bot.grade_service.generate_grade_sheet_data(
+                target_module
+            )
 
-        file = discord.File(
-            io.BytesIO(csv_content.encode("utf-8")),
-            filename=filename
-        )
+            # Create spreadsheet
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            module_suffix = f"_{module}" if module else "_all"
+            title = f"grades{module_suffix}_{timestamp}"
 
-        # Send the file
-        module_info = f" for module **{target_module.name}**" if target_module else ""
-        await interaction.followup.send(
-            f"Grade report{module_info} generated successfully.",
-            file=file,
-            ephemeral=True
-        )
+            sheets_client = self.bot.backup_service.sheets_client
+            spreadsheet_id = sheets_client.create_spreadsheet(title)
+
+            # Write data to the default "Sheet1"
+            sheets_client.write_sheet(spreadsheet_id, "Sheet1", sheet_data)
+
+            # Move to configured folder if available
+            folder_name = self.bot.backup_service.folder_name
+            if folder_name:
+                try:
+                    folder_id = sheets_client.find_or_create_folder(folder_name)
+                    sheets_client.move_spreadsheet_to_folder(
+                        spreadsheet_id, folder_id
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to move grade spreadsheet to folder: {e}")
+
+            spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
+            module_info = (
+                f" for module **{target_module.name}**" if target_module else ""
+            )
+            await interaction.followup.send(
+                f"Grade report{module_info} exported successfully.\n{spreadsheet_url}",
+                ephemeral=True,
+            )
+
+            logger.info(
+                f"Admin {interaction.user.display_name} exported grades "
+                f"(module={module}, spreadsheet={spreadsheet_id})"
+            )
+
+        except Exception as e:
+            logger.error(f"Error exporting grades: {e}", exc_info=True)
+            await interaction.followup.send(
+                f"Failed to export grades: {str(e)}",
+                ephemeral=True,
+            )
 
     @app_commands.command(
         name="admin-status",
@@ -689,7 +723,7 @@ class AdminSlashCog(commands.Cog):
     @admin_help.error
     @list_modules.error
     @list_students.error
-    @show_grade.error
+    @export_grade.error
     @student_status.error
     @clear_similarity.error
     @send_reminders.error

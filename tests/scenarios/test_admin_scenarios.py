@@ -172,12 +172,17 @@ class TestAdminGradeReportScenarios:
                 mastery_level="proficient",
             )
 
-        # Generate CSV (no specific module)
-        csv_content = await configured_bot.grade_service.generate_grade_csv(None)
+        # Generate sheet data (no specific module)
+        sheet_data = await configured_bot.grade_service.generate_grade_sheet_data(None)
 
-        # Verify CSV content
-        assert csv_content is not None
-        assert mock_user.name in csv_content or str(mock_user.id) in csv_content
+        # Verify sheet data: header + at least one data row
+        assert sheet_data is not None
+        assert len(sheet_data) > 1  # header + data rows
+        # Check header
+        assert sheet_data[0][0] == "discord_id"
+        # Check student appears in data
+        data_values = [str(cell) for row in sheet_data[1:] for cell in row]
+        assert mock_user.name in data_values or str(mock_user.id) in data_values
 
     @pytest.mark.asyncio
     async def test_scenario_generate_grade_report_single_module(
@@ -210,12 +215,12 @@ class TestAdminGradeReportScenarios:
             mastery_level="mastered",
         )
 
-        # Generate CSV for specific module
-        csv_content = await configured_bot.grade_service.generate_grade_csv(sample_module)
+        # Generate sheet data for specific module
+        sheet_data = await configured_bot.grade_service.generate_grade_sheet_data(sample_module)
 
-        assert csv_content is not None
-        # CSV should contain module-specific data
-        assert len(csv_content) > 0
+        assert sheet_data is not None
+        # Header + at least one data row
+        assert len(sheet_data) > 1
 
 
 class TestAdminStudentStatusScenarios:
@@ -418,13 +423,13 @@ class TestAdminErrorHandlingScenarios:
         When: Admin runs !show_grade
         Then: An empty report should be generated
         """
-        # Generate CSV with no data
-        csv_content = await configured_bot.grade_service.generate_grade_csv(None)
+        # Generate sheet data with no students
+        sheet_data = await configured_bot.grade_service.generate_grade_sheet_data(None)
 
-        # Should still produce valid CSV (with headers)
-        assert csv_content is not None
-        # Headers should be present even if no data
-        assert len(csv_content) > 0
+        # Should still produce data (header row only)
+        assert sheet_data is not None
+        assert len(sheet_data) == 1  # header only
+        assert sheet_data[0][0] == "discord_id"
 
     @pytest.mark.asyncio
     async def test_scenario_student_status_for_inactive_user(
@@ -520,8 +525,9 @@ class TestAdminAccessControlScenarios:
         assert summary.get("learning", 0) == 1
 
         # Operation 4: Generate grade report
-        csv = await configured_bot.grade_service.generate_grade_csv(sample_module)
-        assert csv is not None
+        sheet_data = await configured_bot.grade_service.generate_grade_sheet_data(sample_module)
+        assert sheet_data is not None
+        assert len(sheet_data) > 1
 
         # Operation 5: List all students
         users = await configured_bot.user_repo.get_all()

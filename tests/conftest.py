@@ -251,7 +251,7 @@ async def quiz_service(mastery_repository, quiz_repository, mock_llm_manager):
 
 
 @pytest_asyncio.fixture
-async def grade_service(user_repository, mastery_repository, sample_course):
+async def grade_service(user_repository, mastery_repository, llm_quiz_repository, sample_course):
     """Create a grade service with mock dependencies."""
     from chibi.services.grade_service import GradeService
 
@@ -259,6 +259,9 @@ async def grade_service(user_repository, mastery_repository, sample_course):
         user_repo=user_repository,
         mastery_repo=mastery_repository,
         course=sample_course,
+        llm_quiz_repo=llm_quiz_repository,
+        llm_quiz_target_wins=2,
+        min_attempts=3,
     )
 
 
@@ -363,6 +366,9 @@ async def configured_bot(
         user_repo=user_repository,
         mastery_repo=mastery_repository,
         course=sample_course,
+        llm_quiz_repo=llm_quiz_repository,
+        llm_quiz_target_wins=2,
+        min_attempts=3,
     )
 
     # Return a context object with all services

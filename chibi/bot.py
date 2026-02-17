@@ -262,6 +262,9 @@ class ChibiBot(commands.Bot):
             user_repo=self.user_repo,
             mastery_repo=self.mastery_repo,
             course=self.course,
+            llm_quiz_repo=self.llm_quiz_repo,
+            llm_quiz_target_wins=self.config.llm_quiz.target_wins_per_module,
+            min_attempts=self.config.mastery.min_attempts_for_mastery,
         )
         self.llm_quiz_service = LLMQuizChallengeService(
             llm_quiz_repo=self.llm_quiz_repo,
