@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import dspy
@@ -11,6 +11,7 @@ import dspy
 # Add llm-quiz to path for importing DSPy signatures
 sys.path.insert(0, "llm-quiz")
 from llm_quiz import AnswerQuizQuestion, EvaluateAnswer
+from llm_quiz.dspy_core import _is_answer_truncated
 
 if TYPE_CHECKING:
     from ..config import LLMQuizConfig
@@ -33,6 +34,9 @@ class LLMQuizChallengeResult:
     evaluation_summary: str  # Brief 1-2 sentence summary
     evaluation_explanation: str  # Detailed explanation (for logging)
     factual_issues: List[str]
+    question_objectivity: str = "OBJECTIVE"  # "OBJECTIVE" or "SUBJECTIVE"
+    answer_verifiable: bool = True
+    rejection_reasons: List[str] = field(default_factory=list)  # Why student win was rejected
 
 
 class LLMQuizChallengeService:
@@ -122,11 +126,36 @@ class LLMQuizChallengeService:
             except Exception as e:
                 logger.error(f"Error evaluating answers: {e}", exc_info=True)
                 # Default to student loses on error
+                evaluation = None
                 student_wins = False
                 summary = f"Evaluation error: {str(e)[:100]}"
                 explanation = f"Error during evaluation: {str(e)}"
                 student_answer_correctness = "CORRECT"
                 factual_issues = []
+
+        # Extract objectivity/verifiability from evaluation
+        question_objectivity = getattr(evaluation, "question_objectivity", "OBJECTIVE") if evaluation else "OBJECTIVE"
+        answer_verifiable = getattr(evaluation, "answer_verifiable", True) if evaluation else True
+
+        # Apply post-evaluation rejection checks
+        rejection_reasons = []
+
+        if question_objectivity == "SUBJECTIVE" or not answer_verifiable:
+            if student_wins:
+                student_wins = False
+                rejection_reasons.append(
+                    f"subjective/unverifiable (objectivity={question_objectivity}, verifiable={answer_verifiable})"
+                )
+                logger.info(
+                    f"LLM Quiz Challenge: Rejected - subjective/unverifiable "
+                    f"(objectivity={question_objectivity}, verifiable={answer_verifiable})"
+                )
+
+        if _is_answer_truncated(student_answer):
+            if student_wins:
+                student_wins = False
+                rejection_reasons.append("student answer appears truncated")
+                logger.info("LLM Quiz Challenge: Rejected - student answer appears truncated")
 
         logger.info(f"LLM Quiz Challenge: Student wins = {student_wins}")
 
@@ -138,6 +167,9 @@ class LLMQuizChallengeService:
             evaluation_summary=summary,
             evaluation_explanation=explanation,
             factual_issues=factual_issues if isinstance(factual_issues, list) else [],
+            question_objectivity=question_objectivity,
+            answer_verifiable=answer_verifiable,
+            rejection_reasons=rejection_reasons,
         )
 
     async def challenge_llm(
