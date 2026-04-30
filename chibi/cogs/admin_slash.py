@@ -112,6 +112,11 @@ class AdminSlashCog(commands.Cog):
             value="Send reminder DMs to students with incomplete work\n*Use preview:True to see who would be reminded without sending*",
             inline=False,
         )
+        embed.add_field(
+            name="`/admin-resend-reviews`",
+            value="Re-send review dropdowns for all pending LLM quiz submissions\n*Use this if review buttons stopped working*",
+            inline=False,
+        )
 
         # Attendance commands section
         embed.add_field(
@@ -719,6 +724,80 @@ class AdminSlashCog(commands.Cog):
             f"(sent={sent}, failed={failed})"
         )
 
+    @app_commands.command(
+        name="admin-resend-reviews",
+        description="[ADMIN] Re-send review messages for all pending LLM quiz submissions"
+    )
+    @app_commands.checks.has_permissions(administrator=True)
+    async def resend_reviews(self, interaction: discord.Interaction):
+        """Re-send fresh review dropdowns for all PENDING LLM quiz attempts."""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        admin_channel_id = self.bot.config.discord.admin_channel_id
+        if not admin_channel_id:
+            await interaction.followup.send(
+                "Admin channel is not configured.", ephemeral=True
+            )
+            return
+
+        try:
+            admin_channel = self.bot.get_channel(admin_channel_id)
+            if not admin_channel:
+                admin_channel = await self.bot.fetch_channel(admin_channel_id)
+        except Exception as e:
+            await interaction.followup.send(
+                f"Could not find admin channel: {e}", ephemeral=True
+            )
+            return
+
+        pending = await self.bot.llm_quiz_repo.get_pending_reviews()
+        if not pending:
+            await interaction.followup.send("No pending reviews found.", ephemeral=True)
+            return
+
+        # Import here to avoid circular imports
+        from ..ui.views.admin_review import AdminReviewView, build_review_request_embed
+        from ..cogs.llm_quiz import LLMQuizCog
+
+        llm_quiz_cog = self.bot.cogs.get("LLMQuizCog")
+        if not llm_quiz_cog:
+            await interaction.followup.send(
+                "LLMQuizCog not found — cannot re-send reviews.", ephemeral=True
+            )
+            return
+
+        sent = 0
+        for attempt in pending:
+            try:
+                module = self.bot.course.get_module(attempt.module_id)
+                module_name = module.name if module else attempt.module_id
+
+                # Look up the student username
+                user_record = await self.bot.user_repo.get_by_discord_id(str(attempt.discord_user_id)) if attempt.discord_user_id else None
+                student_username = user_record.username if user_record else str(attempt.discord_user_id or attempt.user_id)
+
+                embed = build_review_request_embed(
+                    attempt=attempt,
+                    student_username=student_username,
+                    module_name=module_name,
+                )
+                view = AdminReviewView(
+                    attempt_id=attempt.id,
+                    on_review_callback=llm_quiz_cog.handle_review_decision,
+                )
+                await admin_channel.send(embed=embed, view=view)
+                sent += 1
+            except Exception as e:
+                logger.error(f"Failed to re-send review for attempt #{attempt.id}: {e}", exc_info=True)
+
+        await interaction.followup.send(
+            f"Re-sent **{sent}** pending review(s) to <#{admin_channel_id}>.",
+            ephemeral=True,
+        )
+        logger.info(
+            f"Admin {interaction.user.display_name} re-sent {sent} pending review(s)"
+        )
+
     # Error handlers for permission errors
     @admin_help.error
     @list_modules.error
@@ -727,6 +806,7 @@ class AdminSlashCog(commands.Cog):
     @student_status.error
     @clear_similarity.error
     @send_reminders.error
+    @resend_reviews.error
     async def admin_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ):
