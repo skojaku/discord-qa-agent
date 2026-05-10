@@ -160,6 +160,16 @@ class BackupConfig:
 
 
 @dataclass
+class ExplainConfig:
+    """Configuration for explain content creation feature."""
+
+    admin_channel_id: Optional[int] = None  # Channel where admin threads are created
+    output_channel_id: Optional[int] = None  # Channel where content is posted (#ai-tutor)
+    thread_prefix: str = "[Explain]"
+    completion_timeout: int = 86400  # 24 hours
+
+
+@dataclass
 class Config:
     """Main configuration container."""
 
@@ -174,6 +184,7 @@ class Config:
     attendance: AttendanceConfig
     contextual_retrieval: ContextualRetrievalConfig
     backup: BackupConfig
+    explain: ExplainConfig
 
     # Environment variables (loaded separately)
     discord_token: str = ""
@@ -236,6 +247,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     agent_data = data.get("agent", {})
     attendance_data = data.get("attendance", {})
     contextual_retrieval_data = data.get("contextual_retrieval", {})
+    explain_data = data.get("explain", {})
 
     # Load admin channel ID from environment variable
     admin_channel_id_str = os.getenv("ADMIN_CHANNEL_ID", "")
@@ -252,6 +264,13 @@ def load_config(config_path: str = "config.yaml") -> Config:
         nl_routing_channels = [
             int(ch.strip()) for ch in nl_routing_channels_str.split(",") if ch.strip()
         ]
+
+    # Load explain channel IDs from environment variables
+    explain_admin_channel_id_str = os.getenv("EXPLAIN_ADMIN_CHANNEL_ID", "")
+    explain_admin_channel_id = int(explain_admin_channel_id_str) if explain_admin_channel_id_str else None
+
+    ai_tutor_channel_id_str = os.getenv("AI_TUTOR_CHANNEL_ID", "")
+    ai_tutor_channel_id = int(ai_tutor_channel_id_str) if ai_tutor_channel_id_str else None
 
     config = Config(
         discord=DiscordConfig(
@@ -321,6 +340,12 @@ def load_config(config_path: str = "config.yaml") -> Config:
                 "https://www.googleapis.com/auth/spreadsheets",
                 "https://www.googleapis.com/auth/drive.file"
             ]),
+        ),
+        explain=ExplainConfig(
+            admin_channel_id=explain_admin_channel_id,
+            output_channel_id=ai_tutor_channel_id,
+            thread_prefix=explain_data.get("thread_prefix", "[Explain]"),
+            completion_timeout=explain_data.get("completion_timeout", 86400),
         ),
         discord_token=os.getenv("DISCORD_TOKEN", ""),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),

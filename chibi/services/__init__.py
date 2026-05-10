@@ -5,6 +5,7 @@ from .chunking import TextChunk, TextChunker
 from .content_indexer import ContentIndexer
 from .contextual_chunking_service import ContextualChunkConfig, ContextualChunkingService
 from .embedding_service import EmbeddingService
+from .explain_service import ExplainService, ExplainSession
 from .grade_service import GradeService
 from .guidance_service import GuidanceService
 from .llm_quiz_service import LLMQuizChallengeResult, LLMQuizChallengeService
@@ -21,6 +22,8 @@ __all__ = [
     "ContextualChunkingService",
     "EmbeddingService",
     "EvaluationResult",
+    "ExplainService",
+    "ExplainSession",
     "GradeService",
     "GuidanceService",
     "LLMQuizChallengeResult",
